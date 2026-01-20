@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -10,8 +10,9 @@ from backend.app.db.reminder_queries import (
     get_schedules_for_day_type,
     create_active_for_date,
     get_due_active,
-    bump_next_fire,
+    set_next_fire,
     log_action,
+    mark_missed,
 )
 
 TZ = ZoneInfo("Europe/London")
@@ -55,11 +56,33 @@ def arm_today():
         )
 
 def _nag_tick():
-    now = datetime.now(TZ).isoformat(timespec="seconds")
-    row = get_due_active(now)
+    now_dt = datetime.now(TZ)
+    now_iso = now_dt.isoformat(timespec="seconds")
+    row = get_due_active(now_iso)
     if not row:
+        return
+
+    hh, mm = row["scheduled_hhmm"].split(":")
+    due_dt = datetime(
+        year=int(row["dose_date"][:4]),
+        month=int(row["dose_date"][5:7]),
+        day=int(row["dose_date"][8:10]),
+        hour=int(hh),
+        minute=int(mm),
+        tzinfo=TZ,
+    )
+    window_end = due_dt + timedelta(minutes=30)
+    if now_dt > window_end:
+        mark_missed(row["id"])
+        log_action(row["reminder_key"], "missed")
         return
 
     print(f"[REMINDER] active_id={row['id']} | due={row['scheduled_hhmm']} | {row['label']} - {row['speak_text']}")
     log_action(row["reminder_key"], "fired")
-    bump_next_fire(row["id"], minutes=5)
+    row_next_fire = datetime.fromisoformat(row["next_fire_at"])
+    if row_next_fire.tzinfo is None:
+        row_next_fire = row_next_fire.replace(tzinfo=TZ)
+    next_fire_dt = row_next_fire + timedelta(minutes=5)
+    if next_fire_dt > window_end:
+        next_fire_dt = window_end
+    set_next_fire(row["id"], next_fire_dt.isoformat(timespec="seconds"))

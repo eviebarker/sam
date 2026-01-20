@@ -24,6 +24,7 @@ export async function getReminders(dateYYYYMMDD: string) {
       dose_date: string;
       scheduled_hhmm: string;
       next_fire_at: string;
+      status: "active" | "done" | "missed";
       due_now: boolean;
     }[];
   }>;

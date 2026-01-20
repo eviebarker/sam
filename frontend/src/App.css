@@ -229,4 +229,23 @@ h2{
 .reminders { display: grid; gap: 10px; margin-bottom: 12px; }
 .reminderRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; border-radius: 14px; }
 .reminderRow--due { outline: 2px solid rgba(255,255,255,0.35); }
+.reminderRow--inactive { opacity: 0.55; }
 .reminderText { display: grid; gap: 4px; }
+.reminderTop { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.reminderStatus {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.reminderStatus--done {
+  background: rgba(120,255,180,0.16);
+  color: rgba(220,255,235,0.9);
+}
+.reminderStatus--missed {
+  background: rgba(255,120,120,0.18);
+  color: rgba(255,210,210,0.9);
+}
