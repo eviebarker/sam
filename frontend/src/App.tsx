@@ -11,6 +11,8 @@ type Dashboard = {
   next_task: string | null;
 };
 
+type ReminderStatus = "active" | "done" | "missed";
+
 type Reminder = {
   id: number;
   reminder_key: string;
@@ -19,6 +21,7 @@ type Reminder = {
   dose_date: string;
   scheduled_hhmm: string;
   next_fire_at: string;
+  status: ReminderStatus;
   due_now: boolean;
 };
 
@@ -91,6 +94,30 @@ export default function App() {
     : "--";
 
   const workLabel = isWork === null ? "…" : isWork ? "Work day" : "Day off";
+  const hasNow = Boolean(now);
+  const nowForWindow = now ?? new Date();
+  const remindersWithWindow = reminders.map((r) => {
+    const dueAt = new Date(`${r.dose_date}T${r.scheduled_hhmm}:00`);
+    const windowEnd = new Date(dueAt.getTime() + 30 * 60 * 1000);
+    const inWindow = hasNow ? nowForWindow >= dueAt && nowForWindow <= windowEnd : false;
+    const overdue = hasNow ? nowForWindow > windowEnd : false;
+    const derivedStatus: ReminderStatus =
+      r.status === "active" && overdue ? "missed" : r.status;
+    return { ...r, dueAt, windowEnd, inWindow, overdue, derivedStatus };
+  });
+  const visibleReminders = remindersWithWindow.filter((r) => {
+    if (!hasNow) return true;
+    if (r.status === "active") {
+      return r.inWindow || r.overdue;
+    }
+    return true;
+  });
+  const sortedReminders = [...visibleReminders].sort((a, b) => {
+    const aPriority = a.inWindow ? 0 : 1;
+    const bPriority = b.inWindow ? 0 : 1;
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    return a.dueAt.getTime() - b.dueAt.getTime();
+  });
 
   return (
     <div className="page">
@@ -150,29 +177,51 @@ export default function App() {
           </div>
 
           {/* Med reminders (active) */}
-          {reminders.length ? (
+          {sortedReminders.length ? (
             <div className="reminders">
-              {reminders.map((r) => (
-                <div
-                  key={r.id}
-                  className={`reminderRow ${r.due_now ? "reminderRow--due" : ""}`}
-                >
-                  <div className="reminderText">
-                    <div className="reminderTop">
-                      <strong>{r.label}</strong>{" "}
-                      <span className="subtle">due {r.scheduled_hhmm}</span>
-                    </div>
-                    <div className="subtle">{r.speak_text}</div>
-                  </div>
-
-                  <button
-                    className="glass-pill glass-pill--small"
-                    onClick={() => markDone(r)}
+              {sortedReminders.map((r) => {
+                const statusLabel =
+                  r.derivedStatus === "done"
+                    ? "Taken"
+                    : r.derivedStatus === "missed"
+                      ? "Missed"
+                      : null;
+                const showDone = r.derivedStatus === "active" && r.inWindow;
+                return (
+                  <div
+                    key={r.id}
+                    className={`reminderRow${r.inWindow ? " reminderRow--due" : ""}${
+                      r.derivedStatus !== "active" ? " reminderRow--inactive" : ""
+                    }${r.derivedStatus === "missed" ? " reminderRow--missed" : ""}${
+                      r.derivedStatus === "done" ? " reminderRow--done" : ""
+                    }`}
                   >
-                    Done
-                  </button>
-                </div>
-              ))}
+                    <div className="reminderText">
+                      <div className="reminderTop">
+                        <strong>{r.label}</strong>{" "}
+                        <span className="subtle">due {r.scheduled_hhmm}</span>
+                        {statusLabel ? (
+                          <span
+                            className={`reminderStatus reminderStatus--${r.derivedStatus}`}
+                          >
+                            {statusLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="subtle">{r.speak_text}</div>
+                    </div>
+
+                    {showDone ? (
+                      <button
+                        className="glass-pill glass-pill--small"
+                        onClick={() => markDone(r)}
+                      >
+                        Done
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           ) : null}
 
@@ -184,7 +233,7 @@ export default function App() {
               ))}
             </ul>
           ) : (
-            <p className="big">{reminders.length ? "" : "None"}</p>
+            <p className="big">{sortedReminders.length ? "" : "None"}</p>
           )}
         </section>
 

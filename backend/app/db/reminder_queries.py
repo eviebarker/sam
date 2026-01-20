@@ -14,7 +14,7 @@ def create_active_for_date(reminder_key: str, label: str, speak_text: str, dose_
     with get_conn() as conn:
         existing = conn.execute(
             """SELECT * FROM reminder_active
-               WHERE reminder_key=? AND dose_date=? AND status='active'
+               WHERE reminder_key=? AND dose_date=?
                ORDER BY id DESC LIMIT 1;""",
             (reminder_key, dose_date),
         ).fetchone()
@@ -51,9 +51,20 @@ def bump_next_fire(active_id: int, minutes: int):
         conn.commit()
     return nxt
 
+def set_next_fire(active_id: int, next_fire_at_iso: str):
+    with get_conn() as conn:
+        conn.execute("UPDATE reminder_active SET next_fire_at=? WHERE id=?;", (next_fire_at_iso, active_id))
+        conn.commit()
+    return next_fire_at_iso
+
 def mark_done(active_id: int):
     with get_conn() as conn:
         conn.execute("UPDATE reminder_active SET status='done' WHERE id=?;", (active_id,))
+        conn.commit()
+
+def mark_missed(active_id: int):
+    with get_conn() as conn:
+        conn.execute("UPDATE reminder_active SET status='missed' WHERE id=?;", (active_id,))
         conn.commit()
 
 def log_action(reminder_key: str, action: str):
@@ -64,12 +75,17 @@ def log_action(reminder_key: str, action: str):
         )
         conn.commit()
 
-def list_active_for_date(dose_date: str):
+def list_for_date(dose_date: str):
     with get_conn() as conn:
         return conn.execute(
-            """SELECT id, reminder_key, label, speak_text, dose_date, scheduled_hhmm, next_fire_at
+            """SELECT id, reminder_key, label, speak_text, dose_date, scheduled_hhmm, next_fire_at, status
                FROM reminder_active
-               WHERE status='active' AND dose_date=?
+               WHERE id IN (
+                 SELECT MAX(id)
+                 FROM reminder_active
+                 WHERE dose_date=?
+                 GROUP BY reminder_key
+               )
                ORDER BY scheduled_hhmm ASC;""",
             (dose_date,),
         ).fetchall()
