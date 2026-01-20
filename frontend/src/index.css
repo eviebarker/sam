@@ -66,3 +66,63 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ===== Glass UI helpers (copied vibe from BL Contact page) ===== */
+
+.glass-panel{
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 24px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.45);
+}
+
+.glass-panel-soft{
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+}
+
+.glass-pill{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: rgba(255,255,255,0.92);
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.glass-pill:hover{
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.18);
+  transform: translateY(-1px);
+}
+
+.glass-cta{
+  border-color: rgba(47,123,255,0.50);
+  background: rgba(47,123,255,0.16);
+}
+
+.glass-cta:hover{
+  background: rgba(47,123,255,0.22);
+  border-color: rgba(47,123,255,0.62);
+}
+
+.top-pill{
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 16px 50px rgba(0,0,0,0.35);
+}

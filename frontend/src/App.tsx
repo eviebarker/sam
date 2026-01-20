@@ -43,8 +43,17 @@ export default function App() {
   }, []);
 
   const now = data?.now ? new Date(data.now) : null;
-  const timeStr = now ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--";
-  const dateStr = now ? now.toLocaleDateString([], { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) : "--";
+  const timeStr = now
+    ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : "--:--";
+  const dateStr = now
+    ? now.toLocaleDateString([], {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : "--";
 
   return (
     <div className="page">
@@ -67,60 +76,59 @@ export default function App() {
         </div>
 
         <div className="topRight">
-          <button className="btn" onClick={refresh}>Refresh</button>
+          <button className="glass-pill" onClick={refresh}>
+            Refresh
+          </button>
         </div>
       </header>
 
-      {err && <div className="err">Backend error: {err}</div>}
+      {err && <div className="err glass-soft">Backend error: {err}</div>}
 
       <main className="grid">
-        <section className="card">
+        <section className="card glass-tile">
           <div className="cardHeader">
             <h2>Today</h2>
           </div>
           <p className="body">{data?.today_summary ?? "Loading..."}</p>
         </section>
 
-        <section className="card">
+        <section className="card glass-tile">
           <div className="cardHeader">
             <h2>Workday</h2>
-            <span
-              className={
-                "pill " +
-                (isWork === null ? "pillNeutral" : isWork ? "pillWork" : "pillOff")
-              }
-            >
+            <span className="glass-pill glass-pill--small">
               {isWork === null ? "…" : isWork ? "Work day" : "Day off"}
             </span>
           </div>
           <p className="subtle">Default: Mon–Wed work unless overridden</p>
         </section>
 
-        <section className="card">
+        <section className="card glass-tile">
           <div className="cardHeader">
             <h2>Next task</h2>
           </div>
           <p className="big">{data?.next_task ?? "None"}</p>
         </section>
 
-        <section className="card">
+        <section className="card glass-tile">
           <div className="cardHeader">
             <h2>Alerts</h2>
           </div>
           {data?.alerts?.length ? (
             <ul className="list">
-              {data.alerts.map((a, i) => <li key={i}>{a.message}</li>)}
+              {data.alerts.map((a, i) => (
+                <li key={i}>{a.message}</li>
+              ))}
             </ul>
           ) : (
             <p className="big">None</p>
           )}
         </section>
 
-        <section className="card">
+        <section className="card glass-tile">
           <div className="cardHeader">
             <h2>Push to talk</h2>
           </div>
-          <button className="mic" onClick={() => alert("PTT coming soon")}>
+          <button className="glass-pill micPill" onClick={() => alert("PTT coming soon")}>
             Hold to talk
           </button>
           <p className="subtle">v1: button only (no hotword)</p>
