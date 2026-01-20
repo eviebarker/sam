@@ -13,7 +13,7 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 
 ## What the app does (high-level)
 - Knows **work/off days** (default pattern **Mon–Wed = work, Thu–Sun = off**, with per-date overrides for swaps), plus locations/days off/holidays/events
-- Medication reminders that **repeat until confirmed** (e.g., every 5 min)
+- Medication reminders that **repeat every 5 min within a 30‑minute window**, then mark **missed**
 - “Remember this in 6 months” reminders with escalating cadence (monthly → weekly → daily → day-of)
 - Morning brief (short, actionable, low-noise)
 - ADHD-friendly tasks: **one step at a time**, can break big tasks into micro-steps
@@ -31,7 +31,7 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 - `backend/app/api/` (API layer: thin routes)
   - `routes_dashboard.py` — `GET /api/dashboard`
   - `routes_tasks.py` — `POST /api/tasks`
-  - `routes_reminders.py` — confirm reminders (e.g. `POST /api/reminders/done`)
+  - `routes_reminders.py` — list/confirm reminders (e.g. `GET /api/reminders/active`, `POST /api/reminders/done`)
   - `routes_workdays.py` — set/check work/off overrides (e.g. `POST /api/workdays`, `GET /api/workdays/{date}`)
   - `routes_talk.py` — `POST /api/talk` (push-to-talk flow) *(later)*
   - `routes_stream.py` — SSE/WebSocket stream for proactive prompts *(later)*  
@@ -56,7 +56,7 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
   - `dashboard_service.py` — builds the dashboard view from DB state
   - `scheduler_service.py` — APScheduler jobs:
     - **arms today’s reminders** based on work/off day
-    - runs a **nag loop** (repeats every 5 min until “done”)
+    - runs a **nag loop** (repeats every 5 min until “done” or 30‑minute window ends)
   - `calendar_service.py` — add events/holidays + conflict checking *(later)*
   - `task_service.py` — one-at-a-time tasks + breakdown *(later)*
   - `reminder_service.py` — escalation rules + reminder state machine *(later)*
@@ -106,6 +106,14 @@ Tools should be normal service functions (calendar/task/reminder services).
 ### 7) UI feature?
 Add React components in `frontend/src/components/`.  
 If it needs new data, extend the dashboard response in `dashboard_service.py`.
+
+---
+
+## Reminder timing (current behavior)
+- Reminders only **surface during their 30‑minute window** (from scheduled time to +30 min)
+- A **nag fires every 5 minutes** during that window
+- Past the window, reminders are marked **missed** if not done
+- UI shows `taken`/`missed` states (greyed) and sorts active‑window items first
 
 ### 8) New config knob?
 Add it to `core/config.py` (with defaults), don’t scatter constants across files.
