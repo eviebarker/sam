@@ -1,9 +1,16 @@
 .page { padding: 20px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
 .top { display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; }
-.clock { font-size: 20px; }
+.clock { font-size: 28px; font-weight: 600; }
 .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.card { border:1px solid #3333; border-radius: 14px; padding: 16px; background: #1112; }
+.card { border:1px solid #3333; border-radius: 18px; padding: 18px; background: #1112; min-height: 150px; }
 .btn { padding:10px 14px; border-radius: 12px; border:1px solid #3336; background:#222; color:#fff; }
 .mic { width:100%; padding:18px; border-radius: 16px; border:1px solid #3336; background:#2a2a2a; color:#fff; font-size:18px; }
-.hint { opacity:0.7; font-size: 13px; }
+.hint { opacity:0.7; font-size: 13px; margin-top: 10px; }
 .err { padding: 10px 12px; border: 1px solid #a33; border-radius: 12px; margin-bottom: 12px; }
+.big { font-size: 22px; font-weight: 600; margin: 0; }
+
+/* Landscape / wide screens: 3 columns */
+@media (min-width: 900px) {
+  .grid { grid-template-columns: repeat(3, 1fr); }
+  .card { min-height: 170px; }
+}
