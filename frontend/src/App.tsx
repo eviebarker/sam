@@ -55,6 +55,8 @@ export default function App() {
       })
     : "--";
 
+  const workLabel = isWork === null ? "…" : isWork ? "Work day" : "Day off";
+
   return (
     <div className="page">
       <div className="bg">
@@ -76,40 +78,31 @@ export default function App() {
         </div>
 
         <div className="topRight">
-          <button className="glass-pill" onClick={refresh}>
-            Refresh
-          </button>
+          <span className="glass-pill glass-pill--small">{workLabel}</span>
         </div>
       </header>
 
       {err && <div className="err glass-soft">Backend error: {err}</div>}
 
       <main className="grid">
-        <section className="card glass-tile">
+        {/* Left column, row 1 */}
+        <section className="card glass-tile slot-l1 card--left">
           <div className="cardHeader">
             <h2>Today</h2>
           </div>
           <p className="body">{data?.today_summary ?? "Loading..."}</p>
         </section>
 
-        <section className="card glass-tile">
-          <div className="cardHeader">
-            <h2>Workday</h2>
-            <span className="glass-pill glass-pill--small">
-              {isWork === null ? "…" : isWork ? "Work day" : "Day off"}
-            </span>
-          </div>
-          <p className="subtle">Default: Mon–Wed work unless overridden</p>
-        </section>
-
-        <section className="card glass-tile">
+        {/* Right column, row 1 */}
+        <section className="card glass-tile slot-r1 card--right">
           <div className="cardHeader">
             <h2>Next task</h2>
           </div>
           <p className="big">{data?.next_task ?? "None"}</p>
         </section>
 
-        <section className="card glass-tile">
+        {/* Left column, row 2 */}
+        <section className="card glass-tile slot-l2 card--left">
           <div className="cardHeader">
             <h2>Alerts</h2>
           </div>
@@ -124,11 +117,15 @@ export default function App() {
           )}
         </section>
 
-        <section className="card glass-tile">
+        {/* Right column, row 2 */}
+        <section className="card glass-tile slot-r2 card--right">
           <div className="cardHeader">
             <h2>Push to talk</h2>
           </div>
-          <button className="glass-pill micPill" onClick={() => alert("PTT coming soon")}>
+          <button
+            className="glass-pill micPill"
+            onClick={() => alert("PTT coming soon")}
+          >
             Hold to talk
           </button>
           <p className="subtle">v1: button only (no hotword)</p>

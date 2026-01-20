@@ -102,30 +102,50 @@ body{
 .time{ font-size: clamp(42px, 5vw, 72px); font-weight: 780; letter-spacing: -0.03em; }
 .date{ font-size: clamp(14px, 1.4vw, 20px); color: var(--muted); }
 
+.topRight{
+  display:flex;
+  align-items:flex-end;
+}
+
 /* Error */
 .err{
   padding: 12px 14px;
   margin-bottom: 14px;
 }
 
-/* Grid: always fill width, good in landscape */
+/* Grid: 3 equal columns (left tiles, empty gap, right tiles) */
 .grid{
   display:grid;
   gap: 18px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto auto;
   align-items: stretch;
 }
 
-/* Drop to 2 columns if narrow */
-@media (max-width: 900px){
-  .grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+/* Explicit placement: left col (1), right col (3) */
+.slot-l1{ grid-column: 1; grid-row: 1; }
+.slot-r1{ grid-column: 3; grid-row: 1; }
+.slot-l2{ grid-column: 1; grid-row: 2; }
+.slot-r2{ grid-column: 3; grid-row: 2; }
 
 /* Cards: layout only */
 .card{
   border-radius: 24px;
   padding: 20px;
   min-height: 190px;
+}
+
+/* Make cards slightly narrower while staying aligned to outer edges */
+.card--left{
+  width: 100%;
+  max-width: 88%;
+  justify-self: start; /* flush left edge of its column */
+}
+
+.card--right{
+  width: 100%;
+  max-width: 88%;
+  justify-self: end;   /* flush right edge of its column */
 }
 
 .cardHeader{
@@ -155,4 +175,23 @@ h2{
   padding: 18px 18px;
   font-size: 20px;
   font-weight: 780;
+}
+
+/* Drop to single column if narrow */
+@media (max-width: 900px){
+  .grid{
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .slot-l1, .slot-r1, .slot-l2, .slot-r2{
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .card--left,
+  .card--right{
+    max-width: 100%;
+    justify-self: stretch;
+  }
 }
