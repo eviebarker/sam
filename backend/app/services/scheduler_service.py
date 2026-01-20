@@ -6,6 +6,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from backend.app.db.reminder_seed import seed_defaults_if_empty
 from backend.app.db.workday_queries import is_work_day
+from backend.app.services.event_reminder_service import create_event_reminders_for_date
 from backend.app.db.reminder_queries import (
     get_schedules_for_day_type,
     create_active_for_date,
@@ -54,6 +55,8 @@ def arm_today():
             scheduled_hhmm=s["time_hhmm"],
             next_fire_at_iso=fire_dt.isoformat(timespec="seconds"),
         )
+
+    create_event_reminders_for_date(today)
 
 def _nag_tick():
     now_dt = datetime.now(TZ)

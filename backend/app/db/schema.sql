@@ -7,6 +7,17 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  event_date TEXT NOT NULL,
+  start_hhmm TEXT,
+  end_hhmm TEXT,
+  all_day INTEGER NOT NULL DEFAULT 0,
+  reminder_preset TEXT NOT NULL DEFAULT 'none',
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS alerts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   message TEXT NOT NULL,
@@ -16,7 +27,9 @@ CREATE TABLE IF NOT EXISTS alerts (
 -- Dynamic work/off day mapping
 CREATE TABLE IF NOT EXISTS work_days (
   date TEXT PRIMARY KEY,
-  is_work INTEGER NOT NULL
+  is_work INTEGER NOT NULL,
+  start_hhmm TEXT,
+  end_hhmm TEXT
 );
 
 -- Reminder schedules by day type (work/off)
