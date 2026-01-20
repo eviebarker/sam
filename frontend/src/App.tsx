@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getDashboard, getWorkday } from "./api";
+import { getDashboard, getWorkday, getReminders, doneReminder } from "./api";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
 import "./App.css";
@@ -9,6 +9,23 @@ type Dashboard = {
   today_summary: string;
   alerts: { message: string }[];
   next_task: string | null;
+};
+
+type Reminder = {
+  id: number;
+  reminder_key: string;
+  label: string;
+  speak_text: string;
+  dose_date: string;
+  scheduled_hhmm: string;
+  next_fire_at: string;
+  due_now: boolean;
+};
+
+type RemindersResp = {
+  date: string;
+  now: string;
+  reminders: Reminder[];
 };
 
 function ymdLocal(d: Date) {
@@ -21,17 +38,34 @@ function ymdLocal(d: Date) {
 export default function App() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [isWork, setIsWork] = useState<boolean | null>(null);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
   async function refresh() {
     try {
       setErr(null);
+
       const dash = await getDashboard();
       setData(dash);
 
       const dateStr = ymdLocal(new Date(dash.now));
+
       const wd = await getWorkday(dateStr);
       setIsWork(wd.is_work);
+
+      const rr: RemindersResp = await getReminders(dateStr);
+      setReminders(rr.reminders ?? []);
+    } catch (e: any) {
+      setErr(e?.message ?? "failed");
+    }
+  }
+
+  async function markDone(r: Reminder) {
+    try {
+      setErr(null);
+      await doneReminder(r.id, r.reminder_key);
+      // refresh right away so it disappears instantly
+      await refresh();
     } catch (e: any) {
       setErr(e?.message ?? "failed");
     }
@@ -47,7 +81,7 @@ export default function App() {
   const timeStr = now
     ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : "--:--";
-  const dateStr = now
+  const dateStrPretty = now
     ? now.toLocaleDateString([], {
         weekday: "long",
         day: "2-digit",
@@ -75,7 +109,7 @@ export default function App() {
       <header className="top">
         <div className="topLeft">
           <div className="time">{timeStr}</div>
-          <div className="date">{dateStr}</div>
+          <div className="date">{dateStrPretty}</div>
         </div>
 
         <div className="topRight">
@@ -105,12 +139,7 @@ export default function App() {
         {/* Middle column: Orb (no tile/background) */}
         <div className="orbSlot" aria-hidden="true">
           <div className="orbWrap">
-            <Orb
-              hue={0}
-              hoverIntensity={2}
-              rotateOnHover={false}
-              forceHoverState={false}
-            />
+            <Orb hue={0} hoverIntensity={2} rotateOnHover={false} forceHoverState={false} />
           </div>
         </div>
 
@@ -119,6 +148,35 @@ export default function App() {
           <div className="cardHeader">
             <h2>Alerts</h2>
           </div>
+
+          {/* Med reminders (active) */}
+          {reminders.length ? (
+            <div className="reminders">
+              {reminders.map((r) => (
+                <div
+                  key={r.id}
+                  className={`reminderRow ${r.due_now ? "reminderRow--due" : ""}`}
+                >
+                  <div className="reminderText">
+                    <div className="reminderTop">
+                      <strong>{r.label}</strong>{" "}
+                      <span className="subtle">due {r.scheduled_hhmm}</span>
+                    </div>
+                    <div className="subtle">{r.speak_text}</div>
+                  </div>
+
+                  <button
+                    className="glass-pill glass-pill--small"
+                    onClick={() => markDone(r)}
+                  >
+                    Done
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {/* Normal alerts */}
           {data?.alerts?.length ? (
             <ul className="list">
               {data.alerts.map((a, i) => (
@@ -126,7 +184,7 @@ export default function App() {
               ))}
             </ul>
           ) : (
-            <p className="big">None</p>
+            <p className="big">{reminders.length ? "" : "None"}</p>
           )}
         </section>
 
@@ -135,10 +193,7 @@ export default function App() {
           <div className="cardHeader">
             <h2>Push to talk</h2>
           </div>
-          <button
-            className="glass-pill micPill"
-            onClick={() => alert("PTT coming soon")}
-          >
+          <button className="glass-pill micPill" onClick={() => alert("PTT coming soon")}>
             Hold to talk
           </button>
           <p className="subtle">v1: button only (no hotword)</p>

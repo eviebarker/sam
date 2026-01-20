@@ -225,3 +225,8 @@ h2{
   .orbSlot{ pointer-events: none; }
   .orbWrap{ pointer-events: auto; }
 }
+
+.reminders { display: grid; gap: 10px; margin-bottom: 12px; }
+.reminderRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; border-radius: 14px; }
+.reminderRow--due { outline: 2px solid rgba(255,255,255,0.35); }
+.reminderText { display: grid; gap: 4px; }
