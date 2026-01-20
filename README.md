@@ -19,6 +19,8 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 - ADHD-friendly tasks: **one step at a time**, can break big tasks into micro-steps
 - Conflict-aware scheduling: warns like **“you’re on holiday then”** before booking
 - “Daft fact” panel: pulls a random fact and refreshes on **London time slots** (09/13/17/21)
+- Events: stored per day with **time ranges** (or all‑day) and shown under Today only for that date
+- Workday hours: **per‑date configurable** (defaults to 08:00–16:30)
 
 ---
 
@@ -32,8 +34,9 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 - `backend/app/api/` (API layer: thin routes)
   - `routes_dashboard.py` — `GET /api/dashboard`
   - `routes_tasks.py` — `GET /api/tasks`, `POST /api/tasks`, `POST /api/tasks/{id}/done`
+  - `routes_events.py` — `GET /api/events`, `POST /api/events` (time ranges; reminders opt‑in)
   - `routes_reminders.py` — list/confirm reminders (e.g. `GET /api/reminders/active`, `POST /api/reminders/done`)
-  - `routes_workdays.py` — set/check work/off overrides (e.g. `POST /api/workdays`, `GET /api/workdays/{date}`)
+  - `routes_workdays.py` — set/check work/off overrides + per‑day hours (e.g. `POST /api/workdays`, `GET /api/workdays/{date}`)
   - `routes_talk.py` — `POST /api/talk` (push-to-talk flow) *(later)*
   - `routes_stream.py` — SSE/WebSocket stream for proactive prompts *(later)*  
   Routes should: validate input/output → call a service → return a response.
@@ -46,10 +49,11 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 
 - `backend/app/db/` (data layer)
   - `conn.py` — SQLite connection + migrations/bootstrap
-  - `schema.sql` — SQLite schema
+  - `schema.sql` — SQLite schema (events + workday hours)
   - `queries.py` — general SQL helpers (tasks/alerts etc., task priority ordering)
+  - `event_queries.py` — events CRUD + date filtering
   - `reminder_queries.py` — schedules/active reminders + logs
-  - `workday_queries.py` — work/off day lookup + overrides
+  - `workday_queries.py` — work/off day lookup + per‑day hours
   - `reminder_seed.py` — seeds default schedules (e.g. “lanny zee”, morning/lunch/evening meds)  
   **SQL lives here**, not sprinkled through routes/services.
 
@@ -58,6 +62,7 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
   - `scheduler_service.py` — APScheduler jobs:
     - **arms today’s reminders** based on work/off day
     - runs a **nag loop** (repeats every 5 min until “done” or 30‑minute window ends)
+  - `event_reminder_service.py` — event reminder cadence (monthly → weekly → daily → day‑of)
   - `calendar_service.py` — add events/holidays + conflict checking *(later)*
   - `task_service.py` — one-at-a-time tasks + breakdown *(later)*
   - `reminder_service.py` — escalation rules + reminder state machine *(later)*
@@ -116,6 +121,10 @@ If it needs new data, extend the dashboard response in `dashboard_service.py`.
 - A **nag fires every 5 minutes** during that window
 - Past the window, reminders are marked **missed** if not done
 - UI shows `taken`/`missed` states (greyed) and sorts active‑window items first
+
+## Events (current behavior)
+- Events list shows **today only**, with “now” or “in X…” based on the time range
+- Event reminders are **opt‑in** (`reminder_preset = standard`); default is **none**
 
 ## Fun fact timing (current behavior)
 - Stored in `localStorage` to survive refresh (`funFactText`, `funFactFetchedAtISO`)

@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { getDashboard, getWorkday, getReminders, doneReminder, getTasks, doneTask } from "./api";
+import {
+  getDashboard,
+  getWorkday,
+  getReminders,
+  doneReminder,
+  getTasks,
+  doneTask,
+  getEvents,
+} from "./api";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
 import FunFactCard from "./components/FunFactCard";
@@ -20,6 +28,15 @@ type Task = {
   id: number;
   title: string;
   priority: TaskPriority;
+};
+
+type EventItem = {
+  id: number;
+  title: string;
+  event_date: string;
+  start_hhmm: string | null;
+  end_hhmm: string | null;
+  all_day: number | boolean;
 };
 
 type Reminder = {
@@ -50,7 +67,10 @@ function ymdLocal(d: Date) {
 export default function App() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [isWork, setIsWork] = useState<boolean | null>(null);
+  const [workStart, setWorkStart] = useState<string | null>(null);
+  const [workEnd, setWorkEnd] = useState<string | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -66,9 +86,14 @@ export default function App() {
 
       const wd = await getWorkday(dateStr);
       setIsWork(wd.is_work);
+      setWorkStart(wd.start_hhmm ?? "08:00");
+      setWorkEnd(wd.end_hhmm ?? "16:30");
 
       const rr: RemindersResp = await getReminders(dateStr);
       setReminders(rr.reminders ?? []);
+
+      const ev = await getEvents(dateStr);
+      setEvents(ev.events ?? []);
 
       const tr = await getTasks();
       const nextTasks = tr.tasks ?? [];
@@ -116,6 +141,28 @@ export default function App() {
   const workLabel = isWork === null ? "…" : isWork ? "Work day" : "Day off";
   const hasNow = Boolean(now);
   const nowForWindow = now ?? new Date();
+  const nowMs = nowForWindow.getTime();
+  let workStatus = "";
+  let workFinished = false;
+  if (isWork && hasNow && workStart && workEnd) {
+    const [wsH, wsM] = workStart.split(":").map(Number);
+    const [weH, weM] = workEnd.split(":").map(Number);
+    const workStartDt = new Date(nowForWindow);
+    workStartDt.setHours(wsH, wsM, 0, 0);
+    const workEndDt = new Date(nowForWindow);
+    workEndDt.setHours(weH, weM, 0, 0);
+    if (nowMs < workStartDt.getTime()) {
+      const diffMins = Math.round((workStartDt.getTime() - nowMs) / 60000);
+      const hours = Math.floor(diffMins / 60);
+      const mins = diffMins % 60;
+      workStatus = hours > 0 ? `in ${hours}h ${mins}m` : `in ${mins} mins`;
+    } else if (nowMs <= workEndDt.getTime()) {
+      workStatus = "now";
+    } else {
+      workFinished = true;
+    }
+  }
+  const hasTodayItems = Boolean(isWork) || events.length > 0;
   const remindersWithWindow = reminders.map((r) => {
     const dueAt = new Date(`${r.dose_date}T${r.scheduled_hhmm}:00`);
     const windowEnd = new Date(dueAt.getTime() + 30 * 60 * 1000);
@@ -138,6 +185,7 @@ export default function App() {
     if (aPriority !== bPriority) return aPriority - bPriority;
     return a.dueAt.getTime() - b.dueAt.getTime();
   });
+  const visibleAlerts = sortedReminders.filter((r) => !r.reminder_key.startsWith("event:"));
 
   const taskIndex =
     currentTaskId === null ? -1 : tasks.findIndex((t) => t.id === currentTaskId);
@@ -195,7 +243,75 @@ export default function App() {
           <div className="cardHeader">
             <h2>Today</h2>
           </div>
-          <p className="body">{data?.today_summary ?? "Loading..."}</p>
+          {hasTodayItems ? (
+            <ul className="list list--flush">
+              {isWork ? (
+                <li className={`eventRow${workFinished ? " eventRow--done" : ""}`}>
+                  <span>
+                    <strong>{workStart && workEnd ? `${workStart}-${workEnd}` : "Work"}</strong>{" "}
+                    Work
+                  </span>
+                  {workStatus ? <span className="eventMeta">{workStatus}</span> : null}
+                </li>
+              ) : null}
+              {events.map((e) => {
+                const isAllDay = Boolean(e.all_day);
+                const timeLabel = isAllDay
+                  ? "All day"
+                  : e.start_hhmm && e.end_hhmm
+                    ? `${e.start_hhmm}-${e.end_hhmm}`
+                    : e.start_hhmm ?? "TBD";
+                let relativeLabel = "";
+                let isNow = false;
+                let isUpcoming = false;
+                let isDone = false;
+                if (isAllDay) {
+                  relativeLabel = "now";
+                  isNow = true;
+                } else if (e.start_hhmm) {
+                  const eventStart = new Date(`${e.event_date}T${e.start_hhmm}:00`);
+                  const eventStartMs = eventStart.getTime();
+                  let eventEndMs = eventStartMs;
+                  if (e.end_hhmm) {
+                    const eventEnd = new Date(`${e.event_date}T${e.end_hhmm}:00`);
+                    eventEndMs = eventEnd.getTime();
+                  }
+                  const diffMs = eventStartMs - nowMs;
+                  const diffMins = Math.round(diffMs / 60000);
+                  if (nowMs >= eventStartMs && nowMs <= eventEndMs) {
+                    relativeLabel = "now";
+                    isNow = true;
+                  } else if (diffMins >= 0) {
+                    const hours = Math.floor(diffMins / 60);
+                    const mins = diffMins % 60;
+                    relativeLabel =
+                      hours > 0 ? `in ${hours}h ${mins}m` : `in ${mins} mins`;
+                    isUpcoming = true;
+                  } else {
+                    isDone = true;
+                  }
+                }
+                return (
+                  <li key={e.id} className={`eventRow${isDone ? " eventRow--done" : ""}`}>
+                    <span>
+                      <strong>{timeLabel}</strong> {e.title}
+                    </span>
+                    {relativeLabel ? (
+                      <span
+                        className={`eventMeta${
+                          isNow || isUpcoming ? " reminderStatus" : ""
+                        }${isUpcoming ? " reminderStatus--done" : ""}${
+                          isNow ? " reminderStatus--missed" : ""
+                        }${isDone ? " eventMeta--done" : ""}`}
+                      >
+                        {relativeLabel}
+                      </span>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
         </section>
 
         {/* Right column, row 1 */}
@@ -232,6 +348,10 @@ export default function App() {
           </div>
         </div>
 
+        <div className="funFactDock">
+          <FunFactCard />
+        </div>
+
         {/* Left column, row 2 */}
         <section className="card glass-tile slot-l2 card--left">
           <div className="cardHeader">
@@ -239,9 +359,9 @@ export default function App() {
           </div>
 
           {/* Med reminders (active) */}
-          {sortedReminders.length ? (
+          {visibleAlerts.length ? (
             <div className="reminders">
-              {sortedReminders.map((r) => {
+              {visibleAlerts.map((r) => {
                 const statusLabel =
                   r.derivedStatus === "done"
                     ? "Taken"
@@ -289,13 +409,13 @@ export default function App() {
 
           {/* Normal alerts */}
           {data?.alerts?.length ? (
-            <ul className="list">
+            <ul className="list list--pills">
               {data.alerts.map((a, i) => (
                 <li key={i}>{a.message}</li>
               ))}
             </ul>
           ) : (
-            <p className="big">{sortedReminders.length ? "" : "None"}</p>
+            <p className="big">{visibleAlerts.length ? "" : "None"}</p>
           )}
         </section>
 
@@ -311,9 +431,6 @@ export default function App() {
         </section>
       </main>
 
-      <div className="funFactDock">
-        <FunFactCard />
-      </div>
     </div>
   );
 }

@@ -7,7 +7,12 @@ export async function getDashboard() {
 export async function getWorkday(dateYYYYMMDD: string) {
   const r = await fetch(`/api/workdays/${dateYYYYMMDD}`);
   if (!r.ok) throw new Error(`workday failed: ${r.status}`);
-  return r.json() as Promise<{ date: string; is_work: boolean }>;
+  return r.json() as Promise<{
+    date: string;
+    is_work: boolean;
+    start_hhmm: string;
+    end_hhmm: string;
+  }>;
 }
 
 export async function getReminders(dateYYYYMMDD: string) {
@@ -52,4 +57,20 @@ export async function doneTask(task_id: number) {
   const r = await fetch(`/api/tasks/${task_id}/done`, { method: "POST" });
   if (!r.ok) throw new Error(`task done failed: ${r.status}`);
   return r.json() as Promise<{ ok: boolean }>;
+}
+
+export async function getEvents(dateYYYYMMDD: string) {
+  const r = await fetch(`/api/events?date=${encodeURIComponent(dateYYYYMMDD)}`);
+  if (!r.ok) throw new Error(`events failed: ${r.status}`);
+  return r.json() as Promise<{
+    date: string;
+    events: {
+      id: number;
+      title: string;
+      event_date: string;
+      start_hhmm: string | null;
+      end_hhmm: string | null;
+      all_day: number | boolean;
+    }[];
+  }>;
 }

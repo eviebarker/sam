@@ -17,4 +17,26 @@ def init_db() -> None:
             conn.execute(
                 "ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium';"
             )
+        event_columns = [r["name"] for r in conn.execute("PRAGMA table_info(events);")]
+        if "start_hhmm" not in event_columns:
+            conn.execute("ALTER TABLE events ADD COLUMN start_hhmm TEXT;")
+        if "end_hhmm" not in event_columns:
+            conn.execute("ALTER TABLE events ADD COLUMN end_hhmm TEXT;")
+        if "event_time" in event_columns:
+            if "event_time_legacy" not in event_columns:
+                conn.execute("ALTER TABLE events ADD COLUMN event_time_legacy TEXT;")
+                conn.execute("UPDATE events SET event_time_legacy = event_time;")
+            conn.execute(
+                "UPDATE events SET start_hhmm = COALESCE(start_hhmm, event_time) "
+                "WHERE event_time IS NOT NULL;"
+            )
+            conn.execute(
+                "UPDATE events SET end_hhmm = COALESCE(end_hhmm, time(event_time, '+30 minutes')) "
+                "WHERE event_time IS NOT NULL;"
+            )
+        workday_columns = [r["name"] for r in conn.execute("PRAGMA table_info(work_days);")]
+        if "start_hhmm" not in workday_columns:
+            conn.execute("ALTER TABLE work_days ADD COLUMN start_hhmm TEXT;")
+        if "end_hhmm" not in workday_columns:
+            conn.execute("ALTER TABLE work_days ADD COLUMN end_hhmm TEXT;")
         conn.commit()

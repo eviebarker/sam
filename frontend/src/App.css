@@ -121,6 +121,7 @@ body{
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-rows: auto auto;
   align-items: stretch;
+  position: relative;
 }
 
 /* Explicit placement: left col (1), right col (3) */
@@ -193,16 +194,47 @@ h2{
 
 .list{ margin: 0; padding-left: 18px; color: var(--muted); font-size: 16px; }
 .list li{ margin: 6px 0; }
+.list--flush{
+  padding-left: 0;
+  list-style: none;
+}
+.list--pills{
+  padding-left: 0;
+  list-style: none;
+}
+.list--pills li{
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+}
+.eventRow{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+}
+.eventMeta{
+  font-size: 12px;
+  white-space: nowrap;
+  align-self: center;
+}
+.eventRow--done{
+  opacity: 0.55;
+}
+.eventMeta--done{
+  opacity: 0.6;
+}
 
 .funFactDock{
-  position: fixed;
+  position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 40px;
+  bottom: 0;
   width: min(560px, 86vw);
   text-align: center;
   pointer-events: auto;
-  z-index: 2;
 }
 
 .funFact{
