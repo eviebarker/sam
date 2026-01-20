@@ -9,14 +9,54 @@ def get_alerts() -> list[str]:
 def get_next_task() -> str | None:
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT title FROM tasks WHERE status='todo' ORDER BY id ASC LIMIT 1;"
+            """
+            SELECT title
+            FROM tasks
+            WHERE status='todo'
+            ORDER BY
+              CASE priority
+                WHEN 'vital' THEN 0
+                WHEN 'medium' THEN 1
+                WHEN 'trivial' THEN 2
+                ELSE 3
+              END,
+              id ASC
+            LIMIT 1;
+            """
         ).fetchone()
     return row["title"] if row else None
 
-def add_task(title: str) -> None:
+def get_tasks() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, title, priority, status, created_at
+            FROM tasks
+            WHERE status='todo'
+            ORDER BY
+              CASE priority
+                WHEN 'vital' THEN 0
+                WHEN 'medium' THEN 1
+                WHEN 'trivial' THEN 2
+                ELSE 3
+              END,
+              id ASC;
+            """
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+def add_task(title: str, priority: str = "medium") -> None:
     with get_conn() as conn:
         conn.execute(
-            "INSERT INTO tasks (title, status, created_at) VALUES (?, 'todo', ?);",
-            (title, datetime.now().isoformat(timespec="seconds")),
+            """
+            INSERT INTO tasks (title, priority, status, created_at)
+            VALUES (?, ?, 'todo', ?);
+            """,
+            (title, priority, datetime.now().isoformat(timespec="seconds")),
         )
+        conn.commit()
+
+def mark_task_done(task_id: int) -> None:
+    with get_conn() as conn:
+        conn.execute("UPDATE tasks SET status='done' WHERE id = ?;", (task_id,))
         conn.commit()
