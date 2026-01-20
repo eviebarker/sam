@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getDashboard, getWorkday } from "./api";
 import DarkVeil from "./components/DarkVeil";
+import Orb from "./components/Orb";
 import "./App.css";
 
 type Dashboard = {
@@ -100,6 +101,18 @@ export default function App() {
           </div>
           <p className="big">{data?.next_task ?? "None"}</p>
         </section>
+
+        {/* Middle column: Orb (no tile/background) */}
+        <div className="orbSlot" aria-hidden="true">
+          <div className="orbWrap">
+            <Orb
+              hue={0}
+              hoverIntensity={2}
+              rotateOnHover={false}
+              forceHoverState={false}
+            />
+          </div>
+        </div>
 
         {/* Left column, row 2 */}
         <section className="card glass-tile slot-l2 card--left">
