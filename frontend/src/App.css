@@ -128,20 +128,26 @@ body{
 .slot-l2{ grid-column: 1; grid-row: 2; }
 .slot-r2{ grid-column: 3; grid-row: 2; }
 
-/* Middle column orb: spans both rows, centered */
+/* Middle column orb: spans both rows, centered
+   Allow hover on orb but don't block the rest of the UI */
 .orbSlot{
   grid-column: 2;
   grid-row: 1 / span 2;
   display: grid;
   place-items: center;
-  pointer-events: none; /* never block clicking tiles */
+  pointer-events: none; /* overall container ignores pointer */
 }
 
-/* Size the orb without any “background” */
+/* Re-enable pointer events only on the orb itself */
 .orbWrap{
   width: min(420px, 90%);
   aspect-ratio: 1 / 1;
   position: relative;
+  pointer-events: auto;
+}
+
+.orbWrap .orb-container{
+  pointer-events: auto;
 }
 
 /* Cards: layout only */
@@ -151,7 +157,7 @@ body{
   min-height: 190px;
 }
 
-/* Make cards slightly narrower while staying aligned to outer edges */
+/* Slightly wider cards while staying aligned to outer edges */
 .card--left{
   width: 100%;
   max-width: 92%;
@@ -214,4 +220,8 @@ h2{
   .orbWrap{
     width: min(360px, 100%);
   }
+
+  /* In 1-col mode, let orb hover still work */
+  .orbSlot{ pointer-events: none; }
+  .orbWrap{ pointer-events: auto; }
 }
