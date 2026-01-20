@@ -1,0 +1,9 @@
+.page { padding: 20px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+.top { display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; }
+.clock { font-size: 20px; }
+.grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.card { border:1px solid #3333; border-radius: 14px; padding: 16px; background: #1112; }
+.btn { padding:10px 14px; border-radius: 12px; border:1px solid #3336; background:#222; color:#fff; }
+.mic { width:100%; padding:18px; border-radius: 16px; border:1px solid #3336; background:#2a2a2a; color:#fff; font-size:18px; }
+.hint { opacity:0.7; font-size: 13px; }
+.err { padding: 10px 12px; border: 1px solid #a33; border-radius: 12px; margin-bottom: 12px; }
