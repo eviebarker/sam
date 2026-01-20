@@ -11,7 +11,7 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 ---
 
 ## What the app does (high-level)
-- Knows work rota / locations, days off, holidays, events
+- Knows **work/off days** (default pattern **Mon–Wed = work, Thu–Sun = off**, with per-date overrides for swaps), plus locations/days off/holidays/events
 - Medication reminders that **repeat until confirmed** (e.g., every 5 min)
 - “Remember this in 6 months” reminders with escalating cadence (monthly → weekly → daily → day-of)
 - Morning brief (short, actionable, low-noise)
@@ -29,9 +29,11 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 
 - `backend/app/api/` (API layer: thin routes)
   - `routes_dashboard.py` — `GET /api/dashboard`
-  - `routes_talk.py` — `POST /api/talk` (push-to-talk flow)
-  - `routes_actions.py` — confirm meds / snooze / complete task
-  - `routes_stream.py` — SSE/WebSocket stream for proactive prompts  
+  - `routes_tasks.py` — `POST /api/tasks`
+  - `routes_reminders.py` — confirm reminders (e.g. `POST /api/reminders/done`)
+  - `routes_workdays.py` — set/check work/off overrides (e.g. `POST /api/workdays`, `GET /api/workdays/{date}`)
+  - `routes_talk.py` — `POST /api/talk` (push-to-talk flow) *(later)*
+  - `routes_stream.py` — SSE/WebSocket stream for proactive prompts *(later)*  
   Routes should: validate input/output → call a service → return a response.
 
 - `backend/app/core/` (shared config + utilities)
@@ -42,19 +44,24 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 
 - `backend/app/db/` (data layer)
   - `conn.py` — SQLite connection + migrations/bootstrap
-  - `models.py` — row models (Pydantic/dataclasses)
-  - `queries.py` — all SQL reads/writes as functions  
+  - `schema.sql` — SQLite schema
+  - `queries.py` — general SQL helpers (tasks/alerts etc.)
+  - `reminder_queries.py` — schedules/active reminders + logs
+  - `workday_queries.py` — work/off day lookup + overrides
+  - `reminder_seed.py` — seeds default schedules (e.g. “lanny zee”, morning/lunch/evening meds)  
   **SQL lives here**, not sprinkled through routes/services.
 
 - `backend/app/services/` (business logic)
   - `dashboard_service.py` — builds the dashboard view from DB state
-  - `calendar_service.py` — add events/holidays + conflict checking
-  - `task_service.py` — one-at-a-time tasks + breakdown into steps
-  - `reminder_service.py` — escalation rules + reminder state machine
-  - `scheduler_service.py` — APScheduler jobs (med loops, morning brief, spaced reminders)
-  - `relevance_service.py` — “should we speak?” gate + anti-spam
-  - `voice_service.py` — local STT/TTS wrappers (later)
-  - `llm_service.py` — OpenAI Responses + tool-calling loop (later)
+  - `scheduler_service.py` — APScheduler jobs:
+    - **arms today’s reminders** based on work/off day
+    - runs a **nag loop** (repeats every 5 min until “done”)
+  - `calendar_service.py` — add events/holidays + conflict checking *(later)*
+  - `task_service.py` — one-at-a-time tasks + breakdown *(later)*
+  - `reminder_service.py` — escalation rules + reminder state machine *(later)*
+  - `relevance_service.py` — “should we speak?” gate + anti-spam *(later)*
+  - `voice_service.py` — local STT/TTS wrappers *(later)*
+  - `llm_service.py` — OpenAI Responses + tool-calling loop *(later)*
 
 - `backend/requirements.txt`  
   Python dependencies.
@@ -76,10 +83,10 @@ Keep it thin: parse → call service → return.
 ### 2) New behaviour / logic?
 Put it in `backend/app/services/`.  
 Example: “repeat meds every 5 minutes until confirmed” belongs in
-`scheduler_service.py` (job scheduling) + `reminder_service.py` (state machine).
+`scheduler_service.py` (job scheduling) + reminder logic services.
 
 ### 3) New data to store?
-Add/alter tables + query functions in `backend/app/db/` (`conn.py`/migrations + `queries.py`).  
+Add/alter tables + query functions in `backend/app/db/`.  
 Don’t write raw SQL inside routes.
 
 ### 4) New timed/background behaviour?
@@ -112,3 +119,36 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
 uvicorn backend.app.main:app --reload --port 8000
+```
+
+---
+
+## How to change a swapped work day (override)
+
+### Get today’s date string
+```bash
+date +%F
+```
+
+### Mark a date as a **work day**
+```bash
+curl -X POST http://localhost:8000/api/workdays \
+  -H "Content-Type: application/json" \
+  -d '{"date":"2026-01-20","is_work":true}'
+```
+
+### Mark a date as a **day off**
+```bash
+curl -X POST http://localhost:8000/api/workdays \
+  -H "Content-Type: application/json" \
+  -d '{"date":"2026-01-20","is_work":false}'
+```
+
+### Check if a date is work/off
+```bash
+curl http://localhost:8000/api/workdays/2026-01-20
+```
+
+Notes:
+- If a date has no override, the default is **Mon–Wed work**, **Thu–Sun off**.
+- Overrides always win (useful for swaps).
