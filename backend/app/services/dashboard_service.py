@@ -1,0 +1,10 @@
+from datetime import datetime
+from backend.app.db import queries
+
+def build_dashboard() -> dict:
+    return {
+        "now": datetime.now().isoformat(timespec="seconds"),
+        "today_summary": "MVP: SQLite connected.",
+        "alerts": queries.get_alerts(),
+        "next_task": queries.get_next_task(),
+    }
