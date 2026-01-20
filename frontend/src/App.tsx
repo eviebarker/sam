@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getDashboard, getWorkday } from "./api";
+import DarkVeil from "./components/DarkVeil";
 import "./App.css";
 
 type Dashboard = {
@@ -47,6 +48,18 @@ export default function App() {
 
   return (
     <div className="page">
+      <div className="bg">
+        <DarkVeil
+          hueShift={0}
+          noiseIntensity={0}
+          scanlineIntensity={0}
+          speed={2}
+          scanlineFrequency={0}
+          warpAmount={0}
+          resolutionScale={1}
+        />
+      </div>
+
       <header className="top">
         <div className="topLeft">
           <div className="time">{timeStr}</div>
