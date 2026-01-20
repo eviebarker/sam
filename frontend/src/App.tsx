@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getDashboard, getWorkday, getReminders, doneReminder, getTasks, doneTask } from "./api";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
+import FunFactCard from "./components/FunFactCard";
 import "./App.css";
 
 type Dashboard = {
@@ -309,6 +310,10 @@ export default function App() {
           <p className="subtle">v1: button only (no hotword)</p>
         </section>
       </main>
+
+      <div className="funFactDock">
+        <FunFactCard />
+      </div>
     </div>
   );
 }

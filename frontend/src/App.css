@@ -96,6 +96,7 @@ body{
   align-items:flex-end;
   gap: 18px;
   margin-bottom: 18px;
+  position: relative;
 }
 
 .topLeft{ display:flex; flex-direction:column; gap: 6px; }
@@ -136,6 +137,7 @@ body{
   display: grid;
   place-items: center;
   pointer-events: none; /* overall container ignores pointer */
+  transform: translateY(0);
 }
 
 /* Re-enable pointer events only on the orb itself */
@@ -144,6 +146,7 @@ body{
   aspect-ratio: 1 / 1;
   position: relative;
   pointer-events: auto;
+  transform: translateY(-52px);
 }
 
 .orbWrap .orb-container{
@@ -190,6 +193,71 @@ h2{
 
 .list{ margin: 0; padding-left: 18px; color: var(--muted); font-size: 16px; }
 .list li{ margin: 6px 0; }
+
+.funFactDock{
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 40px;
+  width: min(560px, 86vw);
+  text-align: center;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.funFact{
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+}
+.funFact--animate{
+  animation: funFactEnter 700ms ease both;
+}
+.funFactTitle{
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  opacity: 0.8;
+}
+.funFactBody{
+  font-size: 15px;
+  line-height: 1.4;
+  font-style: italic;
+  color: rgba(255,255,255,0.54);
+}
+.funFactMeta{
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.funFactButton{
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.35);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.funFactButton:hover{
+  background: rgba(255,255,255,0.08);
+}
+
+@keyframes funFactEnter{
+  from{
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(2px);
+  }
+  to{
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
 
 .taskPriority{
   font-size: 12px;
