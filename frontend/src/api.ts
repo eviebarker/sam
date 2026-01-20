@@ -39,3 +39,17 @@ export async function doneReminder(active_id: number, reminder_key: string) {
   if (!r.ok) throw new Error(`done failed: ${r.status}`);
   return r.json() as Promise<{ ok: boolean }>;
 }
+
+export async function getTasks() {
+  const r = await fetch("/api/tasks");
+  if (!r.ok) throw new Error(`tasks failed: ${r.status}`);
+  return r.json() as Promise<{
+    tasks: { id: number; title: string; priority: "trivial" | "medium" | "vital" }[];
+  }>;
+}
+
+export async function doneTask(task_id: number) {
+  const r = await fetch(`/api/tasks/${task_id}/done`, { method: "POST" });
+  if (!r.ok) throw new Error(`task done failed: ${r.status}`);
+  return r.json() as Promise<{ ok: boolean }>;
+}

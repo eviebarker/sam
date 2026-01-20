@@ -12,4 +12,9 @@ def init_db() -> None:
     schema_path = Path(__file__).with_name("schema.sql")
     with get_conn() as conn:
         conn.executescript(schema_path.read_text())
+        columns = [r["name"] for r in conn.execute("PRAGMA table_info(tasks);")]
+        if "priority" not in columns:
+            conn.execute(
+                "ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium';"
+            )
         conn.commit()

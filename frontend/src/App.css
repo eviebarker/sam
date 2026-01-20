@@ -191,6 +191,34 @@ h2{
 .list{ margin: 0; padding-left: 18px; color: var(--muted); font-size: 16px; }
 .list li{ margin: 6px 0; }
 
+.taskPriority{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.taskPriority--vital{
+  background: rgba(255,120,120,0.2);
+  color: rgba(255,220,220,0.95);
+}
+.taskPriority--medium{
+  background: rgba(255,205,120,0.2);
+  color: rgba(255,240,210,0.95);
+}
+.taskPriority--trivial{
+  background: rgba(120,190,255,0.18);
+  color: rgba(215,235,255,0.95);
+}
+.taskControls{
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
 /* Push-to-talk pill: big + full width */
 .micPill{
   width: 100%;

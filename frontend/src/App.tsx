@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getDashboard, getWorkday, getReminders, doneReminder } from "./api";
+import { getDashboard, getWorkday, getReminders, doneReminder, getTasks, doneTask } from "./api";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
 import "./App.css";
@@ -12,6 +12,14 @@ type Dashboard = {
 };
 
 type ReminderStatus = "active" | "done" | "missed";
+
+type TaskPriority = "trivial" | "medium" | "vital";
+
+type Task = {
+  id: number;
+  title: string;
+  priority: TaskPriority;
+};
 
 type Reminder = {
   id: number;
@@ -42,6 +50,8 @@ export default function App() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [isWork, setIsWork] = useState<boolean | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   async function refresh() {
@@ -58,6 +68,15 @@ export default function App() {
 
       const rr: RemindersResp = await getReminders(dateStr);
       setReminders(rr.reminders ?? []);
+
+      const tr = await getTasks();
+      const nextTasks = tr.tasks ?? [];
+      setTasks(nextTasks);
+      setCurrentTaskId((prevId) => {
+        if (!nextTasks.length) return null;
+        if (prevId && nextTasks.some((t) => t.id === prevId)) return prevId;
+        return nextTasks[0].id;
+      });
     } catch (e: any) {
       setErr(e?.message ?? "failed");
     }
@@ -119,6 +138,29 @@ export default function App() {
     return a.dueAt.getTime() - b.dueAt.getTime();
   });
 
+  const taskIndex =
+    currentTaskId === null ? -1 : tasks.findIndex((t) => t.id === currentTaskId);
+  const currentTask =
+    taskIndex >= 0 ? tasks[taskIndex] : tasks.length ? tasks[0] : null;
+
+  function cycleTask() {
+    if (tasks.length <= 1) return;
+    const idx = taskIndex >= 0 ? taskIndex : 0;
+    const nextTask = tasks[(idx + 1) % tasks.length];
+    setCurrentTaskId(nextTask.id);
+  }
+
+  async function markTaskDone() {
+    if (!currentTask) return;
+    try {
+      setErr(null);
+      await doneTask(currentTask.id);
+      await refresh();
+    } catch (e: any) {
+      setErr(e?.message ?? "failed");
+    }
+  }
+
   return (
     <div className="page">
       <div className="bg">
@@ -158,9 +200,28 @@ export default function App() {
         {/* Right column, row 1 */}
         <section className="card glass-tile slot-r1 card--right">
           <div className="cardHeader">
-            <h2>Next task</h2>
+            <h2>Tasks</h2>
+            {currentTask ? (
+              <span className={`taskPriority taskPriority--${currentTask.priority}`}>
+                {currentTask.priority}
+              </span>
+            ) : null}
           </div>
-          <p className="big">{data?.next_task ?? "None"}</p>
+          {currentTask ? (
+            <>
+              <p className="big">{currentTask.title}</p>
+              <div className="taskControls">
+                <button className="glass-pill glass-pill--small" onClick={cycleTask}>
+                  Next
+                </button>
+                <button className="glass-pill glass-pill--small" onClick={markTaskDone}>
+                  Done
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="big">Excellent work. Congrats on completing your tasks!</p>
+          )}
         </section>
 
         {/* Middle column: Orb (no tile/background) */}
