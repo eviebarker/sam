@@ -3,7 +3,8 @@ from backend.app.db.conn import init_db
 from backend.app.services.scheduler_service import start_scheduler
 from backend.app.api.routes_dashboard import router as dashboard_router
 from backend.app.api.routes_tasks import router as tasks_router
-from backend.app.api.routes_meds import router as meds_router
+from backend.app.api.routes_reminders import router as reminders_router
+from backend.app.api.routes_workdays import router as workdays_router
 
 app = FastAPI(title="Sam Kitchen PA")
 
@@ -18,4 +19,5 @@ def health():
 
 app.include_router(dashboard_router)
 app.include_router(tasks_router)
-app.include_router(meds_router)
+app.include_router(reminders_router)
+app.include_router(workdays_router)
