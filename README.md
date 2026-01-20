@@ -18,6 +18,7 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 - Morning brief (short, actionable, low-noise)
 - ADHD-friendly tasks: **one step at a time**, can break big tasks into micro-steps
 - Conflict-aware scheduling: warns like **“you’re on holiday then”** before booking
+- “Daft fact” panel: pulls a random fact and refreshes on **London time slots** (09/13/17/21)
 
 ---
 
@@ -30,7 +31,7 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 
 - `backend/app/api/` (API layer: thin routes)
   - `routes_dashboard.py` — `GET /api/dashboard`
-  - `routes_tasks.py` — `POST /api/tasks`
+  - `routes_tasks.py` — `GET /api/tasks`, `POST /api/tasks`, `POST /api/tasks/{id}/done`
   - `routes_reminders.py` — list/confirm reminders (e.g. `GET /api/reminders/active`, `POST /api/reminders/done`)
   - `routes_workdays.py` — set/check work/off overrides (e.g. `POST /api/workdays`, `GET /api/workdays/{date}`)
   - `routes_talk.py` — `POST /api/talk` (push-to-talk flow) *(later)*
@@ -46,7 +47,7 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 - `backend/app/db/` (data layer)
   - `conn.py` — SQLite connection + migrations/bootstrap
   - `schema.sql` — SQLite schema
-  - `queries.py` — general SQL helpers (tasks/alerts etc.)
+  - `queries.py` — general SQL helpers (tasks/alerts etc., task priority ordering)
   - `reminder_queries.py` — schedules/active reminders + logs
   - `workday_queries.py` — work/off day lookup + overrides
   - `reminder_seed.py` — seeds default schedules (e.g. “lanny zee”, morning/lunch/evening meds)  
@@ -72,7 +73,8 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 - `frontend/src/App.tsx` — main dashboard screen
 - `frontend/src/App.css` — kiosk styling (layout/spacing/colours)
 - `frontend/src/api.ts` — calls to backend endpoints
-- `frontend/src/components/` — UI/background components (e.g. DarkVeil)
+- `frontend/src/components/` — UI/background components (e.g. DarkVeil, FunFactCard)
+- `frontend/src/hooks/` — UI hooks (e.g. `useFunFact`)
 
 ---
 
@@ -114,6 +116,11 @@ If it needs new data, extend the dashboard response in `dashboard_service.py`.
 - A **nag fires every 5 minutes** during that window
 - Past the window, reminders are marked **missed** if not done
 - UI shows `taken`/`missed` states (greyed) and sorts active‑window items first
+
+## Fun fact timing (current behavior)
+- Stored in `localStorage` to survive refresh (`funFactText`, `funFactFetchedAtISO`)
+- Fetch is gated by time slots (Europe/London): **09:00, 13:00, 17:00, 21:00**
+- Manual “New fact” button forces a refresh and updates the slot id
 
 ### 8) New config knob?
 Add it to `core/config.py` (with defaults), don’t scatter constants across files.
