@@ -1,16 +1,144 @@
-.page { padding: 20px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-.top { display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; }
-.clock { font-size: 28px; font-weight: 600; }
-.grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.card { border:1px solid #3333; border-radius: 18px; padding: 18px; background: #1112; min-height: 150px; }
-.btn { padding:10px 14px; border-radius: 12px; border:1px solid #3336; background:#222; color:#fff; }
-.mic { width:100%; padding:18px; border-radius: 16px; border:1px solid #3336; background:#2a2a2a; color:#fff; font-size:18px; }
-.hint { opacity:0.7; font-size: 13px; margin-top: 10px; }
-.err { padding: 10px 12px; border: 1px solid #a33; border-radius: 12px; margin-bottom: 12px; }
-.big { font-size: 22px; font-weight: 600; margin: 0; }
+:root{
+  --bg0:#070a12;
+  --bg1:#0b1020;
+  --surface:#0f162b;
+  --border:rgba(255,255,255,.10);
+  --text:rgba(255,255,255,.92);
+  --muted:rgba(255,255,255,.68);
+  --blue:#2f7bff;
+  --shadow: 0 18px 60px rgba(0,0,0,.45);
+}
 
-/* Landscape / wide screens: 3 columns */
-@media (min-width: 900px) {
-  .grid { grid-template-columns: repeat(3, 1fr); }
-  .card { min-height: 170px; }
+html, body { height: 100%; }
+body{
+  margin:0;
+  color:var(--text);
+  background:
+    radial-gradient(900px 550px at 18% 12%, rgba(47,123,255,.22), transparent 60%),
+    radial-gradient(900px 550px at 82% 18%, rgba(47,123,255,.10), transparent 62%),
+    linear-gradient(180deg, var(--bg1), var(--bg0));
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+/* Kiosk: fill the screen */
+.page{
+  min-height: 100vh;
+  width: 100vw;
+  padding: 28px;
+  box-sizing: border-box;
+}
+
+/* Header */
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.topLeft{ display:flex; flex-direction:column; gap: 6px; }
+.time{ font-size: clamp(42px, 5vw, 72px); font-weight: 780; letter-spacing: -0.03em; }
+.date{ font-size: clamp(14px, 1.4vw, 20px); color: var(--muted); }
+
+.btn{
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(47,123,255,.35);
+  background: rgba(15,22,43,.55);
+  color: var(--text);
+  box-shadow: 0 10px 24px rgba(0,0,0,.25);
+}
+
+.err{
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,80,80,.45);
+  background: rgba(255,80,80,.08);
+  margin-bottom: 14px;
+}
+
+/* Grid: always fill width, good in landscape */
+.grid{
+  display:grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+/* Drop to 2 columns if narrow */
+@media (max-width: 900px){
+  .grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Cards */
+.card{
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  min-height: 190px;
+}
+
+.cardHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+h2{
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+
+.body{ margin: 0; color: var(--muted); font-size: 18px; line-height: 1.45; }
+.big{ margin: 0; font-size: 28px; font-weight: 760; }
+.subtle{ margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+
+.list{ margin: 0; padding-left: 18px; color: var(--muted); font-size: 16px; }
+.list li{ margin: 6px 0; }
+
+/* Workday badge */
+.pill{
+  display:inline-flex;
+  align-items:center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  white-space: nowrap;
+}
+.pillWork{
+  border-color: rgba(47,123,255,.55);
+  background: rgba(47,123,255,.16);
+  color: rgba(255,255,255,.92);
+}
+.pillOff{
+  border-color: rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.80);
+}
+.pillNeutral{
+  border-color: rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.72);
+}
+
+/* Push-to-talk button */
+.mic{
+  width:100%;
+  padding: 22px;
+  border-radius: 20px;
+  border: 1px solid rgba(47,123,255,.55);
+  background: linear-gradient(180deg, rgba(47,123,255,.22), rgba(47,123,255,.10));
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 780;
+  box-shadow: 0 18px 50px rgba(47,123,255,.12);
 }

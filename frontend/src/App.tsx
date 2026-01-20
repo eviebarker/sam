@@ -41,40 +41,61 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  const nowStr = data?.now ? new Date(data.now).toLocaleString() : "--";
+  const now = data?.now ? new Date(data.now) : null;
+  const timeStr = now ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--";
+  const dateStr = now ? now.toLocaleDateString([], { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) : "--";
 
   return (
     <div className="page">
       <header className="top">
-        <div className="clock">{nowStr}</div>
-        <button className="btn" onClick={refresh}>Refresh</button>
+        <div className="topLeft">
+          <div className="time">{timeStr}</div>
+          <div className="date">{dateStr}</div>
+        </div>
+
+        <div className="topRight">
+          <button className="btn" onClick={refresh}>Refresh</button>
+        </div>
       </header>
 
       {err && <div className="err">Backend error: {err}</div>}
 
       <main className="grid">
         <section className="card">
-          <h2>Today</h2>
-          <p>{data?.today_summary ?? "Loading..."}</p>
+          <div className="cardHeader">
+            <h2>Today</h2>
+          </div>
+          <p className="body">{data?.today_summary ?? "Loading..."}</p>
         </section>
 
         <section className="card">
-          <h2>Workday</h2>
-          <p className="big">
-            {isWork === null ? "Loading..." : (isWork ? "Work day" : "Day off")}
-          </p>
-          <p className="hint">Default: Mon–Wed work unless overridden</p>
+          <div className="cardHeader">
+            <h2>Workday</h2>
+            <span
+              className={
+                "pill " +
+                (isWork === null ? "pillNeutral" : isWork ? "pillWork" : "pillOff")
+              }
+            >
+              {isWork === null ? "…" : isWork ? "Work day" : "Day off"}
+            </span>
+          </div>
+          <p className="subtle">Default: Mon–Wed work unless overridden</p>
         </section>
 
         <section className="card">
-          <h2>Next task</h2>
+          <div className="cardHeader">
+            <h2>Next task</h2>
+          </div>
           <p className="big">{data?.next_task ?? "None"}</p>
         </section>
 
         <section className="card">
-          <h2>Alerts</h2>
+          <div className="cardHeader">
+            <h2>Alerts</h2>
+          </div>
           {data?.alerts?.length ? (
-            <ul>
+            <ul className="list">
               {data.alerts.map((a, i) => <li key={i}>{a.message}</li>)}
             </ul>
           ) : (
@@ -83,11 +104,13 @@ export default function App() {
         </section>
 
         <section className="card">
-          <h2>Push to talk</h2>
+          <div className="cardHeader">
+            <h2>Push to talk</h2>
+          </div>
           <button className="mic" onClick={() => alert("PTT coming soon")}>
             Hold to talk
           </button>
-          <p className="hint">v1: button only (no hotword)</p>
+          <p className="subtle">v1: button only (no hotword)</p>
         </section>
       </main>
     </div>
