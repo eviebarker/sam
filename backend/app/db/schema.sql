@@ -12,20 +12,20 @@ CREATE TABLE IF NOT EXISTS alerts (
   created_at TEXT NOT NULL
 );
 
--- Dynamic work/off day mapping (can be edited per date)
+-- Dynamic work/off day mapping
 CREATE TABLE IF NOT EXISTS work_days (
-  date TEXT PRIMARY KEY,          -- "YYYY-MM-DD"
-  is_work INTEGER NOT NULL        -- 1=work day, 0=off day
+  date TEXT PRIMARY KEY,
+  is_work INTEGER NOT NULL
 );
 
--- Reminder schedules by day type (work/off), NOT fixed weekdays
+-- Reminder schedules by day type (work/off)
 CREATE TABLE IF NOT EXISTS reminder_schedule (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  reminder_key TEXT NOT NULL,     -- lanny_zee | morning_meds | lunch_meds | evening_meds
-  label TEXT NOT NULL,            -- what shows on screen
-  speak_text TEXT NOT NULL,       -- what Sam says
-  time_hhmm TEXT NOT NULL,        -- "08:30"
-  day_type TEXT NOT NULL,         -- "work" or "off"
+  reminder_key TEXT NOT NULL,
+  label TEXT NOT NULL,
+  speak_text TEXT NOT NULL,
+  time_hhmm TEXT NOT NULL,
+  day_type TEXT NOT NULL,
   repeat_every_min INTEGER NOT NULL DEFAULT 5,
   enabled INTEGER NOT NULL DEFAULT 1
 );
@@ -36,15 +36,16 @@ CREATE TABLE IF NOT EXISTS reminder_active (
   reminder_key TEXT NOT NULL,
   label TEXT NOT NULL,
   speak_text TEXT NOT NULL,
-  dose_date TEXT NOT NULL,        -- "YYYY-MM-DD"
-  status TEXT NOT NULL DEFAULT 'active', -- active|done
-  next_fire_at TEXT NOT NULL,     -- ISO datetime
+  dose_date TEXT NOT NULL,
+  scheduled_hhmm TEXT NOT NULL,        -- original due time (e.g. "08:00")
+  status TEXT NOT NULL DEFAULT 'active',
+  next_fire_at TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS reminder_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   reminder_key TEXT NOT NULL,
-  action TEXT NOT NULL,           -- fired|done|snooze
+  action TEXT NOT NULL,
   ts TEXT NOT NULL
 );

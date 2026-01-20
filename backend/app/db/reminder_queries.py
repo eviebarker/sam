@@ -10,7 +10,7 @@ def get_schedules_for_day_type(day_type: str):
             (day_type,),
         ).fetchall()
 
-def create_active_for_date(reminder_key: str, label: str, speak_text: str, dose_date: str, next_fire_at_iso: str):
+def create_active_for_date(reminder_key: str, label: str, speak_text: str, dose_date: str, scheduled_hhmm: str, next_fire_at_iso: str):
     with get_conn() as conn:
         existing = conn.execute(
             """SELECT * FROM reminder_active
@@ -23,9 +23,9 @@ def create_active_for_date(reminder_key: str, label: str, speak_text: str, dose_
 
         conn.execute(
             """INSERT INTO reminder_active
-               (reminder_key,label,speak_text,dose_date,status,next_fire_at,created_at)
-               VALUES (?,?,?,?, 'active', ?, ?);""",
-            (reminder_key, label, speak_text, dose_date, next_fire_at_iso, datetime.now().isoformat(timespec="seconds")),
+               (reminder_key,label,speak_text,dose_date,scheduled_hhmm,status,next_fire_at,created_at)
+               VALUES (?,?,?,?,?, 'active', ?, ?);""",
+            (reminder_key, label, speak_text, dose_date, scheduled_hhmm, next_fire_at_iso, datetime.now().isoformat(timespec="seconds")),
         )
         conn.commit()
         return conn.execute(
