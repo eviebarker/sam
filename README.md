@@ -138,6 +138,11 @@ Add it to `core/config.py` (with defaults), don’t scatter constants across fil
 
 ## Dev quickstart
 
+### DB migration note
+If you pull recent changes, restart the backend so `init_db()` can add new columns:
+- `events.start_hhmm/end_hhmm` (time ranges)
+- `work_days.start_hhmm/end_hhmm` (per‑day work hours)
+
 ### Run backend
 ```bash
 cd ~/Documents/PA_APP
