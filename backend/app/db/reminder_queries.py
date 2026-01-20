@@ -63,3 +63,13 @@ def log_action(reminder_key: str, action: str):
             (reminder_key, action, datetime.now().isoformat(timespec="seconds")),
         )
         conn.commit()
+
+def list_active_for_date(dose_date: str):
+    with get_conn() as conn:
+        return conn.execute(
+            """SELECT id, reminder_key, label, speak_text, dose_date, scheduled_hhmm, next_fire_at
+               FROM reminder_active
+               WHERE status='active' AND dose_date=?
+               ORDER BY scheduled_hhmm ASC;""",
+            (dose_date,),
+        ).fetchall()

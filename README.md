@@ -7,6 +7,7 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 - **Python-only backend**
 - **Local-first storage** (SQLite)
 - **OpenAI only for the “brain”** (text reasoning). STT/TTS will be **local/offline** later (e.g. Vosk/whisper.cpp + Piper).
+- Frontend is a **kiosk dashboard** (landscape), designed to run on a Pi + monitor.
 
 ---
 
@@ -66,11 +67,12 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 - `backend/requirements.txt`  
   Python dependencies.
 
-### Frontend (kiosk UI) — `frontend/` (later)
-- `frontend/src/pages/Dashboard.tsx` — main screen
-- `frontend/src/components/` — AlertCard, TaskCard, MicButton, etc.
-- `frontend/src/api/client.ts` — calls to backend endpoints
-- `frontend/src/utils/` — formatting helpers
+### Frontend (kiosk UI) — `frontend/`
+- Vite + React + TypeScript (kiosk dashboard UI)
+- `frontend/src/App.tsx` — main dashboard screen
+- `frontend/src/App.css` — kiosk styling (layout/spacing/colours)
+- `frontend/src/api.ts` — calls to backend endpoints
+- `frontend/src/components/` — UI/background components (e.g. DarkVeil)
 
 ---
 
@@ -110,15 +112,114 @@ Add it to `core/config.py` (with defaults), don’t scatter constants across fil
 
 ---
 
-## Dev quickstart (current skeleton)
+## Dev quickstart
 
 ### Run backend
 ```bash
 cd ~/Documents/PA_APP
-python -m venv .venv
 source .venv/bin/activate
-pip install -r backend/requirements.txt
 uvicorn backend.app.main:app --reload --port 8000
+```
+
+### Run frontend
+```bash
+cd ~/Documents/PA_APP/frontend
+npm install
+npm run dev
+```
+
+---
+
+## Frontend proxy to backend (Vite)
+To avoid CORS during dev, set a proxy in `frontend/vite.config.ts`:
+```ts
+server: {
+  proxy: {
+    "/api": "http://127.0.0.1:8000",
+    "/health": "http://127.0.0.1:8000"
+  }
+}
+```
+
+---
+
+## Tailwind + shadcn (for React Bits components)
+We installed Tailwind mainly to satisfy **shadcn/ui** tooling (even if most styling is plain CSS).
+
+Key files:
+- `frontend/tailwind.config.cjs` — should use `module.exports = { ... }`
+- `frontend/postcss.config.cjs` — should use `module.exports = { ... }`
+- `frontend/src/index.css` — should include Tailwind directives:
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+### PostCSS config fix (CommonJS)
+If you see `Unexpected token 'export'` from PostCSS, ensure `postcss.config.cjs` is:
+```js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+```
+
+### Import alias (required by shadcn)
+shadcn checks `frontend/tsconfig.json`, so add:
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+And ensure Vite supports it:
+```bash
+npm i -D vite-tsconfig-paths
+```
+
+`frontend/vite.config.ts` should include:
+```ts
+import tsconfigPaths from "vite-tsconfig-paths";
+// ...
+plugins: [react(), tsconfigPaths()],
+```
+
+### Adding React Bits DarkVeil background
+After `npx shadcn@latest init -y`, add:
+```bash
+npx shadcn@latest add @react-bits/DarkVeil-JS-CSS -y --path src/components
+```
+
+This creates:
+- `frontend/src/components/DarkVeil.jsx`
+- `frontend/src/components/DarkVeil.css`
+
+We wrap it for TS usage:
+- `frontend/src/components/DarkVeil.tsx` (wrapper that imports `DarkVeil.jsx` + `DarkVeil.css`)
+
+Mount it in `App.tsx`:
+```tsx
+<div className="bg"><DarkVeil ... /></div>
+```
+
+And add to `App.css`:
+```css
+.bg{
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  width: 100vw;
+  height: 100vh;
+}
 ```
 
 ---
