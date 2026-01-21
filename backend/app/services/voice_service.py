@@ -10,6 +10,8 @@ import threading
 import queue
 import soundfile as sf
 import os
+from math import gcd
+from scipy.signal import resample_poly
 from pathlib import Path
 from piper import PiperVoice, SynthesisConfig
 
@@ -42,16 +44,23 @@ def generate_wav_file(input_text: str, wav_path: str):
         )
 
 
-def wav_to_ogg(wav_path: str, ogg_path: str, bitrate: str = "24k"):
-    """
-    Convert a WAV file to OGG (Opus).
+OPUS_SAMPLE_RATE = 24000
 
-    Args:
-        wav_path: Path to input WAV file
-        ogg_path: Path to output OGG file
-        bitrate: Opus bitrate (e.g. '16k', '24k', '32k')
-    """
+
+def wav_to_ogg(wav_path: str, ogg_path: str):
     data, samplerate = sf.read(wav_path)
+
+    # Ensure mono
+    if data.ndim > 1:
+        data = data.mean(axis=1)
+
+    # Resample if needed
+    if samplerate != OPUS_SAMPLE_RATE:
+        g = gcd(samplerate, OPUS_SAMPLE_RATE)
+        up = OPUS_SAMPLE_RATE // g
+        down = samplerate // g
+        data = resample_poly(data, up, down)
+        samplerate = OPUS_SAMPLE_RATE
 
     sf.write(
         ogg_path,
@@ -59,7 +68,6 @@ def wav_to_ogg(wav_path: str, ogg_path: str, bitrate: str = "24k"):
         samplerate,
         format="OGG",
         subtype="OPUS",
-        bitrate=bitrate,
     )
 
 
@@ -70,7 +78,7 @@ def generate_speech_ogg(input_text: str, ogg_path: str):
 
     try:
         generate_wav_file(input_text, wav_path)
-        wav_to_ogg(wav_path, ogg_path, bitrate="24k")
+        wav_to_ogg(wav_path, ogg_path)
     finally:
         if os.path.exists(wav_path):
             os.remove(wav_path)
@@ -119,4 +127,4 @@ def synthesize_blocking(input_text: str, output_filename: str):
         raise job["error"]
 
 
-generate_audio_file("test", "test1.wav")
+generate_speech_ogg("test", "test1.ogg")
