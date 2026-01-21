@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getDashboard,
   getWorkday,
@@ -84,6 +84,8 @@ export default function App() {
   const [aiOutput, setAiOutput] = useState<string | null>(null);
   const [aiDisplay, setAiDisplay] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const speakingCountRef = useRef(0);
   const [reclassifyOptions, setReclassifyOptions] = useState<
     { item_type: "task" | "reminder" | "event"; item_id: number; label: string; target: "task" | "reminder" | "event" }[]
   >([]);
@@ -258,8 +260,17 @@ export default function App() {
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       const cleanup = () => URL.revokeObjectURL(url);
-      audio.onended = cleanup;
-      audio.onerror = cleanup;
+      speakingCountRef.current += 1;
+      setIsSpeaking(true);
+      const finish = () => {
+        cleanup();
+        speakingCountRef.current = Math.max(0, speakingCountRef.current - 1);
+        if (speakingCountRef.current === 0) {
+          setIsSpeaking(false);
+        }
+      };
+      audio.onended = finish;
+      audio.onerror = finish;
       await audio.play();
     } catch (e: any) {
       setErr(e?.message ?? "failed");
@@ -515,7 +526,12 @@ export default function App() {
         {/* Middle column: Orb (no tile/background) */}
         <div className="orbSlot" aria-hidden="true">
           <div className="orbWrap">
-            <Orb hue={0} hoverIntensity={2} rotateOnHover={false} forceHoverState={false} />
+            <Orb
+              hue={0}
+              hoverIntensity={isSpeaking ? 2 : 0}
+              rotateOnHover={isSpeaking}
+              forceHoverState={isSpeaking}
+            />
           </div>
         </div>
 
