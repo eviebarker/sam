@@ -306,14 +306,40 @@ export default function App() {
       }
       const resolveRes = await aiResolve(prompt);
       if (resolveRes.ok) {
-        let ack = "Done.";
-        if (resolveRes.target === "task" && resolveRes.task) {
-          ack = `Marked task done: ${resolveRes.task.title}`;
-        } else if (resolveRes.target === "reminder" && resolveRes.reminder) {
-          ack = `Marked reminder done: ${resolveRes.reminder.label}`;
-        } else if (resolveRes.target === "event" && resolveRes.event) {
-          ack = `Removed event: ${resolveRes.event.title}`;
-        }
+        const completionAcks = [
+          "Ok, I'll mark it as done.",
+          "Got it, marking that as done.",
+          "All set, I marked it as done.",
+          "Done. I've marked it.",
+          "No problem, it's marked as done.",
+          "Okay, marked as done.",
+          "Sure, I'll mark it done.",
+          "Understood. Marked as done.",
+          "Got it. Marked as done.",
+          "Okay, I'll mark that as done.",
+          "Done. I've got it marked.",
+          "All right, it's marked as done.",
+          "Consider it done.",
+          "Done and marked.",
+          "Marked it as done.",
+          "Okay, done.",
+          "Yep, marking it as done now.",
+          "Done. Marked it.",
+          "Got it, that's done.",
+          "All done. Marked.",
+          "Sorted. Marked as done.",
+          "Done, I'll mark it.",
+          "Okay, I'll mark it.",
+          "Great, it's marked as done.",
+          "Got it. I'll mark it as done.",
+          "All right, I'll mark it as done.",
+          "Done — marked as done.",
+          "No worries, I marked it done.",
+          "Sure thing, it's marked as done.",
+          "Okay, that's marked as done.",
+        ];
+        const ack =
+          completionAcks[Math.floor(Math.random() * completionAcks.length)];
         setAiOutput(ack);
         await playTts(ack);
         await refresh();
