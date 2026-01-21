@@ -18,7 +18,13 @@ from backend.app.db.ai_queries import (
     touch_ai_memories,
 )
 from backend.app.db.event_queries import add_event, delete_event, list_events_for_date, list_events_from_date
-from backend.app.db.queries import add_task, get_tasks, list_open_tasks, mark_task_done
+from backend.app.db.queries import (
+    add_task,
+    get_tasks,
+    list_open_tasks,
+    mark_task_done,
+    update_task_priority,
+)
 from backend.app.db.workday_queries import get_work_day, set_work_day
 from backend.app.db.reminder_queries import (
     create_active_for_date,
@@ -49,9 +55,23 @@ class WorkdayUpdate(BaseModel):
     end_hhmm: str | None = None
 
 
+class ScheduleItem(BaseModel):
+    type: str
+    title: str | None = None
+    date: str | None = None
+    end_date: str | None = None
+    start_hhmm: str | None = None
+    end_hhmm: str | None = None
+    all_day: bool = False
+    priority: str | None = None
+    is_work: bool | None = None
+
+
 class ScheduleResult(BaseModel):
     action: str
     title: str
+    tasks: list[str] = []
+    items: list[ScheduleItem] = []
     date: str | None = None
     end_date: str | None = None
     start_hhmm: str | None = None
@@ -69,6 +89,10 @@ class ResolveResult(BaseModel):
     action: str
     target: str
     title: str | None = None
+
+
+class PriorityRequest(BaseModel):
+    text: str
 
 
 class ReclassifyRequest(BaseModel):
@@ -195,13 +219,56 @@ def _parse_reclassify(client: OpenAI, text: str, model: str) -> dict | None:
     return payload
 
 
+def _parse_priority(client: OpenAI, text: str, model: str) -> dict | None:
+    system_prompt = (
+        "You extract task priority updates. "
+        "Return JSON with fields: title (string or null) and priority "
+        "('vital'|'medium'|'trivial'|'none'). "
+        "If no priority change intent, set priority='none'."
+    )
+    response = client.responses.create(
+        model=model,
+        input=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": text},
+        ],
+        store=False,
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "priority_intent",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "title": {"type": ["string", "null"]},
+                        "priority": {
+                            "type": "string",
+                            "enum": ["vital", "medium", "trivial", "none"],
+                        },
+                    },
+                    "required": ["title", "priority"],
+                },
+            }
+        },
+    )
+    output_text = response.output_text or ""
+    try:
+        payload = json.loads(output_text)
+    except Exception:
+        return None
+    return payload
+
+
 def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | None:
     today = datetime.now(TZ).date().isoformat()
     system_prompt = (
         "You extract scheduling intents. Today is "
         f"{today} (Europe/London). "
-        "Return JSON with fields: action ('event'|'reminder'|'task'|'workday'|'none'), "
-        "title, date (YYYY-MM-DD or null), end_date (YYYY-MM-DD or null), "
+        "Return JSON with fields: action ('event'|'reminder'|'task'|'workday'|'mixed'|'none'), "
+        "title, tasks (array of task titles), items (array of mixed items), date (YYYY-MM-DD or null), "
+        "end_date (YYYY-MM-DD or null), "
         "start_hhmm (HH:MM or null), end_hhmm (HH:MM or null), all_day (true/false), "
         "priority ('trivial'|'medium'|'vital' or null), "
         "workday_updates (array of {date,is_work,start_hhmm,end_hhmm}). "
@@ -210,7 +277,12 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
         "and end_date=end. "
         "For workday updates, set action='workday' and fill workday_updates. "
         "For reminders, the title should be the reminder text. "
-        "For tasks, date/time can be null. "
+        "For tasks, date/time can be null. If multiple tasks are present, "
+        "fill tasks as an array and keep title as a short summary. "
+        "If multiple mixed items are present (tasks + reminders + events), "
+        "set action='mixed' and fill items with objects of shape: "
+        "{type:'task'|'reminder'|'event'|'workday', title, date, end_date, "
+        "start_hhmm, end_hhmm, all_day, priority, is_work}. "
         "If no scheduling intent, set action='none'."
         "Examples (generic patterns): "
         "'I need to [task] later today' -> action=task. "
@@ -254,9 +326,45 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
                     "properties": {
                         "action": {
                             "type": "string",
-                            "enum": ["event", "reminder", "task", "workday", "none"],
+                            "enum": ["event", "reminder", "task", "workday", "mixed", "none"],
                         },
                         "title": {"type": "string"},
+                        "tasks": {"type": "array", "items": {"type": "string"}},
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": False,
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["task", "reminder", "event", "workday"],
+                                    },
+                                    "title": {"type": ["string", "null"]},
+                                    "date": {"type": ["string", "null"]},
+                                    "end_date": {"type": ["string", "null"]},
+                                    "start_hhmm": {"type": ["string", "null"]},
+                                    "end_hhmm": {"type": ["string", "null"]},
+                                    "all_day": {"type": "boolean"},
+                                    "priority": {
+                                        "type": ["string", "null"],
+                                        "enum": ["trivial", "medium", "vital", None],
+                                    },
+                                    "is_work": {"type": ["boolean", "null"]},
+                                },
+                                "required": [
+                                    "type",
+                                    "title",
+                                    "date",
+                                    "end_date",
+                                    "start_hhmm",
+                                    "end_hhmm",
+                                    "all_day",
+                                    "priority",
+                                    "is_work",
+                                ],
+                            },
+                        },
                         "date": {"type": ["string", "null"]},
                         "end_date": {"type": ["string", "null"]},
                         "start_hhmm": {"type": ["string", "null"]},
@@ -284,6 +392,8 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
                     "required": [
                         "action",
                         "title",
+                        "tasks",
+                        "items",
                         "date",
                         "end_date",
                         "start_hhmm",
@@ -305,6 +415,128 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
         return ScheduleResult(**payload)
     except Exception:
         return None
+
+
+def _parse_schedule_mixed(
+    client: OpenAI, text: str, model: str
+) -> list[ScheduleItem] | None:
+    today = datetime.now(TZ).date().isoformat()
+    system_prompt = (
+        "You extract mixed scheduling intents. Today is "
+        f"{today} (Europe/London). "
+        "Return JSON with a single field: items, an array of objects. "
+        "Each item must be one of: task, reminder, event, workday. "
+        "Item shape: {type:'task'|'reminder'|'event'|'workday', title, date, end_date, "
+        "start_hhmm, end_hhmm, all_day, priority, is_work}. "
+        "Use null when fields do not apply. If no items, return an empty array."
+    )
+    response = client.responses.create(
+        model=model,
+        input=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": text},
+        ],
+        store=False,
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "schedule_mixed",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": False,
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["task", "reminder", "event", "workday"],
+                                    },
+                                    "title": {"type": ["string", "null"]},
+                                    "date": {"type": ["string", "null"]},
+                                    "end_date": {"type": ["string", "null"]},
+                                    "start_hhmm": {"type": ["string", "null"]},
+                                    "end_hhmm": {"type": ["string", "null"]},
+                                    "all_day": {"type": "boolean"},
+                                    "priority": {
+                                        "type": ["string", "null"],
+                                        "enum": ["trivial", "medium", "vital", None],
+                                    },
+                                    "is_work": {"type": ["boolean", "null"]},
+                                },
+                                "required": [
+                                    "type",
+                                    "title",
+                                    "date",
+                                    "end_date",
+                                    "start_hhmm",
+                                    "end_hhmm",
+                                    "all_day",
+                                    "priority",
+                                    "is_work",
+                                ],
+                            },
+                        }
+                    },
+                    "required": ["items"],
+                },
+            }
+        },
+    )
+    output_text = response.output_text or ""
+    try:
+        payload = json.loads(output_text)
+    except Exception:
+        return None
+    items = payload.get("items")
+    if not isinstance(items, list):
+        return None
+    parsed_items = []
+    for item in items:
+        try:
+            parsed_items.append(ScheduleItem(**item))
+        except Exception:
+            continue
+    return parsed_items
+
+
+def _looks_mixed(prompt: str) -> bool:
+    lowered = prompt.lower()
+    intent_hits = 0
+    if re.search(r"\b(remind|alert|reminder)\b", lowered):
+        intent_hits += 1
+    if re.search(r"\b(appointment|meeting|event|at\s+\d|from\s+\d)\b", lowered):
+        intent_hits += 1
+    if re.search(r"\b(need to|have to|todo|task)\b", lowered):
+        intent_hits += 1
+    return intent_hits >= 2 and (" and " in lowered or "," in lowered)
+
+
+def _strip_date_words(text: str) -> str:
+    cleaned = re.sub(
+        r"\b(today|tomorrow|tonight|next week|this week|next month|this month)\b",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    return re.sub(r"\s+", " ", cleaned).strip(" ,.")
+
+
+def _extract_task_candidates(prompt: str) -> list[str]:
+    parts = re.split(r"(?:,|\band\b|\bthen\b)", prompt, flags=re.IGNORECASE)
+    candidates = []
+    for part in parts:
+        match = re.search(r"\b(i\s+)?(need to|have to|got to)\b\s+(.*)", part, re.IGNORECASE)
+        if not match:
+            continue
+        title = _strip_date_words(match.group(3))
+        if title:
+            candidates.append(title)
+    return candidates
 
 
 def _natural_time(hhmm: str | None) -> str:
@@ -1144,6 +1376,42 @@ def ai_reclassify(body: ReclassifyRequest):
     return {"ok": True, "result": result}
 
 
+@router.post("/api/ai/priority")
+def ai_priority(body: PriorityRequest):
+    prompt = body.text.strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="text is required")
+
+    client = get_client()
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    parsed = _parse_priority(client, prompt, model)
+    if not parsed or parsed.get("priority") == "none":
+        return {"ok": False, "message": "No priority intent detected."}
+
+    priority = parsed.get("priority")
+    if priority not in {"trivial", "medium", "vital"}:
+        lowered = prompt.lower()
+        if re.search(r"\b(urgent|important|high)\b", lowered):
+            priority = "vital"
+        elif re.search(r"\b(low)\b", lowered):
+            priority = "trivial"
+        elif re.search(r"\b(medium|normal)\b", lowered):
+            priority = "medium"
+        else:
+            priority = "medium"
+
+    tasks = list_open_tasks()
+    task_match, task_score = _best_match_with_score(prompt, tasks, "title")
+    if not task_match:
+        task_match = _match_by_title(tasks, parsed.get("title"), "title")
+
+    if not task_match:
+        return {"ok": False, "message": "No matching task found."}
+
+    update_task_priority(task_match["id"], priority)
+    return {"ok": True, "task": task_match, "priority": priority}
+
+
 @router.post("/api/ai/reclassify/confirm")
 def ai_reclassify_confirm(body: ReclassifyConfirmRequest):
     target = body.target
@@ -1185,6 +1453,34 @@ def ai_schedule(body: ScheduleRequest):
         return {"ok": False, "message": "No scheduling intent detected."}
 
     lowered = prompt.lower()
+    if not parsed.items and _looks_mixed(prompt):
+        mixed_items = _parse_schedule_mixed(client, prompt, model)
+        if mixed_items:
+            parsed.items = mixed_items
+    if parsed.items:
+        existing_tasks = {
+            (item.title or "").strip().lower()
+            for item in parsed.items
+            if item.type == "task"
+        }
+        for title in _extract_task_candidates(prompt):
+            lower_title = title.lower()
+            if any(lower_title in existing for existing in existing_tasks):
+                continue
+            parsed.items.append(
+                ScheduleItem(
+                    type="task",
+                    title=title,
+                    date=None,
+                    end_date=None,
+                    start_hhmm=None,
+                    end_hhmm=None,
+                    all_day=False,
+                    priority=None,
+                    is_work=None,
+                )
+            )
+            existing_tasks.add(lower_title)
     if lowered.startswith("remind me"):
         parsed.action = "reminder"
     elif any(phrase in lowered for phrase in ("i need to", "i have to", "add a task", "todo")):
@@ -1195,15 +1491,150 @@ def ai_schedule(body: ScheduleRequest):
     ):
         parsed.action = "event"
 
+    if parsed.items:
+        created = {"tasks": [], "reminders": [], "events": [], "workdays": []}
+        for item in parsed.items:
+            item_type = item.type
+            if item_type == "task":
+                priority = item.priority or parsed.priority or "medium"
+                if priority not in {"trivial", "medium", "vital"}:
+                    priority = "medium"
+                title = (item.title or "").strip()
+                if not title:
+                    continue
+                add_task(title, priority)
+                created["tasks"].append({"title": title, "priority": priority})
+            elif item_type == "reminder":
+                title = (item.title or "").strip()
+                if not title:
+                    continue
+                today = datetime.now(TZ).date().isoformat()
+                reminder_date = item.date or today
+                if reminder_date < today:
+                    continue
+                scheduled_hhmm = item.start_hhmm
+                if not scheduled_hhmm:
+                    now_dt = datetime.now(TZ) + timedelta(hours=1)
+                    scheduled_hhmm = now_dt.strftime("%H:%M")
+                hh, mm = scheduled_hhmm.split(":")
+                fire_dt = datetime.now(TZ).replace(
+                    year=int(reminder_date[:4]),
+                    month=int(reminder_date[5:7]),
+                    day=int(reminder_date[8:10]),
+                    hour=int(hh),
+                    minute=int(mm),
+                    second=0,
+                    microsecond=0,
+                )
+                reminder_key = f"adhoc:{uuid.uuid4()}"
+                create_active_for_date(
+                    reminder_key=reminder_key,
+                    label=title,
+                    speak_text=title,
+                    dose_date=reminder_date,
+                    scheduled_hhmm=scheduled_hhmm,
+                    next_fire_at_iso=fire_dt.isoformat(timespec="seconds"),
+                )
+                created["reminders"].append(
+                    {
+                        "title": title,
+                        "date": reminder_date,
+                        "scheduled_hhmm": scheduled_hhmm,
+                    }
+                )
+            elif item_type == "event":
+                if not item.date:
+                    continue
+                start_hhmm = item.start_hhmm
+                end_hhmm = item.end_hhmm
+                all_day = item.all_day
+                if not all_day:
+                    if not start_hhmm:
+                        continue
+                    if not end_hhmm:
+                        end_hhmm = _add_minutes(start_hhmm, 30)
+                event_ids = []
+                if item.end_date:
+                    try:
+                        start_dt = datetime.fromisoformat(item.date).date()
+                        end_dt = datetime.fromisoformat(item.end_date).date()
+                    except Exception:
+                        continue
+                    if end_dt < start_dt:
+                        continue
+                    cursor = start_dt
+                    while cursor <= end_dt:
+                        event_ids.append(
+                            add_event(
+                                title=item.title or "Event",
+                                event_date=cursor.isoformat(),
+                                start_hhmm=start_hhmm,
+                                end_hhmm=end_hhmm,
+                                all_day=all_day,
+                                reminder_preset="standard"
+                                if item_type == "event"
+                                else "none",
+                            )
+                        )
+                        cursor = cursor + timedelta(days=1)
+                else:
+                    event_ids.append(
+                        add_event(
+                            title=item.title or "Event",
+                            event_date=item.date,
+                            start_hhmm=start_hhmm,
+                            end_hhmm=end_hhmm,
+                            all_day=all_day,
+                            reminder_preset="standard"
+                            if item_type == "event"
+                            else "none",
+                        )
+                    )
+                created["events"].append(
+                    {
+                        "title": item.title or "Event",
+                        "date": item.date,
+                        "end_date": item.end_date,
+                        "start_hhmm": start_hhmm,
+                        "end_hhmm": end_hhmm,
+                        "all_day": all_day,
+                        "ids": event_ids,
+                    }
+                )
+            elif item_type == "workday":
+                if not item.date or item.is_work is None:
+                    continue
+                set_work_day(item.date, item.is_work, item.start_hhmm, item.end_hhmm)
+                created["workdays"].append(
+                    {
+                        "date": item.date,
+                        "is_work": item.is_work,
+                        "start_hhmm": item.start_hhmm,
+                        "end_hhmm": item.end_hhmm,
+                    }
+                )
+
+        if any(created.values()):
+            today = datetime.now(TZ).date().isoformat()
+            create_event_reminders_for_date(today)
+            return {"ok": True, "action": "mixed", **created}
+
     if parsed.action == "task":
         priority = parsed.priority or "medium"
         if priority not in {"trivial", "medium", "vital"}:
             priority = "medium"
-        add_task(parsed.title, priority)
+        task_titles = [t.strip() for t in parsed.tasks if t.strip()] or [
+            parsed.title.strip()
+        ]
+        created = []
+        for title in task_titles:
+            add_task(title, priority)
+            created.append({"title": title, "priority": priority})
         return {
             "ok": True,
             "action": parsed.action,
-            "task": {"title": parsed.title, "priority": priority},
+            "task": created[0] if created else None,
+            "tasks": created,
         }
 
     if parsed.action == "workday":
