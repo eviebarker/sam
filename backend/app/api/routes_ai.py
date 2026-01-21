@@ -1177,6 +1177,17 @@ def ai_resolve(body: ResolveRequest):
     client = get_client()
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     lowered = prompt.lower()
+    if re.search(
+        r"\b(cancel|cancelled|canceled|delete|remove|call off|called off|scrap|scratch)\b",
+        lowered,
+    ) and re.search(r"\b(appointment|event|meeting)\b", lowered):
+        today = datetime.now(TZ).date().isoformat()
+        events = [dict(e) for e in list_events_from_date(today)]
+        event_match = _best_match(prompt, events, "title")
+        if event_match:
+            delete_event_reminders(event_match["id"])
+            delete_event(event_match["id"])
+            return {"ok": True, "action": "delete", "target": "event", "event": event_match}
     list_match = re.search(
         r"\b(i\s+have\s+done|i\s+did|i\s+finished|i\s+completed|i[' ]?ve)\b\s+(.*)",
         lowered,

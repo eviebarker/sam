@@ -243,6 +243,7 @@ Later, user: “What reminder style should I use?”
 - “Mark all my tasks as complete” marks all open tasks done.
 - List completion works (comma/“and”):  
   - “I’ve done wash up, ordered pet food, and called the electrician.”
+- Cancel intents delete events (e.g., “my dentist appointment is cancelled”).
 
 ### Event reminder generation (timing)
 - Event reminders are **created on the day they’re due**, not at event creation time.
