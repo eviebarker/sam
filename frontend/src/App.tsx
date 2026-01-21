@@ -319,26 +319,29 @@ export default function App() {
         await refresh();
         return;
       }
-      const reclassifyRes = await aiReclassify(prompt);
-      if (reclassifyRes.needs_confirmation && reclassifyRes.options?.length) {
-        const target = reclassifyRes.target ?? "task";
-        const nextOptions = reclassifyRes.options.map((o) => ({
-          ...o,
-          target,
-        }));
-        setReclassifyOptions(nextOptions);
-        const optionsText = nextOptions
-          .map((o, i) => `${i + 1}) ${o.label} (${o.item_type})`)
-          .join("\n");
-        setAiOutput(`Which one should I move to ${target}?\n${optionsText}`);
-        return;
-      }
-      if (reclassifyRes.ok) {
-        const ack = "Moved it.";
-        setAiOutput(ack);
-        await playTts(ack);
-        await refresh();
-        return;
+      const reclassifyTrigger = /(?:\bmove\b|\breclassif(?:y|y)\b|\bshould be\b|\bmake\b.*\b(task|reminder|event)\b)/i;
+      if (reclassifyTrigger.test(prompt)) {
+        const reclassifyRes = await aiReclassify(prompt);
+        if (reclassifyRes.needs_confirmation && reclassifyRes.options?.length) {
+          const target = reclassifyRes.target ?? "task";
+          const nextOptions = reclassifyRes.options.map((o) => ({
+            ...o,
+            target,
+          }));
+          setReclassifyOptions(nextOptions);
+          const optionsText = nextOptions
+            .map((o, i) => `${i + 1}) ${o.label} (${o.item_type})`)
+            .join("\n");
+          setAiOutput(`Which one should I move to ${target}?\n${optionsText}`);
+          return;
+        }
+        if (reclassifyRes.ok) {
+          const ack = "Moved it.";
+          setAiOutput(ack);
+          await playTts(ack);
+          await refresh();
+          return;
+        }
       }
       const scheduleRes = await aiSchedule(prompt);
       if (scheduleRes.ok) {
@@ -361,10 +364,36 @@ export default function App() {
             ack = `Added reminder: ${scheduleRes.reminder.title} (${dateLabel} at ${timeLabel})`;
           }
         } else if (scheduleRes.event) {
-          const when = scheduleRes.event.all_day
-            ? scheduleRes.event.date
-            : `${scheduleRes.event.date} ${scheduleRes.event.start_hhmm}-${scheduleRes.event.end_hhmm}`;
-          ack = `Added ${action}: ${scheduleRes.event.title} (${when})`;
+          const todayStr = ymdLocal(new Date());
+          if (scheduleRes.event.all_day) {
+            const dateLabel =
+              scheduleRes.event.date === todayStr ? "today" : scheduleRes.event.date;
+            ack = `Added ${action}: ${scheduleRes.event.title} (${dateLabel})`;
+          } else {
+            const startDt = new Date(
+              `${scheduleRes.event.date}T${scheduleRes.event.start_hhmm}:00`
+            );
+            const endDt = scheduleRes.event.end_hhmm
+              ? new Date(`${scheduleRes.event.date}T${scheduleRes.event.end_hhmm}:00`)
+              : null;
+            const timeStart = startDt.toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            });
+            const timeEnd = endDt
+              ? endDt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+              : null;
+            const dateLabel =
+              scheduleRes.event.date === todayStr
+                ? "today"
+                : startDt.toLocaleDateString([], {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "short",
+                  });
+            const timeLabel = timeEnd ? `${timeStart} until ${timeEnd}` : timeStart;
+            ack = `Added ${action}: ${scheduleRes.event.title} (${dateLabel} at ${timeLabel})`;
+          }
         }
         setAiOutput(ack);
         await playTts(ack);

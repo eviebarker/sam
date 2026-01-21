@@ -496,6 +496,17 @@ def ai_respond(body: AiRequest):
         add_ai_memory(f"{name} is {owner}'s {pet}.")
         return {"text": "Got it. I'll remember that."}
 
+    descriptor_match = re.search(
+        r"\b([A-Za-z][\w'-]*)\s+is\s+a[n]?\s+([A-Za-z][\w' -]{2,})\b",
+        prompt,
+        flags=re.IGNORECASE,
+    )
+    if descriptor_match:
+        name = descriptor_match.group(1)
+        descriptor = descriptor_match.group(2).strip()
+        add_ai_memory(f"{name} is a {descriptor}.")
+        return {"text": "Got it. I'll remember that."}
+
     term, pronunciation = _extract_pronunciation(prompt)
     if pronunciation:
         if not term:
@@ -708,6 +719,27 @@ def _best_match(prompt: str, candidates: list[dict], key: str) -> dict | None:
     return None
 
 
+def _best_match_with_score(prompt: str, candidates: list[dict], key: str) -> tuple[dict | None, float]:
+    if not candidates:
+        return None, 0.0
+    prompt_tokens = set(_tokenize(prompt))
+    best = None
+    best_score = 0.0
+    for item in candidates:
+        title = str(item.get(key, ""))
+        title_tokens = set(_tokenize(title))
+        if not title_tokens:
+            continue
+        overlap = prompt_tokens.intersection(title_tokens)
+        score = len(overlap) / max(len(title_tokens), 1)
+        if score > best_score:
+            best_score = score
+            best = item
+    if best_score >= 0.3:
+        return best, best_score
+    return None, 0.0
+
+
 def _rank_matches(prompt: str, candidates: list[dict], key: str) -> list[dict]:
     prompt_tokens = set(_tokenize(prompt))
     ranked = []
@@ -865,16 +897,39 @@ def ai_resolve(body: ResolveRequest):
     today = datetime.now(TZ).date().isoformat()
     events = [dict(e) for e in list_events_from_date(today)]
 
-    task_match = _best_match(prompt, tasks, "title") or _match_by_title(tasks, parsed.title, "title")
-    reminder_match = (
-        _best_match(prompt, reminders, "label")
-        or _best_match(prompt, reminders_recent, "label")
-        or _match_by_title(reminders, parsed.title, "label")
-        or _match_by_title(reminders_recent, parsed.title, "label")
-    )
-    event_match = _best_match(prompt, events, "title") or _match_by_title(events, parsed.title, "title")
+    completion_tokens = set(_tokenize(prompt))
+    med_keys = {"lanny_zee", "morning_meds", "lunch_meds", "evening_meds"}
+    allow_meds = any(t in completion_tokens for t in {"med", "meds", "pill", "tablets", "lanny", "zee"})
+    reminders_filtered = [
+        r for r in reminders if allow_meds or r.get("reminder_key") not in med_keys
+    ]
+    reminders_recent_filtered = [
+        r for r in reminders_recent if allow_meds or r.get("reminder_key") not in med_keys
+    ]
 
-    if reminder_match:
+    task_match, task_score = _best_match_with_score(prompt, tasks, "title")
+    reminder_match, reminder_score = _best_match_with_score(prompt, reminders_filtered, "label")
+    if not reminder_match:
+        reminder_match, reminder_score = _best_match_with_score(
+            prompt, reminders_recent_filtered, "label"
+        )
+    event_match, event_score = _best_match_with_score(prompt, events, "title")
+
+    if not task_match:
+        task_match = _match_by_title(tasks, parsed.title, "title")
+    if not reminder_match:
+        reminder_match = _match_by_title(reminders_filtered, parsed.title, "label")
+        if not reminder_match:
+            reminder_match = _match_by_title(reminders_recent_filtered, parsed.title, "label")
+    if not event_match:
+        event_match = _match_by_title(events, parsed.title, "title")
+
+    best_target = max(
+        [("task", task_score), ("reminder", reminder_score), ("event", event_score)],
+        key=lambda item: item[1],
+    )[0]
+
+    if best_target == "reminder" and reminder_match:
         if reminder_match.get("status") != "done":
             mark_done(reminder_match["id"])
         return {
@@ -883,10 +938,10 @@ def ai_resolve(body: ResolveRequest):
             "target": "reminder",
             "reminder": reminder_match,
         }
-    if task_match:
+    if best_target == "task" and task_match:
         mark_task_done(task_match["id"])
         return {"ok": True, "action": "complete", "target": "task", "task": task_match}
-    if event_match:
+    if best_target == "event" and event_match:
         delete_event_reminders(event_match["id"])
         delete_event(event_match["id"])
         return {"ok": True, "action": "delete", "target": "event", "event": event_match}
@@ -1064,10 +1119,10 @@ def ai_schedule(body: ScheduleRequest):
     if not parsed.date:
         raise HTTPException(status_code=400, detail="date is required")
     if not parsed.all_day:
-        if not parsed.start_hhmm or not parsed.end_hhmm:
-            raise HTTPException(
-                status_code=400, detail="start_hhmm and end_hhmm required"
-            )
+        if not parsed.start_hhmm:
+            raise HTTPException(status_code=400, detail="start_hhmm required")
+        if not parsed.end_hhmm:
+            parsed.end_hhmm = _add_minutes(parsed.start_hhmm, 30)
 
     event_id = add_event(
         title=parsed.title,
