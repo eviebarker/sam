@@ -8,6 +8,7 @@ import {
   doneTask,
   getEvents,
   ttsSpeak,
+  aiRespond,
 } from "./api";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
@@ -75,6 +76,9 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [aiInput, setAiInput] = useState("");
+  const [aiOutput, setAiOutput] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   async function refresh() {
     try {
@@ -223,6 +227,21 @@ export default function App() {
       await audio.play();
     } catch (e: any) {
       setErr(e?.message ?? "failed");
+    }
+  }
+
+  async function handleAiSubmit() {
+    const prompt = aiInput.trim();
+    if (!prompt) return;
+    try {
+      setErr(null);
+      setAiLoading(true);
+      const res = await aiRespond(prompt);
+      setAiOutput(res.text);
+    } catch (e: any) {
+      setErr(e?.message ?? "failed");
+    } finally {
+      setAiLoading(false);
     }
   }
 
@@ -447,6 +466,27 @@ export default function App() {
             Test speak
           </button>
           <p className="subtle">v1: button only (no hotword)</p>
+
+          <div className="aiBlock">
+            <div className="aiLabel">Ask Sam</div>
+            <textarea
+              className="aiInput"
+              rows={3}
+              placeholder="Type a prompt..."
+              value={aiInput}
+              onChange={(e) => setAiInput(e.target.value)}
+            />
+            <div className="aiActions">
+              <button
+                className="glass-pill glass-pill--small"
+                onClick={handleAiSubmit}
+                disabled={aiLoading}
+              >
+                {aiLoading ? "Thinking..." : "Ask"}
+              </button>
+            </div>
+            {aiOutput ? <div className="aiResponse">{aiOutput}</div> : null}
+          </div>
         </section>
       </main>
 

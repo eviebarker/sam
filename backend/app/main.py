@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
 from backend.app.db.conn import init_db
 from backend.app.services.scheduler_service import start_scheduler
 from backend.app.api.routes_dashboard import router as dashboard_router
@@ -7,7 +8,9 @@ from backend.app.api.routes_reminders import router as reminders_router
 from backend.app.api.routes_workdays import router as workdays_router
 from backend.app.api.routes_events import router as events_router
 from backend.app.api.routes_tts import router as tts_router
+from backend.app.api.routes_ai import router as ai_router
 
+load_dotenv()
 app = FastAPI(title="Sam Kitchen PA")
 
 @app.on_event("startup")
@@ -25,3 +28,4 @@ app.include_router(reminders_router)
 app.include_router(workdays_router)
 app.include_router(events_router)
 app.include_router(tts_router)
+app.include_router(ai_router)

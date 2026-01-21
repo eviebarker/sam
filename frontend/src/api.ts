@@ -84,3 +84,13 @@ export async function ttsSpeak(text: string) {
   if (!r.ok) throw new Error(`tts failed: ${r.status}`);
   return r.blob();
 }
+
+export async function aiRespond(text: string) {
+  const r = await fetch("/api/ai/respond", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!r.ok) throw new Error(`ai failed: ${r.status}`);
+  return r.json() as Promise<{ text: string }>;
+}
