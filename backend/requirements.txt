@@ -3,6 +3,7 @@ uvicorn[standard]
 pydantic
 python-dotenv
 apscheduler
+openai
 piper-tts
 soundfile
 scipy
