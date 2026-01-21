@@ -109,6 +109,7 @@ export async function aiSchedule(text: string) {
     event?: {
       title: string;
       date: string | null;
+      end_date?: string | null;
       start_hhmm: string | null;
       end_hhmm: string | null;
       all_day: boolean;

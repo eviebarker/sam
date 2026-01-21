@@ -372,54 +372,50 @@ export default function App() {
       const scheduleRes = await aiSchedule(prompt);
       if (scheduleRes.ok) {
         const action = scheduleRes.action ?? "event";
+        const addAcks = [
+          "Got it, I added the {type}.",
+          "Okay, I added the {type}.",
+          "Done — I added the {type}.",
+          "All set, the {type} is added.",
+          "Sorted, I added the {type}.",
+          "Great, I’ve added the {type}.",
+          "No problem, I added the {type}.",
+          "Okay, the {type} is in.",
+          "Added the {type}.",
+          "That {type} is added now.",
+          "Got it — added the {type}.",
+          "All good, I added the {type}.",
+          "Consider the {type} added.",
+          "Done, the {type} is added.",
+          "Noted and added the {type}.",
+          "Added the {type} for you.",
+          "Got it, that {type} is added.",
+          "Okay, that {type} is added.",
+          "Sure, I added the {type}.",
+          "Done, added the {type}.",
+          "Alright, I added the {type}.",
+          "Okay, I’ve put the {type} in.",
+          "All set — added the {type}.",
+          "No worries, the {type} is added.",
+          "Added the {type}, all set.",
+          "Done, the {type} is in.",
+          "Got it, the {type} is now added.",
+          "Alright, the {type} is added.",
+          "Okay, you’re set — the {type} is added.",
+          "Got it — the {type} is added now.",
+        ];
+        const pickAddAck = (type: "event" | "task" | "alert") =>
+          addAcks[Math.floor(Math.random() * addAcks.length)].replace(
+            "{type}",
+            type
+          );
         let ack = "Done.";
         if (action === "task" && scheduleRes.task) {
-          ack = `Added task: ${scheduleRes.task.title}`;
+          ack = pickAddAck("task");
         } else if (action === "reminder" && scheduleRes.reminder) {
-          const todayStr = ymdLocal(new Date());
-          if (scheduleRes.reminder.date === todayStr) {
-            ack = `Added reminder: ${scheduleRes.reminder.title} (${scheduleRes.reminder.scheduled_hhmm})`;
-          } else {
-            const dt = new Date(`${scheduleRes.reminder.date}T${scheduleRes.reminder.scheduled_hhmm}:00`);
-            const dateLabel = dt.toLocaleDateString([], {
-              weekday: "short",
-              day: "2-digit",
-              month: "short",
-            });
-            const timeLabel = dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-            ack = `Added reminder: ${scheduleRes.reminder.title} (${dateLabel} at ${timeLabel})`;
-          }
+          ack = pickAddAck("alert");
         } else if (scheduleRes.event) {
-          const todayStr = ymdLocal(new Date());
-          if (scheduleRes.event.all_day) {
-            const dateLabel =
-              scheduleRes.event.date === todayStr ? "today" : scheduleRes.event.date;
-            ack = `Added ${action}: ${scheduleRes.event.title} (${dateLabel})`;
-          } else {
-            const startDt = new Date(
-              `${scheduleRes.event.date}T${scheduleRes.event.start_hhmm}:00`
-            );
-            const endDt = scheduleRes.event.end_hhmm
-              ? new Date(`${scheduleRes.event.date}T${scheduleRes.event.end_hhmm}:00`)
-              : null;
-            const timeStart = startDt.toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            });
-            const timeEnd = endDt
-              ? endDt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-              : null;
-            const dateLabel =
-              scheduleRes.event.date === todayStr
-                ? "today"
-                : startDt.toLocaleDateString([], {
-                    weekday: "short",
-                    day: "2-digit",
-                    month: "short",
-                  });
-            const timeLabel = timeEnd ? `${timeStart} until ${timeEnd}` : timeStart;
-            ack = `Added ${action}: ${scheduleRes.event.title} (${dateLabel} at ${timeLabel})`;
-          }
+          ack = pickAddAck("event");
         }
         setAiOutput(ack);
         await playTts(ack);
