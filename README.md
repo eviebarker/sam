@@ -129,7 +129,8 @@ If it needs new data, extend the dashboard response in `dashboard_service.py`.
 
 ## Events (current behavior)
 - Events list shows **today only**, with “now” or “in X…” based on the time range
-- Event reminders are **opt‑in** (`reminder_preset = standard`); default is **none**
+- Event reminders are **opt‑in** (`reminder_preset = standard`); default is **none** for manual API creates
+- AI‑scheduled events default to **standard** reminders (except “Work”)
 - Event reminder cadence (standard):
   - **Day‑before only** when the event is within the next 7 days (no day‑of alerts)
   - **Weekly** for the final month (days‑until 28, 21, 14), plus the day‑before alert
@@ -226,7 +227,7 @@ Later, user: “What reminder style should I use?”
 - Reminders without a time default to **now + 1 hour**.
 - Relative times like **“in 1 minute/hour”** are parsed and scheduled correctly.
 - Reminders create **alerts** (not events), so they appear in the Alerts card.
-- Events appear in the Today card and can optionally create reminders via presets.
+- Events appear in the Today card and include **standard reminders by default** (non‑work).
 - Date ranges like **“Dec 7 to Dec 9”** expand into **daily events for each date** in the range.
 - Durations like **“for 6 days”** expand into **daily events** starting from the given date.
 - UI acknowledgement for adds uses a **short randomized confirmation** (e.g., “Got it, I added the event.”) instead of repeating the full event/reminder text.
@@ -241,6 +242,10 @@ Later, user: “What reminder style should I use?”
 - “Mark all my tasks as complete” marks all open tasks done.
 - List completion works (comma/“and”):  
   - “I’ve done wash up, ordered pet food, and called the electrician.”
+
+### Event reminder generation (timing)
+- Event reminders are **created on the day they’re due**, not at event creation time.
+- Each day the scheduler evaluates the cadence rules for that date and only then inserts the `event:*` reminder for that day.
 - Med resolution rules:
   - If the text mentions **morning/lunch/evening/lanny/lansoprazole**, it marks that specific med.
   - Otherwise it picks the **closest due med** within its 30‑minute window.
