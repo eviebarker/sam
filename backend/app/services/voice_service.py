@@ -12,10 +12,12 @@ import soundfile as sf
 import os
 import shutil
 import subprocess
+import re
 from math import gcd
 from scipy.signal import resample_poly
 from pathlib import Path
 from piper import PiperVoice, SynthesisConfig
+from backend.app.db.pronunciation_queries import list_pronunciations
 
 # Init voice model
 BASE_DIR = Path(__file__).resolve().parent
@@ -29,6 +31,7 @@ voice = PiperVoice.load(str(MODEL_PATH))
 
 def generate_wav_file(input_text: str, wav_path: str):
     """Synthesize `input_text` into a WAV file written to `wav_path`."""
+    input_text = apply_pronunciations(input_text)
     syn_config = SynthesisConfig(
         length_scale=BASE_LENGTH_SCALE * random.uniform(0.98, 1.03),
         noise_scale=BASE_NOISE_SCALE * random.uniform(0.9, 1.1),
@@ -139,11 +142,31 @@ def _detect_player_cmd() -> list[str] | None:
     return None
 
 
+def apply_pronunciations(text: str) -> str:
+    pronunciations = list_pronunciations()
+    if not pronunciations:
+        return text
+    updated = text
+    for entry in pronunciations:
+        term = entry["term"]
+        pronunciation = entry["pronunciation"]
+        if not term or not pronunciation:
+            continue
+        escaped = re.escape(term)
+        if " " in term:
+            pattern = re.compile(escaped, flags=re.IGNORECASE)
+        else:
+            pattern = re.compile(rf"\b{escaped}\b", flags=re.IGNORECASE)
+        updated = pattern.sub(pronunciation, updated)
+    return updated
+
+
 def synthesize_and_play(input_text: str) -> None:
     player_cmd = _detect_player_cmd()
     if not player_cmd:
         raise RuntimeError("No audio player found. Set TTS_PLAYER_CMD.")
 
+    input_text = apply_pronunciations(input_text)
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         wav_path = tmp.name
 
@@ -160,3 +183,27 @@ def synthesize_and_play_async(input_text: str) -> None:
         target=synthesize_and_play, args=(input_text,), daemon=True
     )
     thread.start()
+
+
+def apply_pronunciations(text: str) -> str:
+    pronunciations = list_pronunciations()
+    if not pronunciations:
+        return text
+    updated = text
+    for item in pronunciations:
+        term = item.get("term")
+        pronunciation = item.get("pronunciation")
+        if not term or not pronunciation:
+            continue
+        pronunciation = _format_pronunciation(pronunciation)
+        pattern = re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE)
+        updated = pattern.sub(pronunciation, updated)
+    return updated
+
+
+def _format_pronunciation(pronunciation: str) -> str:
+    cleaned = pronunciation.strip()
+    tokens = cleaned.split()
+    if len(tokens) >= 2 and all(len(t) <= 2 for t in tokens):
+        return ", ".join(tokens)
+    return cleaned
