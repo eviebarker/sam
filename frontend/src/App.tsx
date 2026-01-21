@@ -11,6 +11,8 @@ import {
   aiRespond,
   aiSchedule,
   aiResolve,
+  aiReclassify,
+  aiReclassifyConfirm,
 } from "./api";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
@@ -81,6 +83,9 @@ export default function App() {
   const [aiInput, setAiInput] = useState("");
   const [aiOutput, setAiOutput] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [reclassifyOptions, setReclassifyOptions] = useState<
+    { item_type: "task" | "reminder" | "event"; item_id: number; label: string; target: "task" | "reminder" | "event" }[]
+  >([]);
 
   async function refresh() {
     try {
@@ -243,6 +248,27 @@ export default function App() {
     try {
       setErr(null);
       setAiLoading(true);
+      if (reclassifyOptions.length) {
+        const selected = Number(prompt);
+        const option = reclassifyOptions[selected - 1];
+        if (option) {
+          const res = await aiReclassifyConfirm(
+            option.target,
+            option.item_type,
+            option.item_id
+          );
+          if (res.ok) {
+            const ack = `Moved: ${option.label} to ${option.target}`;
+            setAiOutput(ack);
+            await playTts(ack);
+            setReclassifyOptions([]);
+            await refresh();
+            return;
+          }
+        }
+        setAiOutput("Please reply with a valid option number.");
+        return;
+      }
       const resolveRes = await aiResolve(prompt);
       if (resolveRes.ok) {
         let ack = "Done.";
@@ -253,6 +279,27 @@ export default function App() {
         } else if (resolveRes.target === "event" && resolveRes.event) {
           ack = `Removed event: ${resolveRes.event.title}`;
         }
+        setAiOutput(ack);
+        await playTts(ack);
+        await refresh();
+        return;
+      }
+      const reclassifyRes = await aiReclassify(prompt);
+      if (reclassifyRes.needs_confirmation && reclassifyRes.options?.length) {
+        const target = reclassifyRes.target ?? "task";
+        const nextOptions = reclassifyRes.options.map((o) => ({
+          ...o,
+          target,
+        }));
+        setReclassifyOptions(nextOptions);
+        const optionsText = nextOptions
+          .map((o, i) => `${i + 1}) ${o.label} (${o.item_type})`)
+          .join("\n");
+        setAiOutput(`Which one should I move to ${target}?\n${optionsText}`);
+        return;
+      }
+      if (reclassifyRes.ok) {
+        const ack = "Moved it.";
         setAiOutput(ack);
         await playTts(ack);
         await refresh();
@@ -323,6 +370,7 @@ export default function App() {
           <span className="glass-pill glass-pill--small">{workLabel}</span>
         </div>
       </header>
+      {aiOutput ? <div className="aiResponse">{aiOutput}</div> : null}
 
       {err && <div className="err glass-soft">Backend error: {err}</div>}
 
@@ -340,7 +388,17 @@ export default function App() {
                     <strong>{workStart && workEnd ? `${workStart}-${workEnd}` : "Work"}</strong>{" "}
                     Work
                   </span>
-                  {workStatus ? <span className="eventMeta">{workStatus}</span> : null}
+                  {workStatus ? (
+                    <span
+                      className={`eventMeta${
+                        workFinished ? " eventMeta--done" : " reminderStatus"
+                      }${workStatus === "now" ? " reminderStatus--missed" : ""}${
+                        workStatus !== "now" && !workFinished ? " reminderStatus--done" : ""
+                      }`}
+                    >
+                      {workStatus}
+                    </span>
+                  ) : null}
                 </li>
               ) : null}
               {events.map((e) => {
@@ -544,7 +602,6 @@ export default function App() {
                 {aiLoading ? "Thinking..." : "Ask"}
               </button>
             </div>
-            {aiOutput ? <div className="aiResponse">{aiOutput}</div> : null}
           </div>
         </section>
       </main>

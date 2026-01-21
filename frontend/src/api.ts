@@ -139,3 +139,33 @@ export async function aiResolve(text: string) {
     event?: { title: string; event_date?: string };
   }>;
 }
+
+export async function aiReclassify(text: string) {
+  const r = await fetch("/api/ai/reclassify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!r.ok) throw new Error(`ai reclassify failed: ${r.status}`);
+  return r.json() as Promise<{
+    ok: boolean;
+    message?: string;
+    needs_confirmation?: boolean;
+    target?: "task" | "reminder" | "event";
+    options?: { item_type: string; item_id: number; label: string }[];
+  }>;
+}
+
+export async function aiReclassifyConfirm(
+  target: "task" | "reminder" | "event",
+  item_type: "task" | "reminder" | "event",
+  item_id: number
+) {
+  const r = await fetch("/api/ai/reclassify/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target, item_type, item_id }),
+  });
+  if (!r.ok) throw new Error(`ai reclassify confirm failed: ${r.status}`);
+  return r.json() as Promise<{ ok: boolean; message?: string }>;
+}

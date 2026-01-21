@@ -60,6 +60,16 @@ class ResolveResult(BaseModel):
     title: str | None = None
 
 
+class ReclassifyRequest(BaseModel):
+    text: str
+
+
+class ReclassifyConfirmRequest(BaseModel):
+    target: str
+    item_type: str
+    item_id: int
+
+
 def get_client() -> OpenAI:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -131,6 +141,47 @@ def _parse_resolve(client: OpenAI, text: str, model: str) -> ResolveResult | Non
         return ResolveResult(**payload)
     except Exception:
         return None
+
+
+def _parse_reclassify(client: OpenAI, text: str, model: str) -> dict | None:
+    system_prompt = (
+        "You detect reclassify intents. Return JSON with fields: "
+        "target ('task'|'reminder'|'event'|'none') and title (string or null). "
+        "If the user says something should be moved to a category, extract the title."
+    )
+    response = client.responses.create(
+        model=model,
+        input=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": text},
+        ],
+        store=False,
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "reclassify_intent",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "target": {
+                            "type": "string",
+                            "enum": ["task", "reminder", "event", "none"],
+                        },
+                        "title": {"type": ["string", "null"]},
+                    },
+                    "required": ["target", "title"],
+                },
+            }
+        },
+    )
+    output_text = response.output_text or ""
+    try:
+        payload = json.loads(output_text)
+    except Exception:
+        return None
+    return payload
 
 
 def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | None:
@@ -349,6 +400,105 @@ def _best_match(prompt: str, candidates: list[dict], key: str) -> dict | None:
     return None
 
 
+def _rank_matches(prompt: str, candidates: list[dict], key: str) -> list[dict]:
+    prompt_tokens = set(_tokenize(prompt))
+    ranked = []
+    for item in candidates:
+        title = str(item.get(key, ""))
+        title_tokens = set(_tokenize(title))
+        if not title_tokens:
+            continue
+        overlap = prompt_tokens.intersection(title_tokens)
+        score = len(overlap) / max(len(title_tokens), 1)
+        ranked.append({"score": score, "item": item})
+    ranked.sort(key=lambda r: r["score"], reverse=True)
+    return ranked
+
+
+def _add_minutes(hhmm: str, minutes: int) -> str:
+    hh, mm = hhmm.split(":")
+    base = datetime.now(TZ).replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
+    return (base + timedelta(minutes=minutes)).strftime("%H:%M")
+
+
+def _reclassify_item(item_type: str, item: dict, target: str) -> dict:
+    now_dt = datetime.now(TZ)
+    today = now_dt.date().isoformat()
+
+    if target == "task":
+        add_task(item.get("title") or item.get("label") or "Untitled", "medium")
+        if item_type == "reminder":
+            if item.get("status") != "done":
+                mark_done(item["id"])
+        elif item_type == "event":
+            delete_event_reminders(item["id"])
+            delete_event(item["id"])
+        return {"target": "task"}
+
+    if target == "reminder":
+        if item_type == "event":
+            reminder_date = item["event_date"]
+            scheduled_hhmm = item["start_hhmm"] or "09:00"
+            label = item["title"]
+        else:
+            reminder_date = today
+            scheduled_hhmm = (now_dt + timedelta(hours=1)).strftime("%H:%M")
+            label = item.get("title") or item.get("label") or "Reminder"
+            if item_type == "task":
+                mark_task_done(item["id"])
+        hh, mm = scheduled_hhmm.split(":")
+        fire_dt = datetime.now(TZ).replace(
+            year=int(reminder_date[:4]),
+            month=int(reminder_date[5:7]),
+            day=int(reminder_date[8:10]),
+            hour=int(hh),
+            minute=int(mm),
+            second=0,
+            microsecond=0,
+        )
+        reminder_key = f"adhoc:{uuid.uuid4()}"
+        create_active_for_date(
+            reminder_key=reminder_key,
+            label=label,
+            speak_text=label,
+            dose_date=reminder_date,
+            scheduled_hhmm=scheduled_hhmm,
+            next_fire_at_iso=fire_dt.isoformat(timespec="seconds"),
+        )
+        if item_type == "event":
+            delete_event_reminders(item["id"])
+            delete_event(item["id"])
+        return {"target": "reminder", "date": reminder_date, "time": scheduled_hhmm}
+
+    if target == "event":
+        if item_type == "reminder":
+            reminder_date = item["dose_date"]
+            start_hhmm = item["scheduled_hhmm"]
+            end_hhmm = _add_minutes(start_hhmm, 30)
+            title = item["label"]
+        else:
+            reminder_date = today
+            start_hhmm = None
+            end_hhmm = None
+            title = item.get("title") or item.get("label") or "Event"
+            if item_type == "task":
+                mark_task_done(item["id"])
+        add_event(
+            title=title,
+            event_date=reminder_date,
+            start_hhmm=start_hhmm,
+            end_hhmm=end_hhmm,
+            all_day=start_hhmm is None,
+            reminder_preset="none",
+        )
+        if item_type == "reminder":
+            if item.get("status") != "done":
+                mark_done(item["id"])
+        return {"target": "event", "date": reminder_date}
+
+    return {"target": "none"}
+
+
 @router.post("/api/ai/resolve")
 def ai_resolve(body: ResolveRequest):
     prompt = body.text.strip()
@@ -434,6 +584,95 @@ def ai_resolve(body: ResolveRequest):
         return {"ok": True, "action": "delete", "target": "event", "event": event_match}
 
     return {"ok": False, "message": "No matching item found."}
+
+
+@router.post("/api/ai/reclassify")
+def ai_reclassify(body: ReclassifyRequest):
+    prompt = body.text.strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="text is required")
+
+    client = get_client()
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    parsed = _parse_reclassify(client, prompt, model)
+    if not parsed or parsed.get("target") == "none":
+        return {"ok": False, "message": "No reclassify intent detected."}
+
+    target = parsed.get("target")
+    title = parsed.get("title")
+    if not target:
+        return {"ok": False, "message": "No target specified."}
+
+    tasks = list_open_tasks()
+    reminders = list_active_reminders()
+    reminders_recent = list_recent_reminders()
+    today = datetime.now(TZ).date().isoformat()
+    events = [dict(e) for e in list_events_from_date(today)]
+
+    ranked = []
+    ranked += [{"type": "task", **r} for r in _rank_matches(prompt, tasks, "title")]
+    ranked += [{"type": "reminder", **r} for r in _rank_matches(prompt, reminders, "label")]
+    ranked += [{"type": "reminder", **r} for r in _rank_matches(prompt, reminders_recent, "label")]
+    ranked += [{"type": "event", **r} for r in _rank_matches(prompt, events, "title")]
+    ranked.sort(key=lambda r: r["score"], reverse=True)
+
+    if not ranked or ranked[0]["score"] < 0.3:
+        if title:
+            # Try direct title match as fallback.
+            for item in tasks:
+                if title.lower() in item["title"].lower():
+                    return {
+                        "ok": True,
+                        "result": _reclassify_item("task", item, target),
+                    }
+        return {"ok": False, "message": "No matching item found."}
+
+    top = ranked[:3]
+    if len(top) > 1 and top[1]["score"] >= top[0]["score"] * 0.85:
+        options = []
+        for entry in top:
+            item = entry["item"]
+            label = item.get("title") or item.get("label")
+            options.append(
+                {
+                    "item_type": entry["type"],
+                    "item_id": item["id"],
+                    "label": label,
+                }
+            )
+        return {"ok": False, "needs_confirmation": True, "target": target, "options": options}
+
+    choice = ranked[0]
+    result = _reclassify_item(choice["type"], choice["item"], target)
+    return {"ok": True, "result": result}
+
+
+@router.post("/api/ai/reclassify/confirm")
+def ai_reclassify_confirm(body: ReclassifyConfirmRequest):
+    target = body.target
+    item_type = body.item_type
+    item_id = body.item_id
+    if target not in {"task", "reminder", "event"}:
+        raise HTTPException(status_code=400, detail="invalid target")
+    if item_type not in {"task", "reminder", "event"}:
+        raise HTTPException(status_code=400, detail="invalid item_type")
+
+    if item_type == "task":
+        tasks = list_open_tasks()
+        item = next((t for t in tasks if t["id"] == item_id), None)
+    elif item_type == "reminder":
+        reminders = list_active_reminders() + list_recent_reminders()
+        item = next((r for r in reminders if r["id"] == item_id), None)
+    else:
+        today = datetime.now(TZ).date().isoformat()
+        events = [dict(e) for e in list_events_from_date(today)]
+        item = next((e for e in events if e["id"] == item_id), None)
+
+    if not item:
+        return {"ok": False, "message": "Item not found."}
+
+    result = _reclassify_item(item_type, item, target)
+    return {"ok": True, "result": result}
 
 
 @router.post("/api/ai/schedule")
