@@ -60,3 +60,23 @@ def mark_task_done(task_id: int) -> None:
     with get_conn() as conn:
         conn.execute("UPDATE tasks SET status='done' WHERE id = ?;", (task_id,))
         conn.commit()
+
+
+def list_open_tasks() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, title, priority, status, created_at
+            FROM tasks
+            WHERE status='todo'
+            ORDER BY
+              CASE priority
+                WHEN 'vital' THEN 0
+                WHEN 'medium' THEN 1
+                WHEN 'trivial' THEN 2
+                ELSE 3
+              END,
+              id ASC;
+            """
+        ).fetchall()
+    return [dict(r) for r in rows]

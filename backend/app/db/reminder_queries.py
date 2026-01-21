@@ -89,3 +89,36 @@ def list_for_date(dose_date: str):
                ORDER BY scheduled_hhmm ASC;""",
             (dose_date,),
         ).fetchall()
+
+
+def list_active_reminders() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT id, reminder_key, label, speak_text, dose_date, scheduled_hhmm, status
+               FROM reminder_active
+               WHERE status='active'
+               ORDER BY dose_date DESC, scheduled_hhmm ASC;"""
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_recent_reminders(limit: int = 20) -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT id, reminder_key, label, speak_text, dose_date, scheduled_hhmm, status
+               FROM reminder_active
+               ORDER BY dose_date DESC, scheduled_hhmm DESC
+               LIMIT ?;""",
+            (limit,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_event_reminders(event_id: int) -> None:
+    prefix = f"event:{event_id}:"
+    with get_conn() as conn:
+        conn.execute(
+            "DELETE FROM reminder_active WHERE reminder_key LIKE ?;",
+            (f"{prefix}%",),
+        )
+        conn.commit()

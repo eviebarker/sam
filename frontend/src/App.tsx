@@ -9,6 +9,8 @@ import {
   getEvents,
   ttsSpeak,
   aiRespond,
+  aiSchedule,
+  aiResolve,
 } from "./api";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
@@ -241,6 +243,52 @@ export default function App() {
     try {
       setErr(null);
       setAiLoading(true);
+      const resolveRes = await aiResolve(prompt);
+      if (resolveRes.ok) {
+        let ack = "Done.";
+        if (resolveRes.target === "task" && resolveRes.task) {
+          ack = `Marked task done: ${resolveRes.task.title}`;
+        } else if (resolveRes.target === "reminder" && resolveRes.reminder) {
+          ack = `Marked reminder done: ${resolveRes.reminder.label}`;
+        } else if (resolveRes.target === "event" && resolveRes.event) {
+          ack = `Removed event: ${resolveRes.event.title}`;
+        }
+        setAiOutput(ack);
+        await playTts(ack);
+        await refresh();
+        return;
+      }
+      const scheduleRes = await aiSchedule(prompt);
+      if (scheduleRes.ok) {
+        const action = scheduleRes.action ?? "event";
+        let ack = "Done.";
+        if (action === "task" && scheduleRes.task) {
+          ack = `Added task: ${scheduleRes.task.title}`;
+        } else if (action === "reminder" && scheduleRes.reminder) {
+          const todayStr = ymdLocal(new Date());
+          if (scheduleRes.reminder.date === todayStr) {
+            ack = `Added reminder: ${scheduleRes.reminder.title} (${scheduleRes.reminder.scheduled_hhmm})`;
+          } else {
+            const dt = new Date(`${scheduleRes.reminder.date}T${scheduleRes.reminder.scheduled_hhmm}:00`);
+            const dateLabel = dt.toLocaleDateString([], {
+              weekday: "short",
+              day: "2-digit",
+              month: "short",
+            });
+            const timeLabel = dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            ack = `Added reminder: ${scheduleRes.reminder.title} (${dateLabel} at ${timeLabel})`;
+          }
+        } else if (scheduleRes.event) {
+          const when = scheduleRes.event.all_day
+            ? scheduleRes.event.date
+            : `${scheduleRes.event.date} ${scheduleRes.event.start_hhmm}-${scheduleRes.event.end_hhmm}`;
+          ack = `Added ${action}: ${scheduleRes.event.title} (${when})`;
+        }
+        setAiOutput(ack);
+        await playTts(ack);
+        await refresh();
+        return;
+      }
       const res = await aiRespond(prompt);
       setAiOutput(res.text);
       await playTts(res.text);
@@ -403,9 +451,14 @@ export default function App() {
           {visibleAlerts.length ? (
             <div className="reminders">
               {visibleAlerts.map((r) => {
+                const isMedReminder = ["lanny_zee", "morning_meds", "lunch_meds", "evening_meds"].includes(
+                  r.reminder_key
+                );
                 const statusLabel =
                   r.derivedStatus === "done"
-                    ? "Taken"
+                    ? isMedReminder
+                      ? "Taken"
+                      : "Done"
                     : r.derivedStatus === "missed"
                       ? "Missed"
                       : null;
