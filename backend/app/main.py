@@ -8,6 +8,7 @@ from backend.app.api.routes_reminders import router as reminders_router
 from backend.app.api.routes_workdays import router as workdays_router
 from backend.app.api.routes_events import router as events_router
 from backend.app.api.routes_tts import router as tts_router
+from backend.app.api.routes_stt import router as stt_router
 from backend.app.api.routes_ai import router as ai_router
 
 load_dotenv()
@@ -28,4 +29,5 @@ app.include_router(reminders_router)
 app.include_router(workdays_router)
 app.include_router(events_router)
 app.include_router(tts_router)
+app.include_router(stt_router)
 app.include_router(ai_router)
