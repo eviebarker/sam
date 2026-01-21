@@ -60,7 +60,8 @@ def list_ai_memories(limit: int = 20) -> list[dict]:
 def list_ai_memories_with_embeddings() -> list[dict]:
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT summary, kind, word_count, embedding, created_at FROM ai_memories "
+            "SELECT id, summary, kind, word_count, embedding, last_used_at, created_at "
+            "FROM ai_memories "
             "WHERE embedding IS NOT NULL ORDER BY created_at DESC"
         ).fetchall()
     return [dict(r) for r in rows]
@@ -70,7 +71,7 @@ def prune_ai_memories(kind: str, max_count: int) -> None:
     with get_conn() as conn:
         rows = conn.execute(
             "SELECT id FROM ai_memories WHERE kind = ? "
-            "ORDER BY created_at DESC",
+            "ORDER BY COALESCE(last_used_at, created_at) DESC",
             (kind,),
         ).fetchall()
         if len(rows) <= max_count:
@@ -79,5 +80,17 @@ def prune_ai_memories(kind: str, max_count: int) -> None:
         conn.executemany(
             "DELETE FROM ai_memories WHERE id = ?",
             [(i,) for i in delete_ids],
+        )
+        conn.commit()
+
+
+def touch_ai_memories(memory_ids: list[int]) -> None:
+    if not memory_ids:
+        return
+    ts = datetime.utcnow().isoformat(timespec="seconds")
+    with get_conn() as conn:
+        conn.executemany(
+            "UPDATE ai_memories SET last_used_at = ? WHERE id = ?",
+            [(ts, mem_id) for mem_id in memory_ids],
         )
         conn.commit()
