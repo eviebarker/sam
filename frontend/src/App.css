@@ -368,7 +368,7 @@ h2{
 
 .aiResponse{
   position: fixed;
-  top: 14px;
+  top: 48px;
   left: 50%;
   transform: translateX(-50%);
   padding: 8px 14px;
