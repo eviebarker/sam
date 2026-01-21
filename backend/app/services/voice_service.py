@@ -10,6 +10,8 @@ import threading
 import queue
 import soundfile as sf
 import os
+import shutil
+import subprocess
 from math import gcd
 from scipy.signal import resample_poly
 from pathlib import Path
@@ -125,3 +127,36 @@ def synthesize_blocking(input_text: str, output_filename: str):
 
     if job["error"]:
         raise job["error"]
+
+
+def _detect_player_cmd() -> list[str] | None:
+    override = os.getenv("TTS_PLAYER_CMD")
+    if override:
+        return override.split()
+    for cmd in ("afplay", "aplay", "paplay"):
+        if shutil.which(cmd):
+            return [cmd]
+    return None
+
+
+def synthesize_and_play(input_text: str) -> None:
+    player_cmd = _detect_player_cmd()
+    if not player_cmd:
+        raise RuntimeError("No audio player found. Set TTS_PLAYER_CMD.")
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        wav_path = tmp.name
+
+    try:
+        generate_wav_file(input_text, wav_path)
+        subprocess.run(player_cmd + [wav_path], check=False)
+    finally:
+        if os.path.exists(wav_path):
+            os.remove(wav_path)
+
+
+def synthesize_and_play_async(input_text: str) -> None:
+    thread = threading.Thread(
+        target=synthesize_and_play, args=(input_text,), daemon=True
+    )
+    thread.start()

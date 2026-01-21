@@ -51,3 +51,9 @@ def list_events_from_date(event_date: str):
             """,
             (event_date,),
         ).fetchall()
+
+
+def delete_event(event_id: int) -> None:
+    with get_conn() as conn:
+        conn.execute("DELETE FROM events WHERE id = ?;", (event_id,))
+        conn.commit()

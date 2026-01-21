@@ -194,6 +194,26 @@ Later, user: “What reminder style should I use?”
   - memory extraction (1)
   - **Total: 2 calls**
 
+## AI scheduling + completion (current behavior)
+### Schedule intent (`/api/ai/schedule`)
+- Detects **events**, **reminders**, and **tasks** from natural language.
+- Rules:
+  - “Remind me …” → reminder (alert).
+  - “I need to / I have to / add a task / todo …” → task.
+- Reminders without a time default to **now + 1 hour**.
+- Relative times like **“in 1 minute/hour”** are parsed and scheduled correctly.
+- Reminders create **alerts** (not events), so they appear in the Alerts card.
+- Events appear in the Today card and can optionally create reminders via presets.
+
+### Completion intent (`/api/ai/resolve`)
+- Detects “I did/finished/completed/called/took …” and tries to **resolve** items.
+- Resolution is **cross‑type** (tasks + reminders + events), not dependent on model target.
+- Matching uses token overlap (e.g. “docs” ↔ “doctors”) and falls back to recent reminders.
+- Actions:
+  - Tasks → mark done
+  - Reminders → mark done
+  - Events → delete (and remove their reminders)
+
 ### 8) New config knob?
 Add it to `core/config.py` (with defaults), don’t scatter constants across files.
 

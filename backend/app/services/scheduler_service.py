@@ -33,7 +33,7 @@ def start_scheduler():
 
     scheduler.add_job(
         func=_nag_tick,
-        trigger=IntervalTrigger(seconds=20),
+        trigger=IntervalTrigger(seconds=5),
         id="nag_tick",
         replace_existing=True,
     )
@@ -83,12 +83,18 @@ def _nag_tick():
 
     print(f"[REMINDER] active_id={row['id']} | due={row['scheduled_hhmm']} | {row['label']} - {row['speak_text']}")
     log_action(row["reminder_key"], "fired")
-    if row["reminder_key"] in {"lanny_zee", "morning_meds", "lunch_meds", "evening_meds"}:
-        speak_text = f"Hey Sam, {row['speak_text']}"
-        synthesize_and_play_async(speak_text)
+    med_keys = {"lanny_zee", "morning_meds", "lunch_meds", "evening_meds"}
     row_next_fire = datetime.fromisoformat(row["next_fire_at"])
     if row_next_fire.tzinfo is None:
         row_next_fire = row_next_fire.replace(tzinfo=TZ)
+    if row["reminder_key"] in med_keys:
+        speak_text = f"Hey Sam, {row['speak_text']}"
+        synthesize_and_play_async(speak_text)
+    else:
+        # Speak once for non-med reminders (first fire only).
+        if abs((row_next_fire - due_dt).total_seconds()) <= 60:
+            speak_text = f"Hey Sam, {row['speak_text']}"
+            synthesize_and_play_async(speak_text)
     next_fire_dt = row_next_fire + timedelta(minutes=5)
     if next_fire_dt > window_end:
         next_fire_dt = window_end

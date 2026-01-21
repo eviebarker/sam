@@ -94,3 +94,48 @@ export async function aiRespond(text: string) {
   if (!r.ok) throw new Error(`ai failed: ${r.status}`);
   return r.json() as Promise<{ text: string }>;
 }
+
+export async function aiSchedule(text: string) {
+  const r = await fetch("/api/ai/schedule", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!r.ok) throw new Error(`ai schedule failed: ${r.status}`);
+  return r.json() as Promise<{
+    ok: boolean;
+    message?: string;
+    action?: "event" | "reminder" | "task";
+    event?: {
+      title: string;
+      date: string | null;
+      start_hhmm: string | null;
+      end_hhmm: string | null;
+      all_day: boolean;
+    };
+    reminder?: {
+      title: string;
+      date: string;
+      scheduled_hhmm: string;
+    };
+    task?: { title: string; priority: string };
+  }>;
+}
+
+export async function aiResolve(text: string) {
+  const r = await fetch("/api/ai/resolve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!r.ok) throw new Error(`ai resolve failed: ${r.status}`);
+  return r.json() as Promise<{
+    ok: boolean;
+    message?: string;
+    action?: "complete" | "delete";
+    target?: "task" | "reminder" | "event";
+    task?: { title: string };
+    reminder?: { label: string; scheduled_hhmm?: string; dose_date?: string };
+    event?: { title: string; event_date?: string };
+  }>;
+}
