@@ -125,6 +125,3 @@ def synthesize_blocking(input_text: str, output_filename: str):
 
     if job["error"]:
         raise job["error"]
-
-
-generate_speech_ogg("test", "test1.ogg")

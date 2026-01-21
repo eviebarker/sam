@@ -7,6 +7,7 @@ import {
   getTasks,
   doneTask,
   getEvents,
+  ttsSpeak,
 } from "./api";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
@@ -210,15 +211,19 @@ export default function App() {
     }
   }
 
-  function handleTtsClick() {
-    if (typeof window === "undefined") return;
-    if (!("speechSynthesis" in window)) {
-      console.warn("Speech synthesis not available in this browser.");
-      return;
+  async function handleTtsClick() {
+    try {
+      setErr(null);
+      const blob = await ttsSpeak("Time to take your meds, Sam.");
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      const cleanup = () => URL.revokeObjectURL(url);
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
+      await audio.play();
+    } catch (e: any) {
+      setErr(e?.message ?? "failed");
     }
-    const utterance = new SpeechSynthesisUtterance("Piper TTS coming soon.");
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
   }
 
   return (

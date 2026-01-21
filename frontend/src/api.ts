@@ -74,3 +74,13 @@ export async function getEvents(dateYYYYMMDD: string) {
     }[];
   }>;
 }
+
+export async function ttsSpeak(text: string) {
+  const r = await fetch("/api/tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!r.ok) throw new Error(`tts failed: ${r.status}`);
+  return r.blob();
+}
