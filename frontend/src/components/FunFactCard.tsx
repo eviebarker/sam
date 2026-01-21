@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useFunFact } from "../hooks/useFunFact";
 
 export default function FunFactCard() {
-  const { text, fetchedAt, refresh } = useFunFact();
+  const { text, fetchedAt } = useFunFact();
   const [animate, setAnimate] = useState(false);
 
   const updatedLabel = useMemo(() => {
@@ -28,9 +28,6 @@ export default function FunFactCard() {
       <div className="funFactBody">{text ?? "Fetching a fresh fact..."}</div>
       <div className="funFactMeta">
         <span>{updatedLabel}</span>
-        <button className="funFactButton" onClick={refresh}>
-          New fact
-        </button>
       </div>
     </div>
   );

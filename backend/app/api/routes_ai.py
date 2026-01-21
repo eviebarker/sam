@@ -861,7 +861,7 @@ def ai_resolve(body: ResolveRequest):
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     parsed = _parse_resolve(client, prompt, model)
     if not parsed or parsed.action == "none":
-        completion_words = {"done", "did", "finished", "completed", "called", "took"}
+        completion_words = {"done", "did", "finished", "completed", "called", "took", "taken"}
         if any(word in _tokenize(prompt) for word in completion_words):
             tasks = list_open_tasks()
             reminders = list_active_reminders()
@@ -911,7 +911,21 @@ def ai_resolve(body: ResolveRequest):
 
     completion_tokens = set(_tokenize(prompt))
     med_keys = {"lanny_zee", "morning_meds", "lunch_meds", "evening_meds"}
-    allow_meds = any(t in completion_tokens for t in {"med", "meds", "pill", "tablets", "lanny", "zee"})
+    allow_meds = any(
+        t in completion_tokens
+        for t in {
+            "med",
+            "meds",
+            "medication",
+            "medicine",
+            "pill",
+            "tablets",
+            "lanny",
+            "zee",
+            "lansoprazole",
+            "lanzoprazole",
+        }
+    )
     reminders_filtered = [
         r for r in reminders if allow_meds or r.get("reminder_key") not in med_keys
     ]
@@ -935,6 +949,65 @@ def ai_resolve(body: ResolveRequest):
             reminder_match = _match_by_title(reminders_recent_filtered, parsed.title, "label")
     if not event_match:
         event_match = _match_by_title(events, parsed.title, "title")
+
+    # If user says meds without specifying which, pick the closest due med.
+    if allow_meds:
+        med_hint = None
+        if "morning" in completion_tokens:
+            med_hint = "morning_meds"
+        elif "lunch" in completion_tokens:
+            med_hint = "lunch_meds"
+        elif "evening" in completion_tokens or "night" in completion_tokens:
+            med_hint = "evening_meds"
+        elif (
+            "lanny" in completion_tokens
+            or "zee" in completion_tokens
+            or "lansoprazole" in completion_tokens
+            or "lanzoprazole" in completion_tokens
+        ):
+            med_hint = "lanny_zee"
+
+        if med_hint:
+            hint = next(
+                (r for r in reminders if r.get("reminder_key") == med_hint), None
+            )
+            if hint:
+                if hint.get("status") != "done":
+                    mark_done(hint["id"])
+                return {
+                    "ok": True,
+                    "action": "complete",
+                    "target": "reminder",
+                    "reminder": hint,
+                }
+
+        now_dt = datetime.now(TZ)
+        due = []
+        for r in reminders:
+            if r.get("reminder_key") not in med_keys:
+                continue
+            try:
+                hh, mm = r["scheduled_hhmm"].split(":")
+                due_dt = now_dt.replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
+                window_end = due_dt + timedelta(minutes=30)
+                if now_dt <= window_end:
+                    delta = abs((now_dt - due_dt).total_seconds())
+                    due.append((delta, r))
+            except Exception:
+                continue
+        if due:
+            due.sort(key=lambda item: item[0])
+            choice = due[0][1]
+            if choice.get("status") != "done":
+                mark_done(choice["id"])
+            return {
+                "ok": True,
+                "action": "complete",
+                "target": "reminder",
+                "reminder": choice,
+            }
+
+        return {"ok": False, "message": "Which meds did you take?"}
 
     best_target = max(
         [("task", task_score), ("reminder", reminder_score), ("event", event_score)],
