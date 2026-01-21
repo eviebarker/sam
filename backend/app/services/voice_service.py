@@ -2,14 +2,17 @@ import wave
 import random
 import threading
 import queue
+from pathlib import Path
 from piper import PiperVoice, SynthesisConfig
 
 # Init voice model
-MODEL_PATH = "backend/app/services/voice_model/en_GB-northern_english_male-medium.onnx"
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "voice_model" / \
+    "en_GB-northern_english_male-medium.onnx"
 BASE_LENGTH_SCALE = 1.04
 BASE_NOISE_SCALE = 0.8
 BASE_NOISE_W_SCALE = 0.8
-voice = PiperVoice.load(MODEL_PATH)
+voice = PiperVoice.load(str(MODEL_PATH))
 
 
 def generate_audio_file(input_text: str, output_filename: str):
@@ -72,4 +75,4 @@ def synthesize_blocking(input_text: str, output_filename: str):
         raise job["error"]
 
 
-generate_audio_file("test", "test.wav")
+generate_audio_file("test", "test1.wav")
