@@ -129,6 +129,7 @@ If it needs new data, extend the dashboard response in `dashboard_service.py`.
 ## Events (current behavior)
 - Events list shows **today only**, with “now” or “in X…” based on the time range
 - Event reminders are **opt‑in** (`reminder_preset = standard`); default is **none**
+- Multi-day events are stored as **one event per day** (e.g., Dec 7–9 becomes three daily events)
 
 ## Fun fact timing (current behavior)
 - Stored in `localStorage` to survive refresh (`funFactText`, `funFactFetchedAtISO`)
@@ -212,6 +213,9 @@ Later, user: “What reminder style should I use?”
 - Relative times like **“in 1 minute/hour”** are parsed and scheduled correctly.
 - Reminders create **alerts** (not events), so they appear in the Alerts card.
 - Events appear in the Today card and can optionally create reminders via presets.
+- Date ranges like **“Dec 7 to Dec 9”** expand into **daily events for each date** in the range.
+- Durations like **“for 6 days”** expand into **daily events** starting from the given date.
+- UI acknowledgement for adds uses a **short randomized confirmation** (e.g., “Got it, I added the event.”) instead of repeating the full event/reminder text.
 ### Today summary phrasing (`/api/ai/respond`)
 - “What have I got today?” and similar phrases return a summary of today’s events, work hours, tasks, and non‑med alerts.
 - Time windows are spoken as “start until end” (e.g., “8 am until 4:30 pm”) for natural TTS.

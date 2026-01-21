@@ -46,6 +46,7 @@ class ScheduleResult(BaseModel):
     action: str
     title: str
     date: str | None = None
+    end_date: str | None = None
     start_hhmm: str | None = None
     end_hhmm: str | None = None
     all_day: bool = False
@@ -192,10 +193,12 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
         "You extract scheduling intents. Today is "
         f"{today} (Europe/London). "
         "Return JSON with fields: action ('event'|'reminder'|'task'|'none'), "
-        "title, date (YYYY-MM-DD or null), start_hhmm (HH:MM or null), "
-        "end_hhmm (HH:MM or null), all_day (true/false), "
+        "title, date (YYYY-MM-DD or null), end_date (YYYY-MM-DD or null), "
+        "start_hhmm (HH:MM or null), end_hhmm (HH:MM or null), all_day (true/false), "
         "priority ('trivial'|'medium'|'vital' or null). "
         "If no time is specified, set all_day=true and times null. "
+        "If a multi-day range is given (e.g., 'Dec 7 to Dec 9'), set date=start "
+        "and end_date=end. "
         "For reminders, the title should be the reminder text. "
         "For tasks, date/time can be null. "
         "If no scheduling intent, set action='none'."
@@ -226,6 +229,7 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
                         },
                         "title": {"type": "string"},
                         "date": {"type": ["string", "null"]},
+                        "end_date": {"type": ["string", "null"]},
                         "start_hhmm": {"type": ["string", "null"]},
                         "end_hhmm": {"type": ["string", "null"]},
                         "all_day": {"type": "boolean"},
@@ -238,6 +242,7 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
                         "action",
                         "title",
                         "date",
+                        "end_date",
                         "start_hhmm",
                         "end_hhmm",
                         "all_day",
@@ -1140,6 +1145,11 @@ def ai_schedule(body: ScheduleRequest):
         parsed.action = "reminder"
     elif any(phrase in lowered for phrase in ("i need to", "i have to", "add a task", "todo")):
         parsed.action = "task"
+    elif any(
+        phrase in lowered
+        for phrase in ("add an event", "add event", "add a calendar event", "add to my calendar")
+    ):
+        parsed.action = "event"
 
     if parsed.action == "task":
         priority = parsed.priority or "medium"
@@ -1209,22 +1219,58 @@ def ai_schedule(body: ScheduleRequest):
         if not parsed.end_hhmm:
             parsed.end_hhmm = _add_minutes(parsed.start_hhmm, 30)
 
-    event_id = add_event(
-        title=parsed.title,
-        event_date=parsed.date,
-        start_hhmm=parsed.start_hhmm,
-        end_hhmm=parsed.end_hhmm,
-        all_day=parsed.all_day,
-        reminder_preset=reminder_preset,
-    )
+    duration_match = re.search(r"\bfor\s+(\d+)\s+days?\b", lowered)
+    if duration_match and parsed.date and not parsed.end_date:
+        days = int(duration_match.group(1))
+        if days > 1:
+            try:
+                start_dt = datetime.fromisoformat(parsed.date).date()
+            except Exception:
+                raise HTTPException(status_code=400, detail="invalid date")
+            parsed.end_date = (start_dt + timedelta(days=days - 1)).isoformat()
+
+    event_ids = []
+    if parsed.end_date:
+        try:
+            start_dt = datetime.fromisoformat(parsed.date).date()
+            end_dt = datetime.fromisoformat(parsed.end_date).date()
+        except Exception:
+            raise HTTPException(status_code=400, detail="invalid date range")
+        if end_dt < start_dt:
+            raise HTTPException(status_code=400, detail="end_date must be after date")
+        cursor = start_dt
+        while cursor <= end_dt:
+            event_ids.append(
+                add_event(
+                    title=parsed.title,
+                    event_date=cursor.isoformat(),
+                    start_hhmm=parsed.start_hhmm,
+                    end_hhmm=parsed.end_hhmm,
+                    all_day=parsed.all_day,
+                    reminder_preset=reminder_preset,
+                )
+            )
+            cursor = cursor + timedelta(days=1)
+    else:
+        event_ids.append(
+            add_event(
+                title=parsed.title,
+                event_date=parsed.date,
+                start_hhmm=parsed.start_hhmm,
+                end_hhmm=parsed.end_hhmm,
+                all_day=parsed.all_day,
+                reminder_preset=reminder_preset,
+            )
+        )
 
     today = datetime.now(TZ).date().isoformat()
-    if parsed.date >= today:
+    if parsed.date >= today or (parsed.end_date and parsed.end_date >= today):
         create_event_reminders_for_date(today)
 
     return {
         "ok": True,
-        "id": event_id,
+        "id": event_ids[0],
+        "ids": event_ids,
         "action": parsed.action,
         "event": parsed.model_dump(),
     }
