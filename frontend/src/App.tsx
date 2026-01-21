@@ -81,6 +81,8 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
   const [taskBrowseActive, setTaskBrowseActive] = useState(false);
+  const [tasksViewMode, setTasksViewMode] = useState<"all" | "single">("all");
+  const lastTasksDayRef = useRef<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [aiInput, setAiInput] = useState("");
   const [aiOutput, setAiOutput] = useState<string | null>(null);
@@ -124,6 +126,16 @@ export default function App() {
       setErr(e?.message ?? "failed");
     }
   }
+
+  useEffect(() => {
+    if (!data?.now) return;
+    const day = ymdLocal(new Date(data.now));
+    if (lastTasksDayRef.current && lastTasksDayRef.current !== day) {
+      setTasksViewMode("all");
+      setTaskBrowseActive(false);
+    }
+    lastTasksDayRef.current = day;
+  }, [data?.now]);
 
   async function markDone(r: Reminder) {
     try {
@@ -319,10 +331,36 @@ export default function App() {
         return;
       }
       const nextTaskTrigger = /\b(next task|what'?s the next task|show me the next task)\b/i;
+      const topPriorityTrigger =
+        /\b(top priority task|top priority today|highest priority task|most important task|most important thing|most important thing i need to do|what do i need to do today|what should i do today|what'?s the most important thing i need to do today|what'?s the most important task today|what'?s the top thing today|what'?s my top task today|what should i tackle first|what do i tackle first|what should i do first|what do i do first|what'?s the highest priority thing today|what'?s the most urgent task|what is the most urgent thing)\b/i;
       const otherTasksTrigger =
         /\b(what other tasks|what else do i have|any other tasks|more tasks)\b/i;
       const continueTasksTrigger = /\b(yes|yeah|yep|next|keep going|more)\b/i;
       const stopTasksTrigger = /\b(no|nope|stop|that's all|done)\b/i;
+      const singleTasksTrigger =
+        /\b(one task at a time|one task at a time please|focus mode|low overwhelm mode|reduce overwhelm|show one task|single task mode)\b/i;
+      const allTasksTrigger =
+        /\b(show all tasks|show all my tasks|list all tasks|show tasks list|all tasks view|show me all tasks|show me all my tasks)\b/i;
+
+      if (singleTasksTrigger.test(prompt)) {
+        setTasksViewMode("single");
+        const title = currentTask?.title ?? advanceTaskAndGet();
+        const ack = title
+          ? `Okay, one task at a time. Next task: ${title}.`
+          : "Okay, one task at a time. You have no tasks.";
+        setAiOutput(ack);
+        await playTts(ack);
+        return;
+      }
+
+      if (allTasksTrigger.test(prompt)) {
+        setTasksViewMode("all");
+        setTaskBrowseActive(false);
+        const ack = "Okay, showing all tasks.";
+        setAiOutput(ack);
+        await playTts(ack);
+        return;
+      }
 
       if (taskBrowseActive) {
         if (continueTasksTrigger.test(prompt)) {
@@ -349,6 +387,7 @@ export default function App() {
       }
 
       if (nextTaskTrigger.test(prompt)) {
+        setTasksViewMode("single");
         const title = advanceTaskAndGet();
         const ack = title ? `Next task: ${title}.` : "You have no tasks.";
         setAiOutput(ack);
@@ -357,6 +396,7 @@ export default function App() {
       }
 
       if (otherTasksTrigger.test(prompt)) {
+        setTasksViewMode("single");
         const title = advanceTaskAndGet();
         if (title) {
           const ack = `Next task: ${title}. Want to hear the next one?`;
@@ -368,6 +408,20 @@ export default function App() {
           setAiOutput(ack);
           await playTts(ack);
         }
+        return;
+      }
+
+      if (topPriorityTrigger.test(prompt)) {
+        setTasksViewMode("single");
+        const topTask = tasks.length ? tasks[0] : null;
+        if (topTask) {
+          setCurrentTaskId(topTask.id);
+        }
+        const ack = topTask
+          ? `Top priority task: ${topTask.title}.`
+          : "You have no tasks.";
+        setAiOutput(ack);
+        await playTts(ack);
         return;
       }
 
@@ -670,13 +724,28 @@ export default function App() {
         <section className="card glass-tile slot-r1 card--right">
           <div className="cardHeader">
             <h2>Tasks</h2>
-            {currentTask ? (
+            {tasksViewMode === "single" && currentTask ? (
               <span className={`taskPriority taskPriority--${currentTask.priority}`}>
                 {currentTask.priority}
               </span>
             ) : null}
           </div>
-          {currentTask ? (
+          {tasksViewMode === "all" ? (
+            tasks.length ? (
+              <ul className="taskList">
+                {tasks.map((t) => (
+                  <li key={t.id} className="taskRow">
+                    <span className={`taskPriority taskPriority--${t.priority}`}>
+                      {t.priority}
+                    </span>
+                    <span>{t.title}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="big">Excellent work. Congrats on completing your tasks!</p>
+            )
+          ) : currentTask ? (
             <>
               <p className="big">{currentTask.title}</p>
               <div className="taskControls">

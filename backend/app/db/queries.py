@@ -61,6 +61,12 @@ def mark_task_done(task_id: int) -> None:
         conn.execute("UPDATE tasks SET status='done' WHERE id = ?;", (task_id,))
         conn.commit()
 
+def mark_all_tasks_done() -> int:
+    with get_conn() as conn:
+        cur = conn.execute("UPDATE tasks SET status='done' WHERE status='todo';")
+        conn.commit()
+        return cur.rowcount
+
 def update_task_priority(task_id: int, priority: str) -> None:
     with get_conn() as conn:
         conn.execute(

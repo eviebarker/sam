@@ -23,6 +23,7 @@ from backend.app.db.queries import (
     get_tasks,
     list_open_tasks,
     mark_task_done,
+    mark_all_tasks_done,
     update_task_priority,
 )
 from backend.app.db.workday_queries import get_work_day, set_work_day
@@ -525,6 +526,27 @@ def _strip_date_words(text: str) -> str:
     )
     return re.sub(r"\s+", " ", cleaned).strip(" ,.")
 
+def _normalize_task_phrase(text: str) -> str:
+    lowered = text.lower()
+    lowered = re.sub(r"^i[' ]?ve\s+", "", lowered)
+    lowered = re.sub(r"^i\s+", "", lowered)
+    replacements = {
+        "washed": "wash",
+        "cleaned": "clean",
+        "ordered": "order",
+        "called": "call",
+        "emailed": "email",
+        "texted": "text",
+        "booked": "book",
+        "paid": "pay",
+        "finished": "finish",
+        "completed": "complete",
+    }
+    words = []
+    for word in lowered.split():
+        words.append(replacements.get(word, word))
+    return " ".join(words).strip()
+
 
 def _extract_task_candidates(prompt: str) -> list[str]:
     parts = re.split(r"(?:,|\band\b|\bthen\b)", prompt, flags=re.IGNORECASE)
@@ -831,6 +853,10 @@ def ai_respond(body: AiRequest):
             "what do i have later",
             "what events",
             "what tasks",
+            "what's on the agenda today",
+            "whats on the agenda today",
+            "what's the agenda today",
+            "whats the agenda today",
             "today's events",
             "todays events",
             "today's tasks",
@@ -839,7 +865,7 @@ def ai_respond(body: AiRequest):
     ):
         today = datetime.now(TZ).date().isoformat()
         events = list_events_for_date(today)
-        tasks = get_tasks()
+        tasks = list_open_tasks()
         workday = get_work_day(today)
         alerts = [
             r
@@ -848,6 +874,16 @@ def ai_respond(body: AiRequest):
             and r["reminder_key"]
             not in {"lanny_zee", "morning_meds", "lunch_meds", "evening_meds"}
         ]
+        alerts_by_label: dict[str, dict] = {}
+        for alert in alerts:
+            label = alert["label"].strip()
+            if label not in alerts_by_label:
+                alerts_by_label[label] = alert
+                continue
+            # Keep the earliest scheduled time for summary.
+            if alert["scheduled_hhmm"] < alerts_by_label[label]["scheduled_hhmm"]:
+                alerts_by_label[label] = alert
+        alerts = list(alerts_by_label.values())
         event_lines = []
         if workday and workday.get("is_work"):
             work_start = _natural_time(workday.get("start_hhmm") or "08:00")
@@ -863,7 +899,7 @@ def ai_respond(body: AiRequest):
             else:
                 when = _natural_time(e["start_hhmm"]) or "time TBD"
             event_lines.append(f"{when} — {e['title']}")
-        task_lines = [t["title"] for t in tasks]
+        task_lines = [t["title"] for t in tasks if t.get("status") == "todo"]
         events_text = ", ".join(event_lines) if event_lines else "none"
         tasks_text = ", ".join(task_lines) if task_lines else "none"
         alert_lines = [
@@ -1140,6 +1176,39 @@ def ai_resolve(body: ResolveRequest):
 
     client = get_client()
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    lowered = prompt.lower()
+    list_match = re.search(
+        r"\b(i\s+have\s+done|i\s+did|i\s+finished|i\s+completed|i[' ]?ve)\b\s+(.*)",
+        lowered,
+    )
+    if list_match:
+        tail = list_match.group(2)
+        parts = [p.strip() for p in re.split(r",|\band\b", tail) if p.strip()]
+        if len(parts) > 1:
+            tasks = list_open_tasks()
+            matched = []
+            for part in parts:
+                task_match, score = _best_match_with_score(part, tasks, "title")
+                if not task_match or score < 0.3:
+                    normalized = _normalize_task_phrase(part)
+                    task_match, score = _best_match_with_score(normalized, tasks, "title")
+                if task_match and score < 0.25:
+                    task_match = None
+                if task_match:
+                    mark_task_done(task_match["id"])
+                    matched.append(task_match["title"])
+            if matched:
+                return {
+                    "ok": True,
+                    "action": "complete",
+                    "target": "task",
+                    "completed": matched,
+                }
+    if re.search(r"\ball+(\s+my)?\s+tasks\b", lowered) and re.search(
+        r"\b(mark|complete|completed|finish|finished|done)\b", lowered
+    ):
+        count = mark_all_tasks_done()
+        return {"ok": True, "action": "complete", "target": "task", "count": count}
     parsed = _parse_resolve(client, prompt, model)
     if not parsed or parsed.action == "none":
         completion_words = {"done", "did", "finished", "completed", "called", "took", "taken"}

@@ -33,7 +33,7 @@ A kitchen smart-display “PA” for Sam (ADHD-friendly): calendar + tasks + rem
 
 - `backend/app/api/` (API layer: thin routes)
   - `routes_dashboard.py` — `GET /api/dashboard`
-  - `routes_tasks.py` — `GET /api/tasks`, `POST /api/tasks`, `POST /api/tasks/{id}/done`
+  - `routes_tasks.py` — `GET /api/tasks`, `POST /api/tasks`, `POST /api/tasks/{id}/done`, `POST /api/tasks/{id}/priority`
   - `routes_events.py` — `GET /api/events`, `POST /api/events` (time ranges; reminders opt‑in)
   - `routes_reminders.py` — list/confirm reminders (e.g. `GET /api/reminders/active`, `POST /api/reminders/done`)
   - `routes_workdays.py` — set/check work/off overrides + per‑day hours (e.g. `POST /api/workdays`, `GET /api/workdays/{date}`)
@@ -125,6 +125,7 @@ If it needs new data, extend the dashboard response in `dashboard_service.py`.
 - Non‑med reminders **speak once** at first fire (no nag loop repeats)
 - Past the window, reminders are marked **missed** if not done
 - UI shows `taken`/`missed` states (greyed) and sorts active‑window items first
+- Event reminders are never generated for events titled **“Work”**.
 
 ## Events (current behavior)
 - Events list shows **today only**, with “now” or “in X…” based on the time range
@@ -217,6 +218,8 @@ Later, user: “What reminder style should I use?”
 - Task priorities can be set **on add** (via natural language) and **afterwards** using `/api/ai/priority` (e.g., “make the plumber task high priority”).
 - “What’s the next task?” cycles the Tasks card to the next task and reads it out.
 - “What other tasks have I got?” reads the next task and asks if you want the next one, continuing on “yes/next.”
+- Tasks view defaults to **show all tasks** each day; you can switch to **one‑at‑a‑time** with phrases like “focus mode / one task at a time,” and switch back with “show all tasks.”
+- “Top priority task / most important thing today” jumps to the highest‑priority open task and reads it.
 - Rules:
   - “Remind me …” → reminder (alert).
   - “I need to / I have to / add a task / todo …” → task.
@@ -230,9 +233,14 @@ Later, user: “What reminder style should I use?”
 ### Today summary phrasing (`/api/ai/respond`)
 - “What have I got today?” and similar phrases return a summary of today’s events, work hours, tasks, and non‑med alerts.
 - Time windows are spoken as “start until end” (e.g., “8 am until 4:30 pm”) for natural TTS.
+- Alerts in the summary are **de‑duplicated by label** (keeps the earliest time for each label).
+- Only **open (todo) tasks** appear in the summary.
 
 ### Completion intent (`/api/ai/resolve`)
 - Detects “I did/finished/completed/called/took …” and tries to **resolve** items.
+- “Mark all my tasks as complete” marks all open tasks done.
+- List completion works (comma/“and”):  
+  - “I’ve done wash up, ordered pet food, and called the electrician.”
 - Med resolution rules:
   - If the text mentions **morning/lunch/evening/lanny/lansoprazole**, it marks that specific med.
   - Otherwise it picks the **closest due med** within its 30‑minute window.
