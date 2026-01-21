@@ -336,15 +336,18 @@ def ai_respond(body: AiRequest):
                 when = _natural_time(e["start_hhmm"]) or "time TBD"
             event_lines.append(f"{when} — {e['title']}")
         task_lines = [t["title"] for t in tasks]
-        parts = []
-        parts.append("Today:")
-        parts.append("Events: " + (", ".join(event_lines) if event_lines else "none"))
-        parts.append("Tasks: " + (", ".join(task_lines) if task_lines else "none"))
+        events_text = ", ".join(event_lines) if event_lines else "none"
+        tasks_text = ", ".join(task_lines) if task_lines else "none"
         alert_lines = [
             f"{a['label']} ({_natural_time(a['scheduled_hhmm'])})" for a in alerts
         ]
-        parts.append("Alerts: " + (", ".join(alert_lines) if alert_lines else "none"))
-        return {"text": " ".join(parts)}
+        alerts_text = ", ".join(alert_lines) if alert_lines else "none"
+        summary = (
+            f"Today: Events: {events_text}. "
+            f"Tasks: {tasks_text}. "
+            f"Alerts: {alerts_text}."
+        )
+        return {"text": summary}
 
     client = get_client()
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
