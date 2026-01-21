@@ -82,3 +82,11 @@ CREATE TABLE IF NOT EXISTS ai_memories (
   last_used_at TEXT,
   created_at TEXT NOT NULL
 );
+
+-- TTS pronunciation overrides
+CREATE TABLE IF NOT EXISTS pronunciations (
+  term TEXT PRIMARY KEY,
+  pronunciation TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);

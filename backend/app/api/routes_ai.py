@@ -27,6 +27,7 @@ from backend.app.db.reminder_queries import (
     list_recent_reminders,
     mark_done,
 )
+from backend.app.db.pronunciation_queries import upsert_pronunciation
 from backend.app.services.event_reminder_service import create_event_reminders_for_date
 
 router = APIRouter()
@@ -272,6 +273,49 @@ def _natural_time(hhmm: str | None) -> str:
         return hhmm
 
 
+def _extract_pronunciation(text: str) -> tuple[str | None, str | None]:
+    cleaned = text.strip()
+    patterns = [
+        r"\bpronounce\s+(?P<term>.+?)\s+(?:as|like)\s+(?P<pron>.+)",
+        r"\b(?P<term>.+?)\s+is\s+pronounced\s+(?P<pron>.+)",
+        r"\b(?P<term>.+?)\s+should\s+be\s+pronounced\s+(?P<pron>.+)",
+        r"\b(it'?s|it is)\s+pronounced\s+(?P<pron>.+)",
+        r"\byou\s+should\s+pronounce\s+it\s+(?P<pron>.+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, cleaned, flags=re.IGNORECASE)
+        if match:
+            term = match.groupdict().get("term")
+            pronunciation = match.groupdict().get("pron")
+            pronunciation = pronunciation.strip("\"'“”").strip()
+            term = term.strip("\"'“”").strip() if term else None
+            pronunciation = re.sub(r"[.?!]+$", "", pronunciation).strip()
+            return term, pronunciation
+    return None, None
+
+
+def _infer_term_from_history(history: list[dict]) -> str | None:
+    for msg in reversed(history[-5:]):
+        if msg.get("role") != "user":
+            continue
+        text = msg.get("content") or ""
+        for pattern in (
+            r"\bmy name is\s+(?P<term>[A-Za-z][\w'-]*)",
+            r"\bi am\s+(?P<term>[A-Za-z][\w'-]*)",
+            r"\bi'm\s+(?P<term>[A-Za-z][\w'-]*)",
+            r"\bim\s+(?P<term>[A-Za-z][\w'-]*)",
+            r"\bwho is\s+(?P<term>[A-Za-z][\w'-]*)",
+            r"\bwho's\s+(?P<term>[A-Za-z][\w'-]*)",
+            r"\bwho\s+(?P<term>[A-Za-z][\w'-]*)\s+is\b",
+            r"\bmy daughter is\s+(?P<term>[A-Za-z][\w'-]*)",
+            r"\bmy son is\s+(?P<term>[A-Za-z][\w'-]*)",
+        ):
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if match:
+                return match.group("term")
+    return None
+
+
 @router.post("/api/ai/respond")
 def ai_respond(body: AiRequest):
     prompt = body.text.strip()
@@ -279,6 +323,16 @@ def ai_respond(body: AiRequest):
         raise HTTPException(status_code=400, detail="text is required")
 
     lowered = prompt.lower()
+    now = datetime.utcnow()
+    since = (now - timedelta(days=1)).isoformat(timespec="seconds")
+    history = list_ai_messages_since(since)
+    term, pronunciation = _extract_pronunciation(prompt)
+    if pronunciation:
+        if not term:
+            term = _infer_term_from_history(history)
+        if term:
+            upsert_pronunciation(term.lower(), pronunciation)
+            return {"text": "Got it."}
     if any(
         phrase in lowered
         for phrase in (
@@ -354,10 +408,6 @@ def ai_respond(body: AiRequest):
     memory_model = os.getenv("OPENAI_MEMORY_MODEL", model)
     embedding_model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
     top_k = int(os.getenv("AI_MEMORY_TOP_K", "8"))
-    now = datetime.utcnow()
-    since = (now - timedelta(days=1)).isoformat(timespec="seconds")
-
-    history = list_ai_messages_since(since)
     memories = []
     memories_with_embeddings = list_ai_memories_with_embeddings()
     selected_memory_ids = []
@@ -384,7 +434,8 @@ def ai_respond(body: AiRequest):
 
     system_prompt = os.getenv(
         "AI_SYSTEM_PROMPT",
-        "You are Sam, a warm, helpful assistant. Keep responses concise and kind.",
+        "You are Sam, a warm, helpful assistant. Keep responses concise and kind. "
+        "Do not add pronunciation clarifications unless explicitly asked.",
     )
 
     messages = [{"role": "system", "content": system_prompt}]
