@@ -39,4 +39,15 @@ def init_db() -> None:
             conn.execute("ALTER TABLE work_days ADD COLUMN start_hhmm TEXT;")
         if "end_hhmm" not in workday_columns:
             conn.execute("ALTER TABLE work_days ADD COLUMN end_hhmm TEXT;")
+        memory_columns = [r["name"] for r in conn.execute("PRAGMA table_info(ai_memories);")]
+        if "kind" not in memory_columns:
+            conn.execute(
+                "ALTER TABLE ai_memories ADD COLUMN kind TEXT NOT NULL DEFAULT 'short';"
+            )
+        if "word_count" not in memory_columns:
+            conn.execute(
+                "ALTER TABLE ai_memories ADD COLUMN word_count INTEGER NOT NULL DEFAULT 0;"
+            )
+        if "embedding" not in memory_columns:
+            conn.execute("ALTER TABLE ai_memories ADD COLUMN embedding TEXT;")
         conn.commit()
