@@ -16,3 +16,4 @@ dist/
 
 # TTS-Module
 *.wav
+*.ogg
