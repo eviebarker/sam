@@ -129,6 +129,10 @@ If it needs new data, extend the dashboard response in `dashboard_service.py`.
 ## Events (current behavior)
 - Events list shows **today only**, with “now” or “in X…” based on the time range
 - Event reminders are **opt‑in** (`reminder_preset = standard`); default is **none**
+- Event reminder cadence (standard):
+  - **Day‑before only** when the event is within the next 7 days (no day‑of alerts)
+  - **Weekly** for the final month (days‑until 28, 21, 14), plus the day‑before alert
+  - **Monthly** when the event is 2+ months away (same day‑of‑month), then weekly in the final month, then day‑before
 - Multi-day events are stored as **one event per day** (e.g., Dec 7–9 becomes three daily events)
 
 ## Fun fact timing (current behavior)
