@@ -63,3 +63,18 @@ CREATE TABLE IF NOT EXISTS reminder_log (
   action TEXT NOT NULL,
   ts TEXT NOT NULL
 );
+
+-- AI conversation memory (short-term)
+CREATE TABLE IF NOT EXISTS ai_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+-- AI profile memory (long-term)
+CREATE TABLE IF NOT EXISTS ai_memories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  summary TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL
+);
