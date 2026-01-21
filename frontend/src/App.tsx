@@ -216,9 +216,14 @@ export default function App() {
   }
 
   async function handleTtsClick() {
+    await playTts("Time to take your meds, Sam.");
+  }
+
+  async function playTts(text: string) {
+    if (!text.trim()) return;
     try {
       setErr(null);
-      const blob = await ttsSpeak("Time to take your meds, Sam.");
+      const blob = await ttsSpeak(text);
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       const cleanup = () => URL.revokeObjectURL(url);
@@ -238,6 +243,7 @@ export default function App() {
       setAiLoading(true);
       const res = await aiRespond(prompt);
       setAiOutput(res.text);
+      await playTts(res.text);
     } catch (e: any) {
       setErr(e?.message ?? "failed");
     } finally {
