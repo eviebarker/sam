@@ -61,6 +61,13 @@ def mark_task_done(task_id: int) -> None:
         conn.execute("UPDATE tasks SET status='done' WHERE id = ?;", (task_id,))
         conn.commit()
 
+def update_task_priority(task_id: int, priority: str) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE tasks SET priority = ? WHERE id = ?;", (priority, task_id)
+        )
+        conn.commit()
+
 
 def list_open_tasks() -> list[dict]:
     with get_conn() as conn:

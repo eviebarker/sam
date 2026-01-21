@@ -1,11 +1,14 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from backend.app.db.queries import add_task, get_tasks, mark_task_done
+from backend.app.db.queries import add_task, get_tasks, mark_task_done, update_task_priority
 
 router = APIRouter()
 
 class NewTask(BaseModel):
     title: str
+    priority: str | None = "medium"
+
+class TaskPriorityBody(BaseModel):
     priority: str | None = "medium"
 
 @router.post("/api/tasks")
@@ -24,3 +27,12 @@ def list_tasks():
 def complete_task(task_id: int):
     mark_task_done(task_id)
     return {"ok": True}
+
+
+@router.post("/api/tasks/{task_id}/priority")
+def set_task_priority(task_id: int, body: TaskPriorityBody):
+    priority = body.priority or "medium"
+    if priority not in {"trivial", "medium", "vital"}:
+        priority = "medium"
+    update_task_priority(task_id, priority)
+    return {"ok": True, "priority": priority}

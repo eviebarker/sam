@@ -212,6 +212,11 @@ Later, user: “What reminder style should I use?”
 - Detects **events**, **reminders**, and **tasks** from natural language.
 - Also detects **workday swaps/updates** from natural language and writes to `/api/workdays`.
   - Handles phrasing like “working X instead of Y”, “swapped X and Y”, “working X/Y next week”, and “I’m off on X”.
+- Multiple tasks in one prompt are supported; the AI can return **a list of task titles**, and each will be added.
+- Mixed scheduling is supported: a single prompt can include **tasks + alerts + events + workday updates**, and each item is created in one pass.
+- Task priorities can be set **on add** (via natural language) and **afterwards** using `/api/ai/priority` (e.g., “make the plumber task high priority”).
+- “What’s the next task?” cycles the Tasks card to the next task and reads it out.
+- “What other tasks have I got?” reads the next task and asks if you want the next one, continuing on “yes/next.”
 - Rules:
   - “Remind me …” → reminder (alert).
   - “I need to / I have to / add a task / todo …” → task.

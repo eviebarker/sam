@@ -13,6 +13,7 @@ import {
   aiResolve,
   aiReclassify,
   aiReclassifyConfirm,
+  aiPriority,
 } from "./api";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
@@ -79,6 +80,7 @@ export default function App() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
+  const [taskBrowseActive, setTaskBrowseActive] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [aiInput, setAiInput] = useState("");
   const [aiOutput, setAiOutput] = useState<string | null>(null);
@@ -237,6 +239,18 @@ export default function App() {
     setCurrentTaskId(nextTask.id);
   }
 
+  function advanceTaskAndGet(): string | null {
+    if (!tasks.length) return null;
+    if (tasks.length === 1) {
+      setCurrentTaskId(tasks[0].id);
+      return tasks[0].title;
+    }
+    const idx = taskIndex >= 0 ? taskIndex : 0;
+    const nextTask = tasks[(idx + 1) % tasks.length];
+    setCurrentTaskId(nextTask.id);
+    return nextTask.title;
+  }
+
   async function markTaskDone() {
     if (!currentTask) return;
     try {
@@ -304,6 +318,59 @@ export default function App() {
         setAiOutput("Please reply with a valid option number.");
         return;
       }
+      const nextTaskTrigger = /\b(next task|what'?s the next task|show me the next task)\b/i;
+      const otherTasksTrigger =
+        /\b(what other tasks|what else do i have|any other tasks|more tasks)\b/i;
+      const continueTasksTrigger = /\b(yes|yeah|yep|next|keep going|more)\b/i;
+      const stopTasksTrigger = /\b(no|nope|stop|that's all|done)\b/i;
+
+      if (taskBrowseActive) {
+        if (continueTasksTrigger.test(prompt)) {
+          const title = advanceTaskAndGet();
+          if (title) {
+            const ack = `Next task: ${title}. Want to hear the next one?`;
+            setAiOutput(ack);
+            await playTts(ack);
+          } else {
+            const ack = "You have no tasks.";
+            setAiOutput(ack);
+            await playTts(ack);
+            setTaskBrowseActive(false);
+          }
+          return;
+        }
+        if (stopTasksTrigger.test(prompt)) {
+          setTaskBrowseActive(false);
+          const ack = "Okay.";
+          setAiOutput(ack);
+          await playTts(ack);
+          return;
+        }
+      }
+
+      if (nextTaskTrigger.test(prompt)) {
+        const title = advanceTaskAndGet();
+        const ack = title ? `Next task: ${title}.` : "You have no tasks.";
+        setAiOutput(ack);
+        await playTts(ack);
+        return;
+      }
+
+      if (otherTasksTrigger.test(prompt)) {
+        const title = advanceTaskAndGet();
+        if (title) {
+          const ack = `Next task: ${title}. Want to hear the next one?`;
+          setAiOutput(ack);
+          await playTts(ack);
+          setTaskBrowseActive(true);
+        } else {
+          const ack = "You have no tasks.";
+          setAiOutput(ack);
+          await playTts(ack);
+        }
+        return;
+      }
+
       const resolveRes = await aiResolve(prompt);
       if (resolveRes.ok) {
         const completionAcks = [
@@ -369,6 +436,29 @@ export default function App() {
           return;
         }
       }
+      const priorityTrigger =
+        /\b(priority|prioritis(?:e|e)|urgent|important|vital|high|low|medium)\b/i;
+      if (priorityTrigger.test(prompt)) {
+        const priorityRes = await aiPriority(prompt);
+        if (priorityRes.ok && priorityRes.priority) {
+          const priorityAcks = [
+            `Okay, set it to ${priorityRes.priority}.`,
+            `Got it, it’s now ${priorityRes.priority}.`,
+            `Done, priority set to ${priorityRes.priority}.`,
+            `All set, marked as ${priorityRes.priority}.`,
+            `Okay, updated to ${priorityRes.priority}.`,
+            `Got it — ${priorityRes.priority} priority.`,
+            `Done — ${priorityRes.priority}.`,
+            `Updated. It’s ${priorityRes.priority} now.`,
+          ];
+          const ack =
+            priorityAcks[Math.floor(Math.random() * priorityAcks.length)];
+          setAiOutput(ack);
+          await playTts(ack);
+          await refresh();
+          return;
+        }
+      }
       const scheduleRes = await aiSchedule(prompt);
       if (scheduleRes.ok) {
         const action = scheduleRes.action ?? "event";
@@ -404,7 +494,7 @@ export default function App() {
           "Okay, you’re set — the {type} is added.",
           "Got it — the {type} is added now.",
         ];
-        const pickAddAck = (type: "event" | "task" | "alert") =>
+        const pickAddAck = (type: "event" | "task" | "tasks" | "alert") =>
           addAcks[Math.floor(Math.random() * addAcks.length)].replace(
             "{type}",
             type
@@ -421,13 +511,28 @@ export default function App() {
         ];
         const pickWorkdayAck =
           workdayAcks[Math.floor(Math.random() * workdayAcks.length)];
+        const mixedAcks = [
+          "Got it, I added everything.",
+          "All set, I added those.",
+          "Okay, I added all of that.",
+          "Done — I added everything.",
+          "Sorted, I added those items.",
+          "All good, I added it all.",
+          "Got it, everything’s added.",
+          "Okay, those are added.",
+        ];
+        const pickMixedAck =
+          mixedAcks[Math.floor(Math.random() * mixedAcks.length)];
         let ack = "Done.";
         if (action === "task" && scheduleRes.task) {
-          ack = pickAddAck("task");
+          const totalTasks = scheduleRes.tasks?.length ?? 1;
+          ack = totalTasks > 1 ? pickAddAck("tasks") : pickAddAck("task");
         } else if (action === "reminder" && scheduleRes.reminder) {
           ack = pickAddAck("alert");
         } else if (action === "workday") {
           ack = pickWorkdayAck;
+        } else if (action === "mixed") {
+          ack = pickMixedAck;
         } else if (scheduleRes.event) {
           ack = pickAddAck("event");
         }
