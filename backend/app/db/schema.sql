@@ -76,5 +76,8 @@ CREATE TABLE IF NOT EXISTS ai_messages (
 CREATE TABLE IF NOT EXISTS ai_memories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   summary TEXT NOT NULL UNIQUE,
+  kind TEXT NOT NULL DEFAULT 'short',
+  word_count INTEGER NOT NULL DEFAULT 0,
+  embedding TEXT,
   created_at TEXT NOT NULL
 );
