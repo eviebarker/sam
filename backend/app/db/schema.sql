@@ -79,5 +79,6 @@ CREATE TABLE IF NOT EXISTS ai_memories (
   kind TEXT NOT NULL DEFAULT 'short',
   word_count INTEGER NOT NULL DEFAULT 0,
   embedding TEXT,
+  last_used_at TEXT,
   created_at TEXT NOT NULL
 );

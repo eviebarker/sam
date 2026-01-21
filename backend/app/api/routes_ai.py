@@ -12,6 +12,7 @@ from backend.app.db.ai_queries import (
     list_ai_messages_since,
     list_ai_memories_with_embeddings,
     prune_ai_memories,
+    touch_ai_memories,
 )
 
 router = APIRouter()
@@ -60,6 +61,7 @@ def ai_respond(body: AiRequest):
     history = list_ai_messages_since(since)
     memories = []
     memories_with_embeddings = list_ai_memories_with_embeddings()
+    selected_memory_ids = []
     if memories_with_embeddings:
         try:
             prompt_embedding = _embed_text(client, prompt, embedding_model)
@@ -73,10 +75,13 @@ def ai_respond(body: AiRequest):
                 scored.append((score, memory))
             scored.sort(key=lambda item: item[0], reverse=True)
             memories = [m for _, m in scored[:top_k]]
+            selected_memory_ids = [m["id"] for m in memories]
         except Exception:
             memories = []
     if not memories:
         memories = list_ai_memories(limit=20)
+    if selected_memory_ids:
+        touch_ai_memories(selected_memory_ids)
 
     system_prompt = os.getenv(
         "AI_SYSTEM_PROMPT",

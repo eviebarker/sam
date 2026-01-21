@@ -146,7 +146,7 @@ If it needs new data, extend the dashboard response in `dashboard_service.py`.
 - **Long-term profile memory**: facts saved in `ai_memories` (projects, relationships, preferences, ongoing goals).
   - **Short memories**: under 50 words, up to 300 stored.
   - **Long memories**: over 50 words, up to 200 stored.
-  - Oldest memories are pruned when caps are exceeded.
+  - Least-recently-used memories are pruned when caps are exceeded (uses `last_used_at`).
   - Schedules/workday swaps should not be stored here.
 
 ### Relevance selection (embeddings + cosine similarity)
