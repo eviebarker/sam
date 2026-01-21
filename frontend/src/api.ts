@@ -169,3 +169,15 @@ export async function aiReclassifyConfirm(
   if (!r.ok) throw new Error(`ai reclassify confirm failed: ${r.status}`);
   return r.json() as Promise<{ ok: boolean; message?: string }>;
 }
+
+export async function sttTranscribe(audioBlob: Blob) {
+  const fd = new FormData();
+  fd.append("file", audioBlob, "speech.ogg");
+  const r = await fetch("/api/stt", { method: "POST", body: fd });
+  if (!r.ok) throw new Error(`stt failed: ${r.status}`);
+  return r.json() as Promise<{
+    text: string;
+    language?: string | null;
+    segments?: { start: number; end: number; text: string }[];
+  }>;
+}
