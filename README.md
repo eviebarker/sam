@@ -207,6 +207,9 @@ Later, user: “What reminder style should I use?”
 - Relative times like **“in 1 minute/hour”** are parsed and scheduled correctly.
 - Reminders create **alerts** (not events), so they appear in the Alerts card.
 - Events appear in the Today card and can optionally create reminders via presets.
+### Today summary phrasing (`/api/ai/respond`)
+- “What have I got today?” and similar phrases return a summary of today’s events, work hours, tasks, and non‑med alerts.
+- Time windows are spoken as “start until end” (e.g., “8 am until 4:30 pm”) for natural TTS.
 
 ### Completion intent (`/api/ai/resolve`)
 - Detects “I did/finished/completed/called/took …” and tries to **resolve** items.

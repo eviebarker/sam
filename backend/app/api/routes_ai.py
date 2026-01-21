@@ -17,8 +17,9 @@ from backend.app.db.ai_queries import (
     prune_ai_memories,
     touch_ai_memories,
 )
-from backend.app.db.event_queries import add_event, delete_event, list_events_from_date
-from backend.app.db.queries import add_task, list_open_tasks, mark_task_done
+from backend.app.db.event_queries import add_event, delete_event, list_events_for_date, list_events_from_date
+from backend.app.db.queries import add_task, get_tasks, list_open_tasks, mark_task_done
+from backend.app.db.workday_queries import get_work_day
 from backend.app.db.reminder_queries import (
     create_active_for_date,
     delete_event_reminders,
@@ -256,11 +257,94 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
         return None
 
 
+def _natural_time(hhmm: str | None) -> str:
+    if not hhmm:
+        return ""
+    try:
+        dt = datetime.strptime(hhmm, "%H:%M")
+        hour = dt.strftime("%I").lstrip("0") or "12"
+        minute = dt.strftime("%M")
+        suffix = dt.strftime("%p").lower()
+        if minute == "00":
+            return f"{hour} {suffix}"
+        return f"{hour}:{minute} {suffix}"
+    except Exception:
+        return hhmm
+
+
 @router.post("/api/ai/respond")
 def ai_respond(body: AiRequest):
     prompt = body.text.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="text is required")
+
+    lowered = prompt.lower()
+    if any(
+        phrase in lowered
+        for phrase in (
+            "what have i got today",
+            "what have i got on today",
+            "what do i have today",
+            "what have i got",
+            "what do i have",
+            "what's on today",
+            "whats on today",
+            "what is on today",
+            "what is on my schedule today",
+            "what's my schedule today",
+            "whats my schedule today",
+            "what events do i have today",
+            "what tasks do i have today",
+            "what alerts do i have today",
+            "what's happening today",
+            "whats happening today",
+            "what am i doing today",
+            "what am i doing later",
+            "what do i have later",
+            "what events",
+            "what tasks",
+            "today's events",
+            "todays events",
+            "today's tasks",
+            "todays tasks",
+        )
+    ):
+        today = datetime.now(TZ).date().isoformat()
+        events = list_events_for_date(today)
+        tasks = get_tasks()
+        workday = get_work_day(today)
+        alerts = [
+            r
+            for r in list_active_reminders()
+            if not r["reminder_key"].startswith("event:")
+            and r["reminder_key"]
+            not in {"lanny_zee", "morning_meds", "lunch_meds", "evening_meds"}
+        ]
+        event_lines = []
+        if workday and workday.get("is_work"):
+            work_start = _natural_time(workday.get("start_hhmm") or "08:00")
+            work_end = _natural_time(workday.get("end_hhmm") or "16:30")
+            event_lines.append(f"{work_start} until {work_end} — Work")
+        for e in events:
+            if e["all_day"]:
+                when = "all day"
+            elif e["start_hhmm"] and e["end_hhmm"]:
+                start = _natural_time(e["start_hhmm"])
+                end = _natural_time(e["end_hhmm"])
+                when = f"{start} until {end}"
+            else:
+                when = _natural_time(e["start_hhmm"]) or "time TBD"
+            event_lines.append(f"{when} — {e['title']}")
+        task_lines = [t["title"] for t in tasks]
+        parts = []
+        parts.append("Today:")
+        parts.append("Events: " + (", ".join(event_lines) if event_lines else "none"))
+        parts.append("Tasks: " + (", ".join(task_lines) if task_lines else "none"))
+        alert_lines = [
+            f"{a['label']} ({_natural_time(a['scheduled_hhmm'])})" for a in alerts
+        ]
+        parts.append("Alerts: " + (", ".join(alert_lines) if alert_lines else "none"))
+        return {"text": " ".join(parts)}
 
     client = get_client()
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
