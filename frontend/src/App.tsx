@@ -82,6 +82,7 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const [aiInput, setAiInput] = useState("");
   const [aiOutput, setAiOutput] = useState<string | null>(null);
+  const [aiDisplay, setAiDisplay] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [reclassifyOptions, setReclassifyOptions] = useState<
     { item_type: "task" | "reminder" | "event"; item_id: number; label: string; target: "task" | "reminder" | "event" }[]
@@ -136,6 +137,29 @@ export default function App() {
     const id = setInterval(refresh, 5000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!aiOutput) {
+      setAiDisplay(null);
+      return;
+    }
+    const tokens = aiOutput.trim().split(/\s+/);
+    let idx = 1;
+    if (!tokens.length) {
+      setAiDisplay("");
+      return;
+    }
+    setAiDisplay(tokens[0]);
+    const id = window.setInterval(() => {
+      if (idx >= tokens.length) {
+        window.clearInterval(id);
+        return;
+      }
+      setAiDisplay(tokens.slice(0, idx + 1).join(" "));
+      idx += 1;
+    }, 200);
+    return () => window.clearInterval(id);
+  }, [aiOutput]);
 
   const now = data?.now ? new Date(data.now) : null;
   const timeStr = now
@@ -370,7 +394,7 @@ export default function App() {
           <span className="glass-pill glass-pill--small">{workLabel}</span>
         </div>
       </header>
-      {aiOutput ? <div className="aiResponse">{aiOutput}</div> : null}
+      {aiOutput ? <div className="aiResponse">{aiDisplay ?? aiOutput}</div> : null}
 
       {err && <div className="err glass-soft">Backend error: {err}</div>}
 
