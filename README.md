@@ -156,6 +156,7 @@ If it needs new data, extend the dashboard response in `dashboard_service.py`.
 - Identity capture: “X is my son/daughter/…” is saved immediately.
 - Relation capture: “Her friend is Nichola” is saved using recent context (e.g., “my wife is Deb”).
 - Descriptor capture: “X is a/an …” is saved as a memory (e.g., “Roddy is a border collie”).
+- Shared conditions: “me and my daughter have …” stores “Sam has …” and “Sam’s daughter has …”.
 
 ### Relevance selection (embeddings + cosine similarity)
 To avoid sending *all* memories every time, the server picks the most relevant ones:

@@ -496,6 +496,18 @@ def ai_respond(body: AiRequest):
         add_ai_memory(f"{name} is {owner}'s {pet}.")
         return {"text": "Got it. I'll remember that."}
 
+    shared_condition = re.search(
+        r"\b(me|i)\s+and\s+my\s+(son|daughter|wife|husband|partner|dad|father|mum|mom|mother|sister|brother)\s+have\s+(diagnosed\s+)?(.+)",
+        prompt,
+        flags=re.IGNORECASE,
+    )
+    if shared_condition:
+        relation = shared_condition.group(2).lower()
+        condition = shared_condition.group(4).strip().rstrip(".")
+        add_ai_memory(f"Sam has {condition}.")
+        add_ai_memory(f"Sam's {relation} has {condition}.")
+        return {"text": "Got it. I'll remember that."}
+
     descriptor_match = re.search(
         r"\b([A-Za-z][\w'-]*)\s+is\s+a[n]?\s+([A-Za-z][\w' -]{2,})\b",
         prompt,
