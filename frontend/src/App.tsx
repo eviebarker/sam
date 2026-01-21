@@ -586,7 +586,32 @@ export default function App() {
         } else if (action === "workday") {
           ack = pickWorkdayAck;
         } else if (action === "mixed") {
-          ack = pickMixedAck;
+          const mixedCounts = {
+            tasks: scheduleRes.tasks?.length ?? 0,
+            reminders: scheduleRes.reminders?.length ?? 0,
+            events: scheduleRes.events?.length ?? 0,
+            workdays: scheduleRes.workdays?.length ?? 0,
+          };
+          const total =
+            mixedCounts.tasks +
+            mixedCounts.reminders +
+            mixedCounts.events +
+            mixedCounts.workdays;
+          if (total === 1) {
+            if (mixedCounts.tasks) {
+              ack = pickAddAck("task");
+            } else if (mixedCounts.reminders) {
+              ack = pickAddAck("alert");
+            } else if (mixedCounts.events) {
+              ack = pickAddAck("event");
+            } else if (mixedCounts.workdays) {
+              ack = pickWorkdayAck;
+            } else {
+              ack = pickMixedAck;
+            }
+          } else {
+            ack = pickMixedAck;
+          }
         } else if (scheduleRes.event) {
           ack = pickAddAck("event");
         }
