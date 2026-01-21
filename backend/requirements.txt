@@ -7,3 +7,4 @@ openai
 piper-tts
 soundfile
 scipy
+faster-whisper
