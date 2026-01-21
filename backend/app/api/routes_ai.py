@@ -1774,7 +1774,7 @@ def ai_schedule(body: ScheduleRequest):
             },
         }
 
-    reminder_preset = "standard" if parsed.action == "reminder" else "none"
+    reminder_preset = "standard"
     if not parsed.date:
         raise HTTPException(status_code=400, detail="date is required")
     if not parsed.all_day:
