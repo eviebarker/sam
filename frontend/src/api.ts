@@ -105,7 +105,7 @@ export async function aiSchedule(text: string) {
   return r.json() as Promise<{
     ok: boolean;
     message?: string;
-    action?: "event" | "reminder" | "task";
+    action?: "event" | "reminder" | "task" | "workday";
     event?: {
       title: string;
       date: string | null;
@@ -114,6 +114,12 @@ export async function aiSchedule(text: string) {
       end_hhmm: string | null;
       all_day: boolean;
     };
+    workdays?: Array<{
+      date: string;
+      is_work: boolean;
+      start_hhmm: string | null;
+      end_hhmm: string | null;
+    }>;
     reminder?: {
       title: string;
       date: string;

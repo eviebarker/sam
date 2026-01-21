@@ -210,6 +210,8 @@ Later, user: “What reminder style should I use?”
 ## AI scheduling + completion (current behavior)
 ### Schedule intent (`/api/ai/schedule`)
 - Detects **events**, **reminders**, and **tasks** from natural language.
+- Also detects **workday swaps/updates** from natural language and writes to `/api/workdays`.
+  - Handles phrasing like “working X instead of Y”, “swapped X and Y”, “working X/Y next week”, and “I’m off on X”.
 - Rules:
   - “Remind me …” → reminder (alert).
   - “I need to / I have to / add a task / todo …” → task.
