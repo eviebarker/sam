@@ -409,11 +409,25 @@ export default function App() {
             "{type}",
             type
           );
+        const workdayAcks = [
+          "Got it, I've updated your work schedule.",
+          "Okay, your workdays are updated.",
+          "All set, I updated your work schedule.",
+          "Done — I updated your workdays.",
+          "Sorted, I've updated your work schedule.",
+          "Okay, I've made those workday changes.",
+          "Got it, your workday changes are saved.",
+          "All good, your work schedule is updated.",
+        ];
+        const pickWorkdayAck =
+          workdayAcks[Math.floor(Math.random() * workdayAcks.length)];
         let ack = "Done.";
         if (action === "task" && scheduleRes.task) {
           ack = pickAddAck("task");
         } else if (action === "reminder" && scheduleRes.reminder) {
           ack = pickAddAck("alert");
+        } else if (action === "workday") {
+          ack = pickWorkdayAck;
         } else if (scheduleRes.event) {
           ack = pickAddAck("event");
         }

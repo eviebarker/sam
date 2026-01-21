@@ -19,7 +19,7 @@ from backend.app.db.ai_queries import (
 )
 from backend.app.db.event_queries import add_event, delete_event, list_events_for_date, list_events_from_date
 from backend.app.db.queries import add_task, get_tasks, list_open_tasks, mark_task_done
-from backend.app.db.workday_queries import get_work_day
+from backend.app.db.workday_queries import get_work_day, set_work_day
 from backend.app.db.reminder_queries import (
     create_active_for_date,
     delete_event_reminders,
@@ -42,6 +42,13 @@ class ScheduleRequest(BaseModel):
     text: str
 
 
+class WorkdayUpdate(BaseModel):
+    date: str
+    is_work: bool
+    start_hhmm: str | None = None
+    end_hhmm: str | None = None
+
+
 class ScheduleResult(BaseModel):
     action: str
     title: str
@@ -51,6 +58,7 @@ class ScheduleResult(BaseModel):
     end_hhmm: str | None = None
     all_day: bool = False
     priority: str | None = None
+    workday_updates: list[WorkdayUpdate] = []
 
 
 class ResolveRequest(BaseModel):
@@ -192,20 +200,41 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
     system_prompt = (
         "You extract scheduling intents. Today is "
         f"{today} (Europe/London). "
-        "Return JSON with fields: action ('event'|'reminder'|'task'|'none'), "
+        "Return JSON with fields: action ('event'|'reminder'|'task'|'workday'|'none'), "
         "title, date (YYYY-MM-DD or null), end_date (YYYY-MM-DD or null), "
         "start_hhmm (HH:MM or null), end_hhmm (HH:MM or null), all_day (true/false), "
-        "priority ('trivial'|'medium'|'vital' or null). "
+        "priority ('trivial'|'medium'|'vital' or null), "
+        "workday_updates (array of {date,is_work,start_hhmm,end_hhmm}). "
         "If no time is specified, set all_day=true and times null. "
         "If a multi-day range is given (e.g., 'Dec 7 to Dec 9'), set date=start "
         "and end_date=end. "
+        "For workday updates, set action='workday' and fill workday_updates. "
         "For reminders, the title should be the reminder text. "
         "For tasks, date/time can be null. "
         "If no scheduling intent, set action='none'."
-        "Examples: "
-        "'I have to fold the laundry later today' -> action=task, title='Fold the laundry'. "
-        "'Remind me to call the doctor tomorrow at 10am' -> action=reminder, date=tomorrow. "
-        "'Lunch with Alex next Tuesday 1-2pm' -> action=event."
+        "Examples (generic patterns): "
+        "'I need to [task] later today' -> action=task. "
+        "'Add a task to [task]' -> action=task. "
+        "'Remind me to [thing] [date] at [time]' -> action=reminder. "
+        "'Set an alert for [thing] [time]' -> action=reminder. "
+        "'[Event] on [date] [time range]' -> action=event. "
+        "'Add an event for [event] [date]' -> action=event. "
+        "'I'm working [day] instead of [day]' -> action=workday (swap). "
+        "'I swapped [day] and [day] [this/next] week' -> action=workday (swap). "
+        "'I'm working [day], [day], [day] [this/next] week' -> action=workday (set work). "
+        "'I'm off [day]' -> action=workday (is_work=false). "
+        "'I'm working [day] [start]-[end]' -> action=workday with hours. "
+        "'I'm not working [day]' -> action=workday (is_work=false). "
+        "Examples (concrete): "
+        "'I have to do a chore later today' -> action=task, title='Do a chore'. "
+        "'Remind me to make a call tomorrow at 10am' -> action=reminder, date=tomorrow. "
+        "'An appointment next Tuesday 1-2pm' -> action=event. "
+        "'Lunch with Alex next Tuesday 1-2pm' -> action=event. "
+        "'I'm working Thursday instead of Monday' -> action=workday, updates for both days. "
+        "'I swapped Monday and Thursday this week' -> action=workday, update both days. "
+        "'I'm working Thu/Fri next week' -> action=workday, updates for those dates. "
+        "'I'm off on Tuesday' -> action=workday, is_work=false for that date. "
+        "'I'm working Tuesday 9 to 5' -> action=workday with start/end times."
     )
     response = client.responses.create(
         model=model,
@@ -225,7 +254,7 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
                     "properties": {
                         "action": {
                             "type": "string",
-                            "enum": ["event", "reminder", "task", "none"],
+                            "enum": ["event", "reminder", "task", "workday", "none"],
                         },
                         "title": {"type": "string"},
                         "date": {"type": ["string", "null"]},
@@ -237,6 +266,20 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
                             "type": ["string", "null"],
                             "enum": ["trivial", "medium", "vital", None],
                         },
+                        "workday_updates": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": False,
+                                "properties": {
+                                    "date": {"type": "string"},
+                                    "is_work": {"type": "boolean"},
+                                    "start_hhmm": {"type": ["string", "null"]},
+                                    "end_hhmm": {"type": ["string", "null"]},
+                                },
+                                "required": ["date", "is_work", "start_hhmm", "end_hhmm"],
+                            },
+                        },
                     },
                     "required": [
                         "action",
@@ -247,6 +290,7 @@ def _parse_schedule(client: OpenAI, text: str, model: str) -> ScheduleResult | N
                         "end_hhmm",
                         "all_day",
                         "priority",
+                        "workday_updates",
                     ],
                 },
             }
@@ -1161,6 +1205,26 @@ def ai_schedule(body: ScheduleRequest):
             "action": parsed.action,
             "task": {"title": parsed.title, "priority": priority},
         }
+
+    if parsed.action == "workday":
+        updates = []
+        for entry in parsed.workday_updates:
+            try:
+                datetime.fromisoformat(entry.date)
+            except Exception:
+                raise HTTPException(status_code=400, detail="invalid workday date")
+            set_work_day(entry.date, entry.is_work, entry.start_hhmm, entry.end_hhmm)
+            updates.append(
+                {
+                    "date": entry.date,
+                    "is_work": entry.is_work,
+                    "start_hhmm": entry.start_hhmm,
+                    "end_hhmm": entry.end_hhmm,
+                }
+            )
+        if not updates:
+            return {"ok": False, "message": "No workday updates detected."}
+        return {"ok": True, "action": parsed.action, "workdays": updates}
 
     if parsed.action == "reminder":
         today = datetime.now(TZ).date().isoformat()
