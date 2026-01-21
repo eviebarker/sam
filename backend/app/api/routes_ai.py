@@ -273,6 +273,111 @@ def _natural_time(hhmm: str | None) -> str:
         return hhmm
 
 
+def _family_summary(memories: list[dict]) -> str:
+    family_rels = {
+        "wife",
+        "husband",
+        "partner",
+        "son",
+        "sons",
+        "daughter",
+        "daughters",
+        "dad",
+        "father",
+        "mum",
+        "mom",
+        "mother",
+        "sister",
+        "sisters",
+        "brother",
+        "brothers",
+    }
+    members = ["you (Dad)"]
+    def add_names(names: list[str], rel: str) -> None:
+        for name in names:
+            cleaned = name.strip()
+            if cleaned:
+                members.append(f"{cleaned} ({rel})")
+
+    for mem in memories:
+        summary = mem.get("summary", "")
+        match = re.match(
+            r"^(?P<name>.+?) is my (?P<rel>[A-Za-z ]+)\.?$",
+            summary,
+            re.IGNORECASE,
+        )
+        if match:
+            name = match.group("name").strip()
+            rel = match.group("rel").strip().lower()
+            rel = rel[:-1] if rel.endswith("s") else rel
+            if rel in family_rels:
+                add_names([name], rel)
+            continue
+        match = re.match(
+            r"^my (?P<rel>[A-Za-z ]+) is (?P<name>.+?)\.?$",
+            summary,
+            re.IGNORECASE,
+        )
+        if match:
+            name = match.group("name").strip()
+            rel = match.group("rel").strip().lower()
+            rel = rel[:-1] if rel.endswith("s") else rel
+            if rel in family_rels:
+                add_names([name], rel)
+            continue
+        match = re.match(
+            r"^(?P<names>.+?) are my (?P<rel>[A-Za-z ]+)\.?$",
+            summary,
+            re.IGNORECASE,
+        )
+        if match:
+            names = match.group("names")
+            rel = match.group("rel").strip().lower()
+            rel = rel[:-1] if rel.endswith("s") else rel
+            if rel in family_rels:
+                add_names(re.split(r",| and ", names), rel)
+            continue
+        match = re.match(
+            r"^my (?P<rel>[A-Za-z ]+) are (?P<names>.+?)\.?$",
+            summary,
+            re.IGNORECASE,
+        )
+        if match:
+            names = match.group("names")
+            rel = match.group("rel").strip().lower()
+            rel = rel[:-1] if rel.endswith("s") else rel
+            if rel in family_rels:
+                add_names(re.split(r",| and ", names), rel)
+            continue
+        match = re.match(
+            r"^the (?P<rel>[A-Za-z ]+) is named (?P<name>.+?)\.?$",
+            summary,
+            re.IGNORECASE,
+        )
+        if match:
+            name = match.group("name").strip()
+            rel = match.group("rel").strip().lower()
+            rel = rel[:-1] if rel.endswith("s") else rel
+            if rel in family_rels:
+                add_names([name], rel)
+            continue
+        match = re.match(
+            r"^the family has (?P<rel>[A-Za-z ]+) named (?P<names>.+?)\.?$",
+            summary,
+            re.IGNORECASE,
+        )
+        if match:
+            names = match.group("names")
+            rel = match.group("rel").strip().lower()
+            rel = rel.replace("twin ", "")
+            rel = rel[:-1] if rel.endswith("s") else rel
+            if rel in family_rels:
+                add_names(re.split(r",| and ", names), rel)
+    if len(members) == 1:
+        return "I don't have any family details saved yet."
+    return "Your family includes " + ", ".join(members) + "."
+
+
 def _extract_pronunciation(text: str) -> tuple[str | None, str | None]:
     cleaned = text.strip()
     patterns = [
@@ -316,6 +421,22 @@ def _infer_term_from_history(history: list[dict]) -> str | None:
     return None
 
 
+def _infer_possessive_relation(history: list[dict]) -> str | None:
+    for msg in reversed(history[-5:]):
+        if msg.get("role") != "user":
+            continue
+        text = msg.get("content") or ""
+        match = re.search(
+            r"\bmy\s+(wife|husband|partner|son|daughter|dad|father|mum|mom|mother|sister|brother)\s+is\s+([A-Za-z][\w'-]*)\b",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if match:
+            relation = match.group(1).lower()
+            return f"my {relation}"
+    return None
+
+
 @router.post("/api/ai/respond")
 def ai_respond(body: AiRequest):
     prompt = body.text.strip()
@@ -326,6 +447,55 @@ def ai_respond(body: AiRequest):
     now = datetime.utcnow()
     since = (now - timedelta(days=1)).isoformat(timespec="seconds")
     history = list_ai_messages_since(since)
+    if "family" in lowered:
+        memories = list_ai_memories(limit=200)
+        return {"text": _family_summary(memories)}
+    if lowered.startswith("remember "):
+        memory_text = prompt[len("remember ") :].strip()
+        if memory_text:
+            add_ai_memory(memory_text)
+            return {"text": "Got it. I'll remember that."}
+
+    identity_match = re.search(
+        r"\b([A-Za-z][\w'-]*)\s+is\s+my\s+(son|daughter|wife|husband|partner|dad|father|mum|mom|mother|sister|brother|boyfriend|girlfriend)\b",
+        prompt,
+        flags=re.IGNORECASE,
+    )
+    if identity_match:
+        name = identity_match.group(1)
+        relation = identity_match.group(2)
+        add_ai_memory(f"{name} is my {relation}.")
+        return {"text": "Got it. I'll remember that."}
+
+    relation_match = re.search(
+        r"\b(my|his|her)\s+(friend|boss|coworker|colleague|teacher|doctor|partner|boyfriend|girlfriend|dog|cat)\s+is\s+([A-Za-z][\w'-]*)\b",
+        prompt,
+        flags=re.IGNORECASE,
+    )
+    if relation_match:
+        owner = relation_match.group(1).lower()
+        rel = relation_match.group(2).lower()
+        name = relation_match.group(3)
+        if owner == "my":
+            add_ai_memory(f"{name} is my {rel}.")
+            return {"text": "Got it. I'll remember that."}
+        possessive = _infer_possessive_relation(history)
+        if possessive:
+            add_ai_memory(f"{name} is {possessive}'s {rel}.")
+            return {"text": "Got it. I'll remember that."}
+
+    possessive_pet = re.search(
+        r"\bmy\s+([A-Za-z][\w'-]*)'s\s+(dog|cat)\s+is\s+([A-Za-z][\w'-]*)\b",
+        prompt,
+        flags=re.IGNORECASE,
+    )
+    if possessive_pet:
+        owner = possessive_pet.group(1)
+        pet = possessive_pet.group(2).lower()
+        name = possessive_pet.group(3)
+        add_ai_memory(f"{name} is {owner}'s {pet}.")
+        return {"text": "Got it. I'll remember that."}
+
     term, pronunciation = _extract_pronunciation(prompt)
     if pronunciation:
         if not term:
@@ -464,10 +634,10 @@ def ai_respond(body: AiRequest):
     try:
         memory_prompt = (
             "Extract long-term memories worth saving about projects, relationships, "
-            "preferences (likes/dislikes), or ongoing goals. Do NOT save schedules, "
-            "calendar details, or workday swaps. Return a JSON array of sentences; "
-            "short memories should be under 50 words. Longer memories can be any length. "
-            "If none, return []."
+            "preferences (likes/dislikes), ongoing goals, and identity facts (who people are, "
+            "and how they relate to Dad). Do NOT save schedules, calendar details, workday swaps, "
+            "or pronunciation instructions. Return a JSON array of sentences; short memories "
+            "should be under 50 words. Longer memories can be any length. If none, return []."
         )
         memory_resp = client.responses.create(
             model=memory_model,
