@@ -210,6 +210,17 @@ export default function App() {
     }
   }
 
+  function handleTtsClick() {
+    if (typeof window === "undefined") return;
+    if (!("speechSynthesis" in window)) {
+      console.warn("Speech synthesis not available in this browser.");
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance("Piper TTS coming soon.");
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
+
   return (
     <div className="page">
       <div className="bg">
@@ -426,6 +437,9 @@ export default function App() {
           </div>
           <button className="glass-pill micPill" onClick={() => alert("PTT coming soon")}>
             Hold to talk
+          </button>
+          <button className="glass-pill glass-pill--small ttsButton" onClick={handleTtsClick}>
+            Test speak
           </button>
           <p className="subtle">v1: button only (no hotword)</p>
         </section>
