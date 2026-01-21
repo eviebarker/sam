@@ -13,3 +13,7 @@ dist/
 # SQLite
 *.db
 *.sqlite
+
+# TTS-Module
+*.wav
+*.ogg
