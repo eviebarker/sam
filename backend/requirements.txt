@@ -8,3 +8,4 @@ piper-tts
 soundfile
 scipy
 faster-whisper
+python-multipart
