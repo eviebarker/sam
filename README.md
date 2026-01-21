@@ -155,6 +155,7 @@ If it needs new data, extend the dashboard response in `dashboard_service.py`.
 - Manual memory: say “remember …” to save an explicit fact.
 - Identity capture: “X is my son/daughter/…” is saved immediately.
 - Relation capture: “Her friend is Nichola” is saved using recent context (e.g., “my wife is Deb”).
+- Descriptor capture: “X is a/an …” is saved as a memory (e.g., “Roddy is a border collie”).
 
 ### Relevance selection (embeddings + cosine similarity)
 To avoid sending *all* memories every time, the server picks the most relevant ones:
