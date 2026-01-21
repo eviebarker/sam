@@ -1560,7 +1560,7 @@ def ai_schedule(body: ScheduleRequest):
     ):
         parsed.action = "event"
 
-    if parsed.items:
+    if parsed.items and len(parsed.items) > 1:
         created = {"tasks": [], "reminders": [], "events": [], "workdays": []}
         for item in parsed.items:
             item_type = item.type
