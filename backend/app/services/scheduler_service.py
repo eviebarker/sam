@@ -7,6 +7,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from backend.app.db.reminder_seed import seed_defaults_if_empty
 from backend.app.db.workday_queries import is_work_day
 from backend.app.services.event_reminder_service import create_event_reminders_for_date
+from backend.app.services.voice_service import synthesize_and_play_async
 from backend.app.db.reminder_queries import (
     get_schedules_for_day_type,
     create_active_for_date,
@@ -82,6 +83,9 @@ def _nag_tick():
 
     print(f"[REMINDER] active_id={row['id']} | due={row['scheduled_hhmm']} | {row['label']} - {row['speak_text']}")
     log_action(row["reminder_key"], "fired")
+    if row["reminder_key"] in {"lanny_zee", "morning_meds", "lunch_meds", "evening_meds"}:
+        speak_text = f"Hey Sam, {row['speak_text']}"
+        synthesize_and_play_async(speak_text)
     row_next_fire = datetime.fromisoformat(row["next_fire_at"])
     if row_next_fire.tzinfo is None:
         row_next_fire = row_next_fire.replace(tzinfo=TZ)
