@@ -8,4 +8,5 @@ Architecture, services, and development workflows for the Python backend.
 
 architecture
 development
+behavior
 ```
