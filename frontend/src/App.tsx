@@ -19,7 +19,6 @@ import {
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
 import FunFactCard from "./components/FunFactCard";
-import FoodHub from "./pages/FoodHub";
 import "./App.css";
 
 type Dashboard = {
@@ -1292,7 +1291,7 @@ export default function App() {
   );
 
   return (
-    <div className="page">
+    <div className={`page${isFoodHub ? " page--foodhub" : ""}`}>
       <div className="bg">
         <DarkVeil
           hueShift={0}
@@ -1371,42 +1370,37 @@ export default function App() {
 
       {err && <div className="err glass-soft">Backend error: {err}</div>}
 
-      {isFoodHub ? (
-        <FoodHub
-          rightTop={renderTodayCard("slot-r1", "card--right", "card--slim")}
-          rightBottom={renderAlertsCard("slot-r2", "card--right", "card--slim")}
-        />
-      ) : (
-        <main className="grid">
-          {renderTodayCard("slot-l1", "card--left")}
-          {renderTasksCard("slot-r1", "card--right")}
+      {isFoodHub ? <div className="foodHubTitle funFactTitle">foodhub</div> : null}
 
-          {/* Middle column: Orb (no tile/background) */}
-          <div className="orbSlot" aria-hidden="true">
-            <div className={`orbWrap${isVisualSpeaking ? " orbWrap--speaking" : ""}`}>
-              <Orb
-                hue={0}
-                hoverIntensity={isVisualSpeaking ? audioPulse * 2.2 : 0.35}
-                rotateOnHover
-                forceHoverState={false}
-                pulse={0}
-                pulseSpeed={16.5}
-                autoHover={isVisualSpeaking}
-                autoHoverIntensity={isVisualSpeaking ? audioPulse * 1.1 : 1.0}
-                autoHoverSpeed={6.0}
-                speaking={isVisualSpeaking}
-              />
-            </div>
+      <main className="grid">
+        {renderTodayCard("slot-l1", "card--left", "card--merge")}
+        {renderTasksCard("slot-r1", "card--right card--off")}
+
+        {/* Middle column: Orb (no tile/background) */}
+        <div className="orbSlot merge-off" aria-hidden="true">
+          <div className={`orbWrap${isVisualSpeaking ? " orbWrap--speaking" : ""}`}>
+            <Orb
+              hue={0}
+              hoverIntensity={isVisualSpeaking ? audioPulse * 2.2 : 0.35}
+              rotateOnHover
+              forceHoverState={false}
+              pulse={0}
+              pulseSpeed={16.5}
+              autoHover={isVisualSpeaking}
+              autoHoverIntensity={isVisualSpeaking ? audioPulse * 1.1 : 1.0}
+              autoHoverSpeed={6.0}
+              speaking={isVisualSpeaking}
+            />
           </div>
+        </div>
 
-          <div className="funFactDock">
-            <FunFactCard />
-          </div>
+        <div className="funFactDock merge-off">
+          <FunFactCard />
+        </div>
 
-          {renderAlertsCard("slot-l2", "card--left")}
-          {renderPushToTalkCard("slot-r2", "card--right")}
-        </main>
-      )}
+        {renderAlertsCard("slot-l2", "card--left", "card--merge")}
+        {renderPushToTalkCard("slot-r2", "card--right card--off")}
+      </main>
 
     </div>
   );
