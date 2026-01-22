@@ -1295,9 +1295,6 @@ export default function App() {
           >
             {isRecording ? "Listening..." : "Hold to talk"}
           </button>
-          <button className="glass-pill glass-pill--small ttsButton" onClick={handleTtsClick}>
-            Test speak
-          </button>
           <p className="subtle">v1: button only (no hotword)</p>
           <div className="aiBlock">
             <div className="aiLabel">Ask Sam</div>
