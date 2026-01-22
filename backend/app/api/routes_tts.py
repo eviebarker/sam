@@ -1,3 +1,5 @@
+"""Text-to-speech endpoint returning an OGG (Opus) file."""
+
 import os
 import tempfile
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -14,6 +16,7 @@ class TtsRequest(BaseModel):
 
 @router.post("/api/tts")
 def tts_speak(payload: TtsRequest, background_tasks: BackgroundTasks):
+    """Synthesize text to speech (OGG). Returns a file response; cleans up temp file."""
     text = payload.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="text is required")

@@ -1,3 +1,5 @@
+"""AI assistant endpoints: respond, resolve, classify, prioritize, and schedule items."""
+
 import os
 import json
 import math
@@ -814,6 +816,7 @@ def _infer_possessive_relation(history: list[dict]) -> str | None:
 
 @router.post("/api/ai/respond")
 def ai_respond(body: AiRequest):
+    """Main conversational endpoint: handles memories, identity capture, and returns a reply."""
     prompt = body.text.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="text is required")
@@ -1242,6 +1245,7 @@ def _reclassify_item(item_type: str, item: dict, target: str) -> dict:
 
 @router.post("/api/ai/resolve")
 def ai_resolve(body: ResolveRequest):
+    """Detect and apply completion/cancellation intents across tasks, reminders, and events."""
     prompt = body.text.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="text is required")
@@ -1591,6 +1595,7 @@ def ai_resolve(body: ResolveRequest):
 
 @router.post("/api/ai/reclassify")
 def ai_reclassify(body: ReclassifyRequest):
+    """Reclassify an item (task/reminder/event) to a different category using AI matching."""
     prompt = body.text.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="text is required")
@@ -1652,6 +1657,7 @@ def ai_reclassify(body: ReclassifyRequest):
 
 @router.post("/api/ai/priority")
 def ai_priority(body: PriorityRequest):
+    """Extract a priority change intent and apply it to the best-matching task."""
     prompt = body.text.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="text is required")
@@ -1688,6 +1694,7 @@ def ai_priority(body: PriorityRequest):
 
 @router.post("/api/ai/reclassify/confirm")
 def ai_reclassify_confirm(body: ReclassifyConfirmRequest):
+    """Confirm a reclassify option when multiple candidates are returned."""
     target = body.target
     item_type = body.item_type
     item_id = body.item_id
@@ -1716,6 +1723,7 @@ def ai_reclassify_confirm(body: ReclassifyConfirmRequest):
 
 @router.post("/api/ai/schedule")
 def ai_schedule(body: ScheduleRequest):
+    """Parse scheduling intent into tasks/events/reminders and persist them."""
     prompt = body.text.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="text is required")

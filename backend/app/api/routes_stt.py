@@ -1,3 +1,5 @@
+"""Speech-to-text upload endpoint backed by faster-whisper."""
+
 import asyncio
 import mimetypes
 import os
@@ -21,6 +23,7 @@ _stt_service = STTService(
 async def transcribe_audio(
     background_tasks: BackgroundTasks, file: UploadFile = File(...)
 ):
+    """Accept an audio upload, transcribe to text + segments, and return metadata."""
     if not file:
         raise HTTPException(status_code=400, detail="audio file is required")
 
