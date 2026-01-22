@@ -326,22 +326,29 @@ export default function Orb({
       program.uniforms.pulse.value = currentPulse;
 
       let effectiveHover = forceHoverStateRef.current ? 1 : targetHover;
+      let hoverWave = 0;
       if (autoHoverRef.current) {
         const timeSec = t * 0.001;
-        const waveA = 0.5 + 0.5 * Math.sin(timeSec * autoHoverSpeedRef.current);
-        const waveB =
-          0.5 + 0.5 * Math.sin(timeSec * autoHoverSpeedRef.current * 0.62 + 1.7);
-        const wave = waveA * 0.7 + waveB * 0.3;
+        const speedJitter =
+          1 +
+          0.2 * Math.sin(timeSec * 0.6 + 1.3) +
+          0.1 * Math.sin(timeSec * 1.1 + 2.9);
+        const phase = timeSec * autoHoverSpeedRef.current * speedJitter;
+        const waveA = 0.5 + 0.5 * Math.sin(phase);
+        const waveB = 0.5 + 0.5 * Math.sin(phase * 0.62 + 1.7);
+        const waveC = 0.5 + 0.5 * Math.sin(phase * 1.31 - 0.8);
+        hoverWave = waveA * 0.55 + waveB * 0.25 + waveC * 0.2;
         effectiveHover = Math.min(
           1,
-          Math.max(0, wave * autoHoverIntensityRef.current)
+          Math.max(0, hoverWave * autoHoverIntensityRef.current)
         );
       }
       program.uniforms.hover.value +=
         (effectiveHover - program.uniforms.hover.value) * 0.1;
 
       if (rotateOnHoverRef.current && effectiveHover > 0.5) {
-        currentRot += dt * rotationSpeed;
+        const rotBoost = autoHoverRef.current ? 0.6 + hoverWave * 0.8 : 1;
+        currentRot += dt * rotationSpeed * rotBoost;
       }
       program.uniforms.rot.value = currentRot;
 

@@ -879,9 +879,10 @@ export default function App() {
               rotateOnHover
               forceHoverState={false}
               pulse={isSpeaking ? 1 : 0}
+              pulseSpeed={16.5}
               autoHover={isSpeaking}
               autoHoverIntensity={1.0}
-              autoHoverSpeed={3.6}
+              autoHoverSpeed={6.0}
             />
           </div>
         </div>
