@@ -77,6 +77,11 @@ export default function App() {
   const [activePage, setActivePage] = useState<"dashboard" | "food-hub">(
     "dashboard"
   );
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionDir, setTransitionDir] = useState<
+    "to-foodhub" | "to-dashboard" | null
+  >(null);
+  const [pillMode, setPillMode] = useState<"work" | "mic">("work");
   const [isWork, setIsWork] = useState<boolean | null>(null);
   const [workStart, setWorkStart] = useState<string | null>(null);
   const [workEnd, setWorkEnd] = useState<string | null>(null);
@@ -215,6 +220,8 @@ export default function App() {
   const sttBuffersRef = useRef<Float32Array[]>([]);
   const sttSampleRateRef = useRef<number>(16000);
   const sttManualRef = useRef(false);
+  const transitionTimerRef = useRef<number | null>(null);
+  const pillTimerRef = useRef<number | null>(null);
 
   async function refresh() {
     try {
@@ -911,6 +918,17 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current != null) {
+        window.clearTimeout(transitionTimerRef.current);
+      }
+      if (pillTimerRef.current != null) {
+        window.clearTimeout(pillTimerRef.current);
+      }
+    };
+  }, []);
+
   async function startRecording() {
     if (isRecording) return;
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -1019,6 +1037,30 @@ export default function App() {
   }
 
   const isFoodHub = activePage === "food-hub";
+
+  function switchPage(next: "dashboard" | "food-hub") {
+    if (activePage === next) return;
+    const transitionDurationMs = 1100;
+    const pillFlipDelayMs = Math.round(transitionDurationMs / 2);
+    setActivePage(next);
+    setIsTransitioning(true);
+    setTransitionDir(next === "food-hub" ? "to-foodhub" : "to-dashboard");
+    if (transitionTimerRef.current != null) {
+      window.clearTimeout(transitionTimerRef.current);
+    }
+    if (pillTimerRef.current != null) {
+      window.clearTimeout(pillTimerRef.current);
+    }
+    pillTimerRef.current = window.setTimeout(() => {
+      setPillMode(next === "food-hub" ? "mic" : "work");
+      pillTimerRef.current = null;
+    }, pillFlipDelayMs);
+    transitionTimerRef.current = window.setTimeout(() => {
+      setIsTransitioning(false);
+      setTransitionDir(null);
+      transitionTimerRef.current = null;
+    }, transitionDurationMs);
+  }
 
   const renderTodayCard = (
     slotClass: string,
@@ -1291,7 +1333,11 @@ export default function App() {
   );
 
   return (
-    <div className={`page${isFoodHub ? " page--foodhub" : ""}`}>
+    <div
+      className={`page${isFoodHub ? " page--foodhub" : ""}${
+        isTransitioning ? " page--transitioning" : ""
+      }${transitionDir ? ` page--${transitionDir}` : ""}`}
+    >
       <div className="bg">
         <DarkVeil
           hueShift={0}
@@ -1309,37 +1355,45 @@ export default function App() {
           <div className="time">{timeStr}</div>
           <div className="dateRow">
             <div className="date">{dateStrPretty}</div>
-            {!isFoodHub ? (
-              <span className="glass-pill glass-pill--small">{workLabel}</span>
-            ) : null}
-            {isFoodHub ? (
+            <div className="pillMorphWrap">
               <button
-                className={`glass-pill glass-pill--small micPill micPill--compact${
-                  isRecording ? " micPill--recording" : ""
-                }`}
+                className={`glass-pill glass-pill--small pillMorph${
+                  pillMode === "mic"
+                    ? " pillMorph--mic micPill micPill--compact"
+                    : " pillMorph--work"
+                }${isRecording ? " micPill--recording" : ""}`}
+                disabled={pillMode !== "mic"}
                 onMouseDown={(e) => {
+                  if (pillMode !== "mic") return;
                   e.preventDefault();
                   startRecording();
                 }}
                 onMouseUp={(e) => {
+                  if (pillMode !== "mic") return;
                   e.preventDefault();
                   stopRecording();
                 }}
                 onMouseLeave={() => {
-                  if (isRecording) stopRecording();
+                  if (pillMode === "mic" && isRecording) stopRecording();
                 }}
                 onTouchStart={(e) => {
+                  if (pillMode !== "mic") return;
                   e.preventDefault();
                   startRecording();
                 }}
                 onTouchEnd={(e) => {
+                  if (pillMode !== "mic") return;
                   e.preventDefault();
                   stopRecording();
                 }}
               >
-                {isRecording ? "Listening..." : "Push to talk"}
+                {pillMode === "mic"
+                  ? isRecording
+                    ? "Listening..."
+                    : "Push to talk"
+                  : workLabel}
               </button>
-            ) : null}
+            </div>
           </div>
         </div>
 
@@ -1349,7 +1403,7 @@ export default function App() {
             className={`glass-pill glass-pill--small navPill${
               !isFoodHub ? " navPill--active" : ""
             }`}
-            onClick={() => setActivePage("dashboard")}
+            onClick={() => switchPage("dashboard")}
             aria-current={!isFoodHub ? "page" : undefined}
           >
             Dashboard
@@ -1359,7 +1413,7 @@ export default function App() {
             className={`glass-pill glass-pill--small navPill${
               isFoodHub ? " navPill--active" : ""
             }`}
-            onClick={() => setActivePage("food-hub")}
+            onClick={() => switchPage("food-hub")}
             aria-current={isFoodHub ? "page" : undefined}
           >
             Food Hub
@@ -1370,11 +1424,13 @@ export default function App() {
 
       {err && <div className="err glass-soft">Backend error: {err}</div>}
 
-      {isFoodHub ? <div className="foodHubTitle funFactTitle">foodhub</div> : null}
+      {isFoodHub || isTransitioning ? (
+        <div className="foodHubTitle funFactTitle">foodhub</div>
+      ) : null}
 
       <main className="grid">
         {renderTodayCard("slot-l1", "card--left", "card--merge")}
-        {renderTasksCard("slot-r1", "card--right card--off")}
+        {renderTasksCard("slot-r1", "card--right card--exit-up")}
 
         {/* Middle column: Orb (no tile/background) */}
         <div className="orbSlot merge-off" aria-hidden="true">
@@ -1399,7 +1455,7 @@ export default function App() {
         </div>
 
         {renderAlertsCard("slot-l2", "card--left", "card--merge")}
-        {renderPushToTalkCard("slot-r2", "card--right card--off")}
+        {renderPushToTalkCard("slot-r2", "card--right card--exit-down")}
       </main>
 
     </div>

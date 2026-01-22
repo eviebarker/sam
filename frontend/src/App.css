@@ -24,7 +24,10 @@ body{
   padding: 28px;
   box-sizing: border-box;
   --merge-duration: 1100ms;
+  --orb-duration: 450ms;
   --offscreen-x: 120vw;
+  --card-base: 0.92;
+  --grid-width: calc(100vw - 56px);
 }
 
 /* Animated background layer (DarkVeil) */
@@ -136,6 +139,7 @@ body{
   align-items: stretch;
   position: relative;
   --col-gap: 18px;
+  --col-width: calc((var(--grid-width) - (2 * var(--col-gap))) / 3);
 }
 
 /* Explicit placement: left col (1), right col (3) */
@@ -202,18 +206,25 @@ body{
 
 .page--foodhub .card--merge{
   --merge-ratio: 0.62;
-  transform: translateX(calc((200% / var(--merge-ratio)) + (2 * var(--col-gap))));
+  transform: translateX(
+    calc(((3 - var(--merge-ratio)) * var(--col-width)) + (2 * var(--col-gap)))
+  );
   max-width: 62%;
-  justify-self: end;
+  justify-self: start;
 }
 
-.card--off{
+.card--exit-up,
+.card--exit-down{
   transition: transform var(--merge-duration) ease;
   will-change: transform;
 }
 
-.page--foodhub .card--off{
-  transform: translateX(var(--offscreen-x));
+.page--foodhub .card--exit-up{
+  transform: translateY(-120vh);
+}
+
+.page--foodhub .card--exit-down{
+  transform: translateY(120vh);
 }
 
 .orbSlot{
@@ -221,7 +232,11 @@ body{
 }
 
 .page--foodhub .orbSlot.merge-off{
-  transform: translate3d(var(--offscreen-x), 0, 0);
+  animation: orbExit var(--orb-duration) ease forwards;
+}
+
+.page--transitioning.page--to-dashboard .orbSlot.merge-off{
+  animation: orbEnter var(--orb-duration) ease forwards;
 }
 
 .funFactDock{
@@ -231,6 +246,73 @@ body{
 .page--foodhub .funFactDock.merge-off{
   transform: translate3d(calc(-50% + var(--offscreen-x)), 0, 0);
   pointer-events: none;
+}
+
+.dateRow{
+  display: grid;
+  grid-template-columns: auto 150px;
+  align-items: center;
+  column-gap: 10px;
+  perspective: 900px;
+  height: 32px;
+  overflow: hidden;
+}
+
+.pillMorphWrap{
+  display: inline-flex;
+  width: 150px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+  backface-visibility: hidden;
+}
+
+.date{
+  line-height: 1;
+}
+
+.pillMorph{
+  line-height: 1;
+}
+
+.pillMorph{
+  transform-origin: center;
+  backface-visibility: hidden;
+  transition: transform var(--merge-duration) ease;
+}
+
+.pillMorph:disabled{
+  opacity: 1;
+  cursor: default;
+}
+
+.pillMorph--work{
+  animation: none;
+}
+
+.pillMorph--mic{
+  animation: none;
+}
+
+.page--transitioning.page--to-foodhub .pillMorphWrap{
+  animation: flipToMic var(--merge-duration) ease;
+}
+
+.page--transitioning.page--to-dashboard .pillMorphWrap{
+  animation: flipToWork var(--merge-duration) ease;
+}
+
+@keyframes flipToMic{
+  0%{ transform: rotateX(0deg); }
+  50%{ transform: rotateX(90deg); }
+  100%{ transform: rotateX(0deg); }
+}
+
+@keyframes flipToWork{
+  0%{ transform: rotateX(0deg); }
+  50%{ transform: rotateX(-90deg); }
+  100%{ transform: rotateX(0deg); }
 }
 
 .cardHeader{
@@ -315,6 +397,62 @@ h2{
   text-align: center;
   font-size: 14px;
   letter-spacing: 0.26em;
+}
+
+.page--transitioning.page--to-foodhub .foodHubTitle{
+  animation: foodHubIn 700ms ease forwards;
+}
+
+.page--transitioning.page--to-dashboard .foodHubTitle{
+  animation: foodHubOut 700ms ease forwards;
+}
+
+@keyframes foodHubIn{
+  from{
+    transform: translateY(-120vh) rotateX(90deg);
+  }
+  to{
+    transform: translateY(0) rotateX(0deg);
+  }
+}
+
+@keyframes foodHubOut{
+  from{
+    transform: translateY(0) rotateX(0deg);
+  }
+  to{
+    transform: translateY(-120vh) rotateX(90deg);
+  }
+}
+
+@keyframes orbExit{
+  0%{
+    transform: scale(1);
+    opacity: 1;
+  }
+  60%{
+    transform: scale(0.08);
+    opacity: 1;
+  }
+  100%{
+    transform: scale(0.02);
+    opacity: 0;
+  }
+}
+
+@keyframes orbEnter{
+  0%{
+    transform: scale(0.02);
+    opacity: 0;
+  }
+  40%{
+    transform: scale(0.08);
+    opacity: 1;
+  }
+  100%{
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 .funFactBody{
   font-size: 15px;
@@ -514,7 +652,8 @@ h2{
     justify-self: stretch;
   }
 
-  .page--foodhub .card--off,
+  .page--foodhub .card--exit-up,
+  .page--foodhub .card--exit-down,
   .page--foodhub .orbSlot.merge-off,
   .page--foodhub .funFactDock.merge-off{
     transform: none;
