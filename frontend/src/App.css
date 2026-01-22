@@ -531,6 +531,7 @@ h2{
   display: grid;
   gap: 8px;
   text-align: center;
+  transform-style: preserve-3d;
 }
 
 .foodHubTileImage{
@@ -579,51 +580,50 @@ h2{
   animation: foodHubPanelOut var(--merge-duration) ease both;
 }
 
-.page--transitioning.page--to-foodhub .foodHubCarousel{
-  animation: foodHubRowIn var(--merge-duration) ease both;
+.page--transitioning.page--to-foodhub .foodHubTile{
+  animation: foodHubTileFlip 520ms ease both;
+  animation-delay: calc(360ms + (var(--tile-index) * 70ms));
 }
 
-.page--transitioning.page--to-dashboard .foodHubCarousel{
-  animation: foodHubRowOut var(--merge-duration) ease both;
-}
+.foodHubTile:nth-child(1){ --tile-index: 0; }
+.foodHubTile:nth-child(2){ --tile-index: 1; }
+.foodHubTile:nth-child(3){ --tile-index: 2; }
+.foodHubTile:nth-child(4){ --tile-index: 3; }
+.foodHubTile:nth-child(5){ --tile-index: 4; }
+.foodHubTile:nth-child(6){ --tile-index: 5; }
+.foodHubTile:nth-child(7){ --tile-index: 6; }
+.foodHubTile:nth-child(8){ --tile-index: 7; }
+.foodHubTile:nth-child(9){ --tile-index: 8; }
+.foodHubTile:nth-child(10){ --tile-index: 9; }
+.foodHubTile:nth-child(11){ --tile-index: 10; }
+.foodHubTile:nth-child(12){ --tile-index: 11; }
 
 @keyframes foodHubPanelIn{
   from{
-    opacity: 0;
+    transform: translateX(-120%);
   }
   to{
-    opacity: 1;
+    transform: translateX(0);
   }
 }
 
 @keyframes foodHubPanelOut{
   from{
-    opacity: 1;
+    transform: translateX(0);
   }
   to{
-    opacity: 0;
+    transform: translateX(-120%);
   }
 }
 
-@keyframes foodHubRowIn{
+@keyframes foodHubTileFlip{
   from{
     opacity: 0;
-    transform: translateY(-40px);
+    transform: rotateX(-90deg);
   }
   to{
     opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes foodHubRowOut{
-  from{
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to{
-    opacity: 0;
-    transform: translateY(-40px);
+    transform: rotateX(0deg);
   }
 }
 
