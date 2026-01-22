@@ -15,6 +15,7 @@ body{
     radial-gradient(900px 550px at 82% 18%, rgba(47,123,255,.08), transparent 62%),
     linear-gradient(180deg, var(--bg1), var(--bg0));
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  overflow: hidden;
 }
 
 /* Kiosk: fill the screen */
@@ -23,6 +24,14 @@ body{
   width: 100vw;
   padding: 28px;
   box-sizing: border-box;
+  --merge-duration: 1100ms;
+  --orb-duration: 450ms;
+  --offscreen-x: 120vw;
+  --offscreen-y: 120vh;
+  --card-base: 0.92;
+  --grid-width: calc(100vw - 56px);
+  --card-merge-x: 0px;
+  overflow: hidden;
 }
 
 /* Animated background layer (DarkVeil) */
@@ -88,6 +97,9 @@ body{
   font-weight: 700;
   box-shadow: 0 12px 36px rgba(0,0,0,0.28);
 }
+.navPill--active{
+  background: rgba(255,255,255,0.12);
+}
 
 /* Header */
 .top{
@@ -100,12 +112,20 @@ body{
 }
 
 .topLeft{ display:flex; flex-direction:column; gap: 6px; }
+.dateRow{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 .time{ font-size: clamp(42px, 5vw, 72px); font-weight: 780; letter-spacing: -0.03em; }
 .date{ font-size: clamp(14px, 1.4vw, 20px); color: var(--muted); }
 
 .topRight{
   display:flex;
+  flex-direction: row;
   align-items:flex-end;
+  gap: 10px;
 }
 
 /* Error */
@@ -122,6 +142,12 @@ body{
   grid-template-rows: auto auto;
   align-items: stretch;
   position: relative;
+  --col-gap: 18px;
+  --col-width: calc((var(--grid-width) - (2 * var(--col-gap))) / 3);
+}
+
+.page--foodhub .grid{
+  --card-merge-x: calc(((3 - 0.62) * var(--col-width)) + (2 * var(--col-gap)));
 }
 
 /* Explicit placement: left col (1), right col (3) */
@@ -177,6 +203,173 @@ body{
   max-width: 92%;
   justify-self: end;
 }
+.card--slim{
+  max-width: 62%;
+}
+.card--merge{
+  transition: transform var(--merge-duration) ease, max-width var(--merge-duration) ease;
+  will-change: transform;
+  --merge-ratio: 1;
+}
+
+.page--foodhub .card--merge{
+  --merge-ratio: 0.62;
+  transform: translateX(var(--card-merge-x));
+  max-width: 62%;
+  justify-self: start;
+}
+
+.page--foodhub .card--merge h2{
+  font-size: 20px;
+}
+
+.page--foodhub .card--merge .big{
+  font-size: 22px;
+}
+
+.page--foodhub .card--merge .list{
+  font-size: 14px;
+}
+
+.page--foodhub .card--merge .eventRow{
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.page--foodhub .card--merge .eventMeta{
+  font-size: 11px;
+}
+
+.page--foodhub .card--merge .reminderRow{
+  font-size: 13px;
+  padding: 8px;
+}
+
+.page--foodhub .card--merge .reminderStatus{
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+.page--foodhub .card--merge .subtle{
+  font-size: 12px;
+}
+
+
+.page--foodhub .card--merge .reminders{
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.page--foodhub .card--merge .list li{
+  margin: 4px 0;
+}
+
+.card--exit-up,
+.card--exit-down{
+  transition: transform var(--merge-duration) ease;
+  will-change: transform;
+}
+
+.page--foodhub .card--exit-up{
+  transform: translateY(-120vh);
+}
+
+.page--foodhub .card--exit-down{
+  transform: translateY(120vh);
+}
+
+.orbSlot{
+  transition: transform var(--merge-duration) ease;
+}
+
+.page--foodhub .orbSlot.merge-off{
+  opacity: 0;
+  transform: scale(0.02);
+}
+
+.page--transitioning.page--to-foodhub .orbSlot.merge-off{
+  animation: orbExit var(--orb-duration) ease forwards;
+}
+
+.page--transitioning.page--to-dashboard .orbSlot.merge-off{
+  animation: orbEnter var(--orb-duration) ease forwards;
+}
+
+.funFactDock{
+  transition: transform var(--merge-duration) ease;
+}
+
+.page--foodhub .funFactDock.merge-off{
+  transform: translate3d(calc(-50% + var(--offscreen-x)), 0, 0);
+  pointer-events: none;
+}
+
+.dateRow{
+  display: grid;
+  grid-template-columns: auto 150px;
+  align-items: center;
+  column-gap: 10px;
+  perspective: 900px;
+  height: 32px;
+  overflow: hidden;
+}
+
+.pillMorphWrap{
+  display: inline-flex;
+  width: 150px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+  backface-visibility: hidden;
+}
+
+.date{
+  line-height: 1;
+}
+
+.pillMorph{
+  line-height: 1;
+}
+
+.pillMorph{
+  transform-origin: center;
+  backface-visibility: hidden;
+  transition: transform var(--merge-duration) ease;
+}
+
+.pillMorph:disabled{
+  opacity: 1;
+  cursor: default;
+}
+
+.pillMorph--work{
+  animation: none;
+}
+
+.pillMorph--mic{
+  animation: none;
+}
+
+.page--transitioning.page--to-foodhub .pillMorphWrap{
+  animation: flipToMic var(--merge-duration) ease;
+}
+
+.page--transitioning.page--to-dashboard .pillMorphWrap{
+  animation: flipToWork var(--merge-duration) ease;
+}
+
+@keyframes flipToMic{
+  0%{ transform: rotateX(0deg); }
+  50%{ transform: rotateX(90deg); }
+  100%{ transform: rotateX(0deg); }
+}
+
+@keyframes flipToWork{
+  0%{ transform: rotateX(0deg); }
+  50%{ transform: rotateX(-90deg); }
+  100%{ transform: rotateX(0deg); }
+}
 
 .cardHeader{
   display:flex;
@@ -190,13 +383,31 @@ h2{
   margin: 0;
   font-size: 24px;
   letter-spacing: -0.01em;
+  transition: font-size var(--merge-duration) ease, line-height var(--merge-duration) ease;
 }
 
 .body{ margin: 0; color: var(--muted); font-size: 18px; line-height: 1.45; }
-.big{ margin: 0; font-size: 28px; font-weight: 760; }
-.subtle{ margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+.big{
+  margin: 0;
+  font-size: 28px;
+  font-weight: 760;
+  transition: font-size var(--merge-duration) ease, line-height var(--merge-duration) ease;
+}
+.subtle{
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  transition: font-size var(--merge-duration) ease, line-height var(--merge-duration) ease;
+}
 
-.list{ margin: 0; padding-left: 18px; color: var(--muted); font-size: 16px; }
+
+.list{
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 16px;
+  transition: font-size var(--merge-duration) ease, line-height var(--merge-duration) ease;
+}
 .list li{ margin: 6px 0; }
 .list--flush{
   padding-left: 0;
@@ -218,11 +429,13 @@ h2{
   padding: 8px 12px;
   border-radius: 999px;
   background: rgba(255,255,255,0.04);
+  transition: font-size var(--merge-duration) ease, line-height var(--merge-duration) ease, padding var(--merge-duration) ease;
 }
 .eventMeta{
   font-size: 12px;
   white-space: nowrap;
   align-self: center;
+  transition: font-size var(--merge-duration) ease, line-height var(--merge-duration) ease;
 }
 .eventRow--done{
   opacity: 0.55;
@@ -254,6 +467,756 @@ h2{
   text-transform: uppercase;
   letter-spacing: 0.22em;
   opacity: 0.8;
+}
+.foodHubTitle{
+  margin: -8px 0 14px;
+  text-align: center;
+  font-size: 14px;
+  letter-spacing: 0.26em;
+}
+.topCenter{
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.foodHubTitle--center{
+  margin: 0;
+  text-align: center;
+}
+
+.page--transitioning.page--to-foodhub .foodHubTitle{
+  animation: foodHubIn 700ms ease forwards;
+}
+
+.page--transitioning.page--to-dashboard .foodHubTitle{
+  animation: foodHubOut 700ms ease forwards;
+}
+
+.foodHubTitle--in{
+  animation: titleRollIn 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.foodHubTitle--out{
+  animation: foodHubOut 620ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes foodHubIn{
+  from{
+    transform: translateY(-120vh) rotateX(90deg);
+  }
+  to{
+    transform: translateY(0) rotateX(0deg);
+  }
+}
+
+@keyframes titleRollIn{
+  0%{
+    transform: translateY(-120vh) rotateX(90deg);
+  }
+  82%{
+    transform: translateY(6px) rotateX(4deg);
+  }
+  100%{
+    transform: translateY(0) rotateX(0deg);
+  }
+}
+
+@keyframes foodHubOut{
+  from{
+    transform: translateY(0) rotateX(0deg);
+  }
+  to{
+    transform: translateY(-120vh) rotateX(90deg);
+  }
+}
+
+.foodHubStack{
+  grid-column: 1 / span 2;
+  grid-row: 1 / span 2;
+  align-self: start;
+  justify-self: start;
+  display: grid;
+  gap: 16px;
+}
+
+.foodHubPanel{
+  padding: 18px;
+  border-radius: 26px;
+  background: rgba(255,255,255,0.04);
+  border: none;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 26px 70px rgba(0,0,0,0.38);
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 14px;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: auto;
+  width: calc(100% + (var(--col-gap) - var(--dish-tile-gap)) + 180px);
+  --dish-tile-width: clamp(
+    56px,
+    calc((100% - (var(--dish-tile-gap) * 5)) / 6),
+    170px
+  );
+  --dish-tile-gap: clamp(8px, 2vw, 18px);
+  --dish-index: 0;
+}
+
+.foodHubExtras{
+  width: calc(100% + (var(--col-gap) - var(--dish-tile-gap)) + 180px);
+  display: grid;
+  gap: 12px;
+  --dish-tile-gap: clamp(8px, 1.6vw, 16px);
+}
+
+.foodHubExtrasGrid{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--dish-tile-gap);
+}
+
+.foodHubExtraTile{
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 20px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.foodHubExtraTile .foodHubTileImage{
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  max-height: clamp(78px, 8.6vw, 140px);
+}
+
+.foodHubCategoryText{
+  font-size: 20px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 0 6px;
+  line-height: 1.2;
+}
+
+
+.foodHubPanelHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+}
+
+.foodHubPanelTitle{
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+
+.foodHubCarousel{
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  padding-top: 6px;
+  will-change: transform;
+}
+
+.foodHubTrack{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: var(--dish-tile-gap);
+  transform: translateX(
+    calc(var(--dish-index) * -1 * (var(--dish-tile-width) + var(--dish-tile-gap)))
+  );
+  transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.foodHubTrack--snap{
+  transition: none;
+}
+
+.foodHubTile{
+  flex: 0 0 var(--dish-tile-width);
+  display: grid;
+  gap: 2px;
+  text-align: center;
+  transform-style: preserve-3d;
+}
+
+.foodHubTileImage{
+  height: clamp(44px, 8.5vw, 104px);
+  border-radius: 18px;
+  background: none;
+  border: none;
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.foodHubTileImg{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  position: relative;
+  z-index: 0;
+}
+
+
+.foodHubTileName{
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.foodHubExtraTile:focus-visible{
+  outline: 2px solid rgba(255,255,255,0.4);
+  outline-offset: 2px;
+}
+
+.winsPage{
+  grid-column: 1 / span 3;
+  grid-row: 1 / span 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.8fr);
+  gap: 18px;
+  align-items: start;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.winsHero{
+  padding: 22px;
+  display: grid;
+  gap: 14px;
+  background:
+    radial-gradient(360px 260px at 18% 0%, rgba(255,170,80,0.18), transparent 60%),
+    radial-gradient(420px 280px at 82% 12%, rgba(120,220,255,0.16), transparent 62%),
+    rgba(255,255,255,0.03);
+}
+
+.winsHeroTop{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.winsEyebrow{
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+}
+
+.winsBack{
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.winsTitle{
+  margin: 0;
+  font-size: clamp(26px, 3vw, 36px);
+  letter-spacing: -0.02em;
+}
+
+.winsSubtitle{
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.winsSteps{
+  display: grid;
+  gap: 10px;
+}
+
+.winsStep{
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.24);
+  display: grid;
+  gap: 4px;
+}
+
+.winsStepTitle{
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.winsStepDesc{
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.winsGrid{
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.winsCard{
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  --extra-x: 0;
+  --extra-y: 0;
+}
+
+.winsCardTop{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.winsTime{
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+}
+
+.winsCardTitle{
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.winsCardNote{
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.winsTags{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.winsCard[data-win-id="2"] .winsTags{
+  margin-top: 24px;
+}
+
+.page--transitioning.page--to-foodhub .winsHero{
+  animation: foodHubPanelIn var(--merge-duration) ease both;
+}
+
+.page--transitioning.page--to-dashboard .winsHero{
+  animation: foodHubPanelOut var(--merge-duration) ease both;
+}
+
+.page--wins-transitioning .winsHero{
+  animation: foodHubPanelIn 720ms ease both;
+}
+
+.page--wins-exiting .winsHero{
+  animation: foodHubPanelOut 720ms ease both;
+}
+
+.page--transitioning.page--to-foodhub .winsCard{
+  animation: foodHubExtraIn 520ms ease both;
+  animation-delay: calc(80ms + (var(--wins-index) * 70ms));
+}
+
+.page--transitioning.page--to-dashboard .winsCard{
+  animation: foodHubExtraOut 520ms ease both;
+  animation-delay: calc(40ms + (var(--wins-index) * 40ms));
+}
+
+.page--wins-transitioning .winsCard{
+  animation: foodHubExtraIn 520ms ease both;
+  animation-delay: calc(80ms + (var(--wins-index) * 70ms));
+}
+
+.page--wins-exiting .winsCard{
+  animation: foodHubExtraOut 520ms ease both;
+  animation-delay: calc(40ms + (var(--wins-index) * 40ms));
+}
+
+.page--transitioning.page--to-foodhub .winsCard:nth-child(n + 5),
+.page--wins-transitioning .winsCard:nth-child(n + 5){
+  animation-duration: 900ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page--transitioning.page--to-foodhub .winsCard[data-win-id="5"],
+.page--transitioning.page--to-foodhub .winsCard[data-win-id="6"],
+.page--transitioning.page--to-foodhub .winsCard[data-win-id="8"],
+.page--wins-transitioning .winsCard[data-win-id="5"],
+.page--wins-transitioning .winsCard[data-win-id="6"],
+.page--wins-transitioning .winsCard[data-win-id="8"]{
+  animation-name: winsExtraInSlow;
+  animation-duration: 1400ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page--hub-transitioning .foodHubPanel{
+  animation: foodHubPanelIn var(--merge-duration) ease both;
+}
+
+.page--hub-transitioning .foodHubExtraTile{
+  animation: foodHubExtraIn 520ms ease both;
+  animation-delay: calc(60ms + (var(--extra-index) * 70ms));
+}
+
+.page--hub-transitioning .foodHubTile{
+  animation: foodHubTileFlip 520ms ease both;
+  animation-delay: calc(60ms + (var(--tile-index) * 70ms));
+}
+
+.page--hub-transitioning .card--hub-intro{
+  animation: hubCardIn 700ms ease both;
+  transform: translateX(var(--card-merge-x));
+}
+
+.page--hub-transitioning .card--hub-intro--delay{
+  animation-delay: 120ms;
+}
+
+@keyframes hubCardIn{
+  from{
+    transform: translateX(calc(var(--card-merge-x) + 16vw));
+    opacity: 0;
+  }
+  to{
+    transform: translateX(var(--card-merge-x));
+    opacity: 1;
+  }
+}
+
+.page--hub-exiting .foodHubTitle{
+  animation: foodHubOut 700ms ease forwards;
+}
+
+.page--hub-exiting .foodHubPanel{
+  animation: foodHubPanelOut var(--merge-duration) ease both;
+}
+
+.page--hub-exiting .foodHubExtraTile{
+  animation: foodHubExtraOut 520ms ease both;
+  animation-delay: calc(40ms + (var(--extra-index) * 40ms));
+}
+
+.page--dashboard-intro .card--left,
+.page--dashboard-intro .card--right,
+.page--dashboard-intro .orbSlot,
+.page--dashboard-intro .funFactDock{
+  animation: dashboardIn 1200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.page--dashboard-intro .card--right,
+.page--dashboard-intro .funFactDock{
+  animation-delay: 120ms;
+}
+
+.page--dashboard-intro .orbSlot{
+  animation-delay: 80ms;
+}
+
+@keyframes dashboardIn{
+  from{
+    transform: translateX(16vw);
+    opacity: 0;
+  }
+  to{
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes winsExtraInSlow{
+  from{
+    transform: translate3d(var(--extra-x), var(--extra-y), 0);
+    opacity: 0;
+  }
+  to{
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+.winsCard:nth-child(1){ --wins-index: 0; --extra-x: calc(var(--offscreen-x) * -1); --extra-y: 0; }
+.winsCard:nth-child(2){ --wins-index: 1; --extra-x: 0; --extra-y: calc(var(--offscreen-y) * -1); }
+.winsCard:nth-child(3){ --wins-index: 2; --extra-x: var(--offscreen-x); --extra-y: 0; }
+.winsCard:nth-child(4){ --wins-index: 3; --extra-x: 0; --extra-y: var(--offscreen-y); }
+.winsCard:nth-child(5){ --wins-index: 4; --extra-x: calc(var(--offscreen-x) * -1); --extra-y: 0; }
+.winsCard:nth-child(6){ --wins-index: 5; --extra-x: 0; --extra-y: calc(var(--offscreen-y) * -1); }
+.winsCard:nth-child(7){ --wins-index: 6; --extra-x: var(--offscreen-x); --extra-y: 0; }
+.winsCard:nth-child(8){ --wins-index: 7; --extra-x: 0; --extra-y: var(--offscreen-y); }
+
+.winsTag{
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  padding: 0 8px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.72);
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.winsTag[data-tag="greens"]{
+  background: rgba(150,255,190,0.18);
+  color: rgba(220,255,235,0.95);
+}
+
+.winsTag[data-tag="spicy"]{
+  background: rgba(255,120,120,0.2);
+  color: rgba(255,210,210,0.95);
+}
+
+.winsTag[data-tag="wrap"]{
+  background: rgba(255,210,120,0.18);
+  color: rgba(255,235,205,0.95);
+}
+
+.winsTag[data-tag="protein"]{
+  background: rgba(170,200,255,0.18);
+  color: rgba(220,235,255,0.95);
+}
+
+.winsTag[data-tag="zesty"]{
+  background: rgba(255,230,120,0.2);
+  color: rgba(255,245,210,0.95);
+}
+
+.winsTag[data-tag="saucy"]{
+  background: rgba(200,150,255,0.18);
+  color: rgba(235,220,255,0.95);
+}
+
+.winsTag[data-tag="bowl"]{
+  background: rgba(120,210,255,0.18);
+  color: rgba(210,245,255,0.95);
+}
+
+.winsTag[data-tag="pantry"]{
+  background: rgba(150,210,180,0.2);
+  color: rgba(220,255,235,0.95);
+}
+
+.winsTag[data-tag="seafood"]{
+  background: rgba(120,190,255,0.2);
+  color: rgba(210,235,255,0.95);
+}
+
+.winsTag[data-tag="bright"]{
+  background: rgba(255,240,160,0.22);
+  color: rgba(255,250,220,0.95);
+}
+
+.winsTag[data-tag="no-cook"]{
+  background: rgba(190,255,230,0.18);
+  color: rgba(220,255,245,0.95);
+}
+
+.winsTag[data-tag="fresh"]{
+  background: rgba(140,255,200,0.18);
+  color: rgba(220,255,235,0.95);
+}
+
+.winsTag[data-tag="one-pot"]{
+  background: rgba(255,200,140,0.18);
+  color: rgba(255,235,210,0.95);
+}
+
+.winsTag[data-tag="warm"]{
+  background: rgba(255,170,140,0.2);
+  color: rgba(255,225,210,0.95);
+}
+
+.winsTag[data-tag="slurp"]{
+  background: rgba(170,200,255,0.2);
+  color: rgba(220,235,255,0.95);
+}
+
+.winsTag[data-tag="sweet-salty"]{
+  background: rgba(255,160,200,0.2);
+  color: rgba(255,220,235,0.95);
+}
+
+.winsTag[data-tag="fast"]{
+  background: rgba(255,230,140,0.18);
+  color: rgba(255,245,210,0.95);
+}
+
+.winsTag[data-tag="High-fibre"]{
+  background: rgba(170,200,255,0.2);
+  color: rgba(220,235,255,0.95);
+}
+
+.winsTag[data-tag="Low calorie"]{
+  background: rgba(255,210,140,0.2);
+  color: rgba(255,235,210,0.95);
+}
+
+.winsTag[data-tag="Vegetarian"]{
+  background: rgba(140,255,200,0.18);
+  color: rgba(220,255,235,0.95);
+}
+
+
+.page--transitioning.page--to-foodhub .foodHubPanel{
+  animation: foodHubPanelIn var(--merge-duration) ease both;
+}
+
+.page--transitioning.page--to-dashboard .foodHubPanel{
+  animation: foodHubPanelOut var(--merge-duration) ease both;
+}
+
+.page--transitioning.page--to-foodhub .foodHubExtraTile{
+  animation: foodHubExtraIn 520ms ease both;
+  animation-delay: calc(60ms + (var(--extra-index) * 70ms));
+}
+
+.page--transitioning.page--to-dashboard .foodHubExtraTile{
+  animation: foodHubExtraOut 520ms ease both;
+  animation-delay: calc(40ms + (var(--extra-index) * 40ms));
+}
+
+.page--transitioning.page--to-foodhub .foodHubTile{
+  animation: foodHubTileFlip 520ms ease both;
+  animation-delay: calc(60ms + (var(--tile-index) * 70ms));
+}
+
+.foodHubTile:nth-child(1){ --tile-index: 0; }
+.foodHubTile:nth-child(2){ --tile-index: 1; }
+.foodHubTile:nth-child(3){ --tile-index: 2; }
+.foodHubTile:nth-child(4){ --tile-index: 3; }
+.foodHubTile:nth-child(5){ --tile-index: 4; }
+.foodHubTile:nth-child(6){ --tile-index: 5; }
+.foodHubTile:nth-child(7){ --tile-index: 6; }
+.foodHubTile:nth-child(8){ --tile-index: 7; }
+.foodHubTile:nth-child(9){ --tile-index: 8; }
+.foodHubTile:nth-child(10){ --tile-index: 9; }
+.foodHubTile:nth-child(11){ --tile-index: 10; }
+.foodHubTile:nth-child(12){ --tile-index: 11; }
+
+.foodHubExtraTile:nth-child(1){ --extra-index: 0; --extra-x: calc(var(--offscreen-x) * -1); --extra-y: 0; }
+.foodHubExtraTile:nth-child(2){ --extra-index: 1; --extra-x: 0; --extra-y: calc(var(--offscreen-y) * -1); }
+.foodHubExtraTile:nth-child(3){ --extra-index: 2; --extra-x: var(--offscreen-x); --extra-y: 0; }
+.foodHubExtraTile:nth-child(4){ --extra-index: 3; --extra-x: 0; --extra-y: var(--offscreen-y); }
+.foodHubExtraTile:nth-child(5){ --extra-index: 4; --extra-x: 0; --extra-y: calc(var(--offscreen-y) * -1); }
+.foodHubExtraTile:nth-child(6){ --extra-index: 5; --extra-x: calc(var(--offscreen-x) * -1); --extra-y: 0; }
+.foodHubExtraTile:nth-child(7){ --extra-index: 6; --extra-x: 0; --extra-y: var(--offscreen-y); }
+.foodHubExtraTile:nth-child(8){ --extra-index: 7; --extra-x: var(--offscreen-x); --extra-y: 0; }
+
+@keyframes foodHubPanelIn{
+  from{
+    transform: translateX(-120%);
+  }
+  to{
+    transform: translateX(0);
+  }
+}
+
+@keyframes foodHubPanelOut{
+  from{
+    transform: translateX(0);
+  }
+  to{
+    transform: translateX(-120%);
+  }
+}
+
+@keyframes foodHubExtraIn{
+  from{
+    transform: translate3d(var(--extra-x), var(--extra-y), 0);
+  }
+  to{
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes foodHubExtraOut{
+  from{
+    transform: translate3d(0, 0, 0);
+  }
+  to{
+    transform: translate3d(var(--extra-x), var(--extra-y), 0);
+  }
+}
+
+@keyframes foodHubTileFlip{
+  from{
+    opacity: 0;
+    transform: rotateX(-90deg);
+  }
+  to{
+    opacity: 1;
+    transform: rotateX(0deg);
+  }
+}
+
+@keyframes orbExit{
+  0%{
+    transform: scale(1);
+    opacity: 1;
+  }
+  60%{
+    transform: scale(0.08);
+    opacity: 1;
+  }
+  100%{
+    transform: scale(0.02);
+    opacity: 0;
+  }
+}
+
+@keyframes orbEnter{
+  0%{
+    transform: scale(0.02);
+    opacity: 0;
+  }
+  40%{
+    transform: scale(0.08);
+    opacity: 1;
+  }
+  100%{
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 .funFactBody{
   font-size: 15px;
@@ -342,6 +1305,12 @@ h2{
   padding: 18px 18px;
   font-size: 20px;
   font-weight: 780;
+}
+.micPill--compact{
+  width: auto;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
 }
 .micPill--recording{
   background: radial-gradient(circle at 20% 20%, rgba(255,140,140,0.35), rgba(255,80,80,0.18));
@@ -441,6 +1410,19 @@ h2{
     justify-self: stretch;
   }
 
+  .page--foodhub .card--merge{
+    transform: none;
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
+  .page--foodhub .card--exit-up,
+  .page--foodhub .card--exit-down,
+  .page--foodhub .orbSlot.merge-off,
+  .page--foodhub .funFactDock.merge-off{
+    transform: none;
+  }
+
   .orbWrap{
     width: min(360px, 100%);
   }
@@ -448,10 +1430,57 @@ h2{
   /* In 1-col mode, let orb hover still work */
   .orbSlot{ pointer-events: none; }
   .orbWrap{ pointer-events: auto; }
+
+  .foodHubStack{
+    grid-column: auto;
+    grid-row: auto;
+    width: 100%;
+  }
+
+  .foodHubPanel{
+    padding: 16px;
+    width: 100%;
+  }
+
+  .foodHubExtras{
+    width: 100%;
+  }
+
+  .foodHubPanelTitle{
+    font-size: 12px;
+    letter-spacing: 0.2em;
+  }
+
+  .foodHubArrow{
+    width: 30px;
+    height: 30px;
+  }
+
+  .foodHubTileImage{
+    border-radius: 14px;
+  }
+
+  .winsPage{
+    grid-column: auto;
+    grid-row: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .winsGrid{
+    grid-template-columns: 1fr;
+  }
 }
 
 .reminders { display: grid; gap: 10px; margin-bottom: 12px; }
-.reminderRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; border-radius: 14px; }
+.reminderRow{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 14px;
+  transition: font-size var(--merge-duration) ease, line-height var(--merge-duration) ease, padding var(--merge-duration) ease;
+}
 .reminderRow--due { outline: 2px solid rgba(255,255,255,0.35); }
 .reminderRow--inactive { opacity: 0.55; }
 .reminderText { display: grid; gap: 4px; }
@@ -464,6 +1493,7 @@ h2{
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  transition: font-size var(--merge-duration) ease, line-height var(--merge-duration) ease, padding var(--merge-duration) ease;
 }
 .reminderStatus--done {
   background: rgba(120,255,180,0.16);
