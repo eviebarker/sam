@@ -933,6 +933,33 @@ h2{
   animation-delay: calc(40ms + (var(--extra-index) * 40ms));
 }
 
+.page--dashboard-intro .card--left,
+.page--dashboard-intro .card--right,
+.page--dashboard-intro .orbSlot,
+.page--dashboard-intro .funFactDock{
+  animation: dashboardIn 1200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.page--dashboard-intro .card--right,
+.page--dashboard-intro .funFactDock{
+  animation-delay: 120ms;
+}
+
+.page--dashboard-intro .orbSlot{
+  animation-delay: 80ms;
+}
+
+@keyframes dashboardIn{
+  from{
+    transform: translateX(16vw);
+    opacity: 0;
+  }
+  to{
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 @keyframes winsExtraInSlow{
   from{
     transform: translate3d(var(--extra-x), var(--extra-y), 0);
