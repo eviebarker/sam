@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   getDashboard,
   getWorkday,
@@ -66,6 +66,13 @@ type RemindersResp = {
   reminders: Reminder[];
 };
 
+const FOOD_HUB_DISHES = Array.from({ length: 12 }, (_, index) => ({
+  id: index + 1,
+  name: `Dish ${String(index + 1).padStart(2, "0")}`,
+}));
+
+const FOOD_HUB_VISIBLE = 6;
+
 function ymdLocal(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -82,6 +89,7 @@ export default function App() {
   const [transitionDir, setTransitionDir] = useState<
     "to-foodhub" | "to-dashboard" | null
   >(null);
+  const [dishIndex, setDishIndex] = useState(0);
   const [pillMode, setPillMode] = useState<"work" | "mic">("work");
   const [isWork, setIsWork] = useState<boolean | null>(null);
   const [workStart, setWorkStart] = useState<string | null>(null);
@@ -1013,6 +1021,19 @@ export default function App() {
     }
   }
 
+  const maxDishIndex = Math.max(0, FOOD_HUB_DISHES.length - FOOD_HUB_VISIBLE);
+  const canDishPrev = dishIndex > 0;
+  const canDishNext = dishIndex < maxDishIndex;
+
+  function shiftDish(delta: number) {
+    setDishIndex((prev) => {
+      const next = prev + delta;
+      if (next < 0) return 0;
+      if (next > maxDishIndex) return maxDishIndex;
+      return next;
+    });
+  }
+
   const isFoodHub = activePage === "food-hub";
 
   function switchPage(next: "dashboard" | "food-hub") {
@@ -1451,6 +1472,49 @@ export default function App() {
 
         {renderAlertsCard("slot-l2", "card--left", "card--merge")}
         {renderPushToTalkCard("slot-r2", "card--right card--exit-down")}
+
+        {isFoodHub || isTransitioning ? (
+          <section className="foodHubPanel" aria-label="Food hub classics">
+            <div className="foodHubPanelHeader">
+              <div className="foodHubPanelTitle">classics</div>
+              <div className="foodHubPanelActions">
+                <button
+                  type="button"
+                  className="glass-pill glass-pill--small foodHubArrow"
+                  onClick={() => shiftDish(-1)}
+                  disabled={!canDishPrev}
+                  aria-label="Scroll left"
+                >
+                  <span aria-hidden="true">&larr;</span>
+                </button>
+                <button
+                  type="button"
+                  className="glass-pill glass-pill--small foodHubArrow"
+                  onClick={() => shiftDish(1)}
+                  disabled={!canDishNext}
+                  aria-label="Scroll right"
+                >
+                  <span aria-hidden="true">&rarr;</span>
+                </button>
+              </div>
+            </div>
+            <div className="foodHubCarousel">
+              <ul
+                className="foodHubTrack"
+                style={{ "--dish-index": dishIndex } as CSSProperties}
+              >
+                {FOOD_HUB_DISHES.map((dish) => (
+                  <li key={dish.id} className="foodHubTile">
+                    <div className="foodHubTileImage" aria-hidden="true">
+                      <span>Image</span>
+                    </div>
+                    <div className="foodHubTileName">{dish.name}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        ) : null}
       </main>
 
     </div>
