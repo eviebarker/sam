@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .venv/
+.venv-docs/
 .env
 .env.*
 
@@ -17,3 +18,10 @@ dist/
 # TTS-Module
 *.wav
 *.ogg
+
+# Docs
+docs/_build/
+docs/_autoapi/
+docs/reference/
+!docs/reference/
+!docs/reference/index.md

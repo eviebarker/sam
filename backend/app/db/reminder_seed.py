@@ -1,3 +1,5 @@
+"""Default reminder schedules for work/off days."""
+
 from backend.app.db.conn import get_conn
 
 DEFAULT_SCHEDULES = [
@@ -14,6 +16,7 @@ DEFAULT_SCHEDULES = [
 ]
 
 def seed_defaults_if_empty() -> None:
+    """Insert default reminder schedules if the table is empty."""
     with get_conn() as conn:
         n = conn.execute("SELECT COUNT(*) AS n FROM reminder_schedule;").fetchone()["n"]
         if n > 0:

@@ -1,3 +1,5 @@
+"""Workday overrides: set/check work/off status and hours per date."""
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 from backend.app.db.workday_queries import set_work_day, is_work_day, get_work_day
@@ -12,6 +14,7 @@ class WorkDayBody(BaseModel):
 
 @router.post("/api/workdays")
 def set_day(body: WorkDayBody):
+    """Set a specific date as work/off with optional start/end hours."""
     set_work_day(body.date, body.is_work, body.start_hhmm, body.end_hhmm)
     return {
         "ok": True,
@@ -23,5 +26,6 @@ def set_day(body: WorkDayBody):
 
 @router.get("/api/workdays/{date}")
 def get_day(date: str):
+    """Return work/off flag and hours for a given date."""
     work = get_work_day(date)
     return {"date": date, **work}
