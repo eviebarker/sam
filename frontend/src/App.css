@@ -269,6 +269,12 @@ h2{
   letter-spacing: 0.22em;
   opacity: 0.8;
 }
+.foodHubTitle{
+  margin: -8px 0 14px;
+  text-align: center;
+  font-size: 14px;
+  letter-spacing: 0.26em;
+}
 .funFactBody{
   font-size: 15px;
   line-height: 1.4;
