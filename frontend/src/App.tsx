@@ -463,8 +463,9 @@ export default function App() {
     }
   }
 
-  async function handleAiSubmit(overridePrompt?: string) {
-    const prompt = (overridePrompt ?? aiInput).trim();
+  async function handleAiSubmit(overridePrompt?: string | React.SyntheticEvent) {
+    const prompt =
+      (typeof overridePrompt === "string" ? overridePrompt : aiInput).trim();
     if (!prompt) return;
     try {
       setErr(null);
@@ -1340,7 +1341,6 @@ export default function App() {
                       </span>
                     ) : null}
                   </div>
-                  <div className="subtle">{r.speak_text}</div>
                 </div>
 
                 {showDone ? (
@@ -1566,7 +1566,7 @@ export default function App() {
         {renderPushToTalkCard("slot-r2", "card--right card--exit-down")}
 
         {isFoodHub || isTransitioning ? (
-          <>
+          <div className="foodHubStack">
             <section className="foodHubPanel" aria-label="Food hub classics">
               <div className="foodHubPanelHeader">
                 <div className="foodHubPanelTitle">classics</div>
@@ -1613,7 +1613,7 @@ export default function App() {
                 ))}
               </div>
             </section>
-          </>
+          </div>
         ) : null}
       </main>
 
