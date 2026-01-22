@@ -10,6 +10,9 @@ export type OrbProps = {
   backgroundColor?: string;
   pulse?: number;
   pulseSpeed?: number;
+  autoHover?: boolean;
+  autoHoverIntensity?: number;
+  autoHoverSpeed?: number;
 };
 
 export default function Orb({
@@ -20,8 +23,32 @@ export default function Orb({
   backgroundColor = "#000000",
   pulse = 0,
   pulseSpeed = 5.5,
+  autoHover = false,
+  autoHoverIntensity = 0.8,
+  autoHoverSpeed = 2.4,
 }: OrbProps) {
   const ctnDom = useRef<HTMLDivElement | null>(null);
+  const hueRef = useRef(hue);
+  const hoverIntensityRef = useRef(hoverIntensity);
+  const rotateOnHoverRef = useRef(rotateOnHover);
+  const forceHoverStateRef = useRef(forceHoverState);
+  const backgroundColorRef = useRef(backgroundColor);
+  const pulseRef = useRef(pulse);
+  const pulseSpeedRef = useRef(pulseSpeed);
+  const autoHoverRef = useRef(autoHover);
+  const autoHoverIntensityRef = useRef(autoHoverIntensity);
+  const autoHoverSpeedRef = useRef(autoHoverSpeed);
+
+  hueRef.current = hue;
+  hoverIntensityRef.current = hoverIntensity;
+  rotateOnHoverRef.current = rotateOnHover;
+  forceHoverStateRef.current = forceHoverState;
+  backgroundColorRef.current = backgroundColor;
+  pulseRef.current = pulse;
+  pulseSpeedRef.current = pulseSpeed;
+  autoHoverRef.current = autoHover;
+  autoHoverIntensityRef.current = autoHoverIntensity;
+  autoHoverSpeedRef.current = autoHoverSpeed;
 
   const vert = /* glsl */ `
     precision highp float;
@@ -170,7 +197,7 @@ export default function Orb({
       lightCol = clamp(lightCol, 0.0, 1.0);
       
       vec3 finalCol = mix(darkCol, lightCol, bgLuminance);
-      float pulseWave = 1.0 + pulse * (0.12 + 0.08 * sin(iTime * pulseSpeed));
+      float pulseWave = 1.0 + pulse * (0.22 + 0.18 * sin(iTime * pulseSpeed));
       finalCol = clamp(finalCol * pulseWave, 0.0, 1.0);
       
       return extractAlpha(finalCol);
@@ -186,6 +213,9 @@ export default function Orb({
       float c = cos(angle);
       uv = vec2(c * uv.x - s * uv.y, s * uv.x + c * uv.y);
       
+      float pulseZoom = 1.0 - pulse * (0.03 + 0.04 * sin(iTime * pulseSpeed));
+      uv *= pulseZoom;
+
       uv.x += hover * hoverIntensity * 0.1 * sin(uv.y * 10.0 + iTime);
       uv.y += hover * hoverIntensity * 0.1 * sin(uv.x * 10.0 + iTime);
       
@@ -221,13 +251,13 @@ export default function Orb({
             gl.canvas.width / gl.canvas.height
           ),
         },
-        hue: { value: hue },
+        hue: { value: hueRef.current },
         hover: { value: 0 },
         rot: { value: 0 },
-        hoverIntensity: { value: hoverIntensity },
-        backgroundColor: { value: hexToVec3(backgroundColor) },
-        pulse: { value: pulse },
-        pulseSpeed: { value: pulseSpeed },
+        hoverIntensity: { value: hoverIntensityRef.current },
+        backgroundColor: { value: hexToVec3(backgroundColorRef.current) },
+        pulse: { value: pulseRef.current },
+        pulseSpeed: { value: pulseSpeedRef.current },
       },
     });
 
@@ -253,6 +283,7 @@ export default function Orb({
     let targetHover = 0;
     let lastTime = 0;
     let currentRot = 0;
+    let currentPulse = pulseRef.current;
     const rotationSpeed = 0.3;
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -285,17 +316,31 @@ export default function Orb({
       lastTime = t;
 
       program.uniforms.iTime.value = t * 0.001;
-      program.uniforms.hue.value = hue;
-      program.uniforms.hoverIntensity.value = hoverIntensity;
-      program.uniforms.backgroundColor.value = hexToVec3(backgroundColor);
-      program.uniforms.pulse.value = pulse;
-      program.uniforms.pulseSpeed.value = pulseSpeed;
+      program.uniforms.hue.value = hueRef.current;
+      program.uniforms.hoverIntensity.value = hoverIntensityRef.current;
+      program.uniforms.backgroundColor.value = hexToVec3(backgroundColorRef.current);
+      program.uniforms.pulseSpeed.value = pulseSpeedRef.current;
 
-      const effectiveHover = forceHoverState ? 1 : targetHover;
+      const pulseLerp = 1 - Math.exp(-dt * 8);
+      currentPulse += (pulseRef.current - currentPulse) * pulseLerp;
+      program.uniforms.pulse.value = currentPulse;
+
+      let effectiveHover = forceHoverStateRef.current ? 1 : targetHover;
+      if (autoHoverRef.current) {
+        const timeSec = t * 0.001;
+        const waveA = 0.5 + 0.5 * Math.sin(timeSec * autoHoverSpeedRef.current);
+        const waveB =
+          0.5 + 0.5 * Math.sin(timeSec * autoHoverSpeedRef.current * 0.62 + 1.7);
+        const wave = waveA * 0.7 + waveB * 0.3;
+        effectiveHover = Math.min(
+          1,
+          Math.max(0, wave * autoHoverIntensityRef.current)
+        );
+      }
       program.uniforms.hover.value +=
         (effectiveHover - program.uniforms.hover.value) * 0.1;
 
-      if (rotateOnHover && effectiveHover > 0.5) {
+      if (rotateOnHoverRef.current && effectiveHover > 0.5) {
         currentRot += dt * rotationSpeed;
       }
       program.uniforms.rot.value = currentRot;
@@ -313,17 +358,7 @@ export default function Orb({
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    hue,
-    hoverIntensity,
-    rotateOnHover,
-    forceHoverState,
-    backgroundColor,
-    pulse,
-    pulseSpeed,
-    vert,
-    frag,
-  ]);
+  }, []);
 
   return <div ref={ctnDom} className="orb-container" />;
 }

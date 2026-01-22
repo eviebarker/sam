@@ -91,6 +91,7 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const speakingCountRef = useRef(0);
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const [reclassifyOptions, setReclassifyOptions] = useState<
     { item_type: "task" | "reminder" | "event"; item_id: number; label: string; target: "task" | "reminder" | "event" }[]
   >([]);
@@ -293,20 +294,30 @@ export default function App() {
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       const cleanup = () => URL.revokeObjectURL(url);
-      speakingCountRef.current += 1;
-      setIsSpeaking(true);
+      audio.preload = "auto";
       const finish = () => {
         cleanup();
         speakingCountRef.current = Math.max(0, speakingCountRef.current - 1);
         if (speakingCountRef.current === 0) {
           setIsSpeaking(false);
         }
+        if (activeAudioRef.current === audio) {
+          activeAudioRef.current = null;
+        }
+      };
+      audio.onplaying = () => {
+        speakingCountRef.current += 1;
+        setIsSpeaking(true);
       };
       audio.onended = finish;
+      audio.onpause = finish;
       audio.onerror = finish;
+      activeAudioRef.current = audio;
       await audio.play();
     } catch (e: any) {
       setErr(e?.message ?? "failed");
+      speakingCountRef.current = 0;
+      setIsSpeaking(false);
     }
   }
 
@@ -861,13 +872,16 @@ export default function App() {
 
         {/* Middle column: Orb (no tile/background) */}
         <div className="orbSlot" aria-hidden="true">
-          <div className="orbWrap">
+          <div className={`orbWrap${isSpeaking ? " orbWrap--speaking" : ""}`}>
             <Orb
               hue={0}
-              hoverIntensity={0.35}
+              hoverIntensity={isSpeaking ? 1.8 : 0.35}
               rotateOnHover
               forceHoverState={false}
               pulse={isSpeaking ? 1 : 0}
+              autoHover={isSpeaking}
+              autoHoverIntensity={1.0}
+              autoHoverSpeed={3.6}
             />
           </div>
         </div>
