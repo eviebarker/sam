@@ -92,6 +92,74 @@ export default function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const speakingCountRef = useRef(0);
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const analyserDataRef = useRef<Uint8Array | null>(null);
+  const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const audioRafRef = useRef<number | null>(null);
+  const lastLevelUpdateRef = useRef(0);
+  const audioEnvRef = useRef(0);
+
+  const audioPulse = Math.min(1, Math.max(0, audioLevel * 2.4 * 1.8));
+
+  function stopAudioMeter() {
+    if (audioRafRef.current != null) {
+      cancelAnimationFrame(audioRafRef.current);
+      audioRafRef.current = null;
+    }
+    if (audioSourceRef.current) {
+      try {
+        audioSourceRef.current.disconnect();
+      } catch {
+        // Ignore disconnect errors for already-closed nodes.
+      }
+      audioSourceRef.current = null;
+    }
+    audioEnvRef.current = 0;
+    setAudioLevel(0);
+  }
+
+  function startAudioMeter(audio: HTMLAudioElement) {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext();
+      analyserRef.current = audioCtxRef.current.createAnalyser();
+      analyserRef.current.fftSize = 1024;
+      analyserDataRef.current = new Uint8Array(analyserRef.current.fftSize);
+    }
+    const ctx = audioCtxRef.current;
+    const analyser = analyserRef.current;
+    const data = analyserDataRef.current;
+    if (!ctx || !analyser || !data) return;
+
+    ctx.resume().catch(() => undefined);
+    stopAudioMeter();
+    audioSourceRef.current = ctx.createMediaElementSource(audio);
+    audioSourceRef.current.connect(analyser);
+    analyser.connect(ctx.destination);
+
+    const tick = (t: number) => {
+      audioRafRef.current = requestAnimationFrame(tick);
+      const lastUpdate = lastLevelUpdateRef.current;
+      if (t - lastUpdate < 70) return;
+      lastLevelUpdateRef.current = t;
+      analyser.getByteTimeDomainData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 1) {
+        const v = (data[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / data.length);
+      const level = Math.min(1, rms * 3.0);
+      const env = audioEnvRef.current;
+      const attack = 0.22;
+      const release = 0.06;
+      const nextEnv = level > env ? env + (level - env) * attack : env + (level - env) * release;
+      audioEnvRef.current = nextEnv;
+      setAudioLevel(nextEnv);
+    };
+    audioRafRef.current = requestAnimationFrame(tick);
+  }
   const [reclassifyOptions, setReclassifyOptions] = useState<
     { item_type: "task" | "reminder" | "event"; item_id: number; label: string; target: "task" | "reminder" | "event" }[]
   >([]);
@@ -301,6 +369,7 @@ export default function App() {
         if (speakingCountRef.current === 0) {
           setIsSpeaking(false);
         }
+        stopAudioMeter();
         if (activeAudioRef.current === audio) {
           activeAudioRef.current = null;
         }
@@ -308,6 +377,7 @@ export default function App() {
       audio.onplaying = () => {
         speakingCountRef.current += 1;
         setIsSpeaking(true);
+        startAudioMeter(audio);
       };
       audio.onended = finish;
       audio.onpause = finish;
@@ -318,6 +388,7 @@ export default function App() {
       setErr(e?.message ?? "failed");
       speakingCountRef.current = 0;
       setIsSpeaking(false);
+      stopAudioMeter();
     }
   }
 
@@ -875,13 +946,13 @@ export default function App() {
           <div className={`orbWrap${isSpeaking ? " orbWrap--speaking" : ""}`}>
             <Orb
               hue={0}
-              hoverIntensity={isSpeaking ? 1.8 : 0.35}
+              hoverIntensity={isSpeaking ? 1.6 + audioPulse * 0.8 : 0.35}
               rotateOnHover
               forceHoverState={false}
-              pulse={isSpeaking ? 1 : 0}
+              pulse={0}
               pulseSpeed={16.5}
               autoHover={isSpeaking}
-              autoHoverIntensity={1.0}
+              autoHoverIntensity={isSpeaking ? 0.7 + audioPulse * 0.8 : 1.0}
               autoHoverSpeed={6.0}
             />
           </div>
