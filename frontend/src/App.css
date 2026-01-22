@@ -150,6 +150,10 @@ body{
   transform: translateY(-52px);
 }
 
+.orbWrap--speaking{
+  filter: drop-shadow(0 0 22px rgba(80, 180, 255, 0.35));
+}
+
 .orbWrap .orb-container{
   pointer-events: auto;
 }
