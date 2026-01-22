@@ -83,7 +83,7 @@ const FOOD_HUB_DISHES = [
   { id: 2, name: "Homemade pizza", image: pizzaImg },
   { id: 3, name: "Chicken curry", image: chickenCurryImg },
   { id: 4, name: "Chicken & chorizo", image: chickenChorizoImg },
-  { id: 5, name: "Tomato sausage casserole", image: tomatoCasseroleImg },
+  { id: 5, name: "Sausage casserole", image: tomatoCasseroleImg },
   { id: 6, name: "Roast Dinner", image: roastImg },
   { id: 7, name: "Burgers", image: burgersImg },
   { id: 8, name: "Fajitas", image: fajitasImg },
@@ -94,6 +94,16 @@ const FOOD_HUB_DISHES = [
 ];
 
 const FOOD_HUB_VISIBLE = 6;
+const FOOD_HUB_EXTRAS = [
+  { id: 1, name: "10-15 Minute Wins" },
+  { id: 2, name: "30-Minute Staples" },
+  { id: 3, name: "Zero-Brain Dinners" },
+  { id: 4, name: "One-Pan, No Plan" },
+  { id: 5, name: "Project Meals" },
+  { id: 6, name: "Show-Off But Easy" },
+  { id: 7, name: "No Dishes Mode" },
+  { id: 8, name: "Freezer First" },
+];
 
 function ymdLocal(d: Date) {
   const y = d.getFullYear();
@@ -1556,54 +1566,54 @@ export default function App() {
         {renderPushToTalkCard("slot-r2", "card--right card--exit-down")}
 
         {isFoodHub || isTransitioning ? (
-          <section className="foodHubPanel" aria-label="Food hub classics">
-            <div className="foodHubPanelHeader">
-              <div className="foodHubPanelTitle">classics</div>
-              <div className="foodHubPanelActions">
-                <button
-                  type="button"
-                  className="glass-pill glass-pill--small foodHubArrow"
-                  onClick={() => handleManualShift(-1)}
-                  aria-label="Scroll left"
-                >
-                  <span aria-hidden="true">&larr;</span>
-                </button>
-                <button
-                  type="button"
-                  className="glass-pill glass-pill--small foodHubArrow"
-                  onClick={() => handleManualShift(1)}
-                  aria-label="Scroll right"
-                >
-                  <span aria-hidden="true">&rarr;</span>
-                </button>
+          <>
+            <section className="foodHubPanel" aria-label="Food hub classics">
+              <div className="foodHubPanelHeader">
+                <div className="foodHubPanelTitle">classics</div>
               </div>
-            </div>
-            <div className="foodHubCarousel">
-              <ul
-                className={`foodHubTrack${isTrackSnapping ? " foodHubTrack--snap" : ""}`}
-                style={{ "--dish-index": trackIndex } as CSSProperties}
-                onTransitionEnd={handleTrackTransitionEnd}
-              >
-                {trackDishes.map((dish, index) => (
-                  <li key={`${dish.id}-${index}`} className="foodHubTile">
-                    <div className="foodHubTileImage" aria-hidden={!dish.image}>
-                      {dish.image ? (
-                        <img
-                          className="foodHubTileImg"
-                          src={dish.image}
-                          alt={dish.name}
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span>Image</span>
-                      )}
+              <div className="foodHubCarousel">
+                <ul
+                  className={`foodHubTrack${isTrackSnapping ? " foodHubTrack--snap" : ""}`}
+                  style={{ "--dish-index": trackIndex } as CSSProperties}
+                  onTransitionEnd={handleTrackTransitionEnd}
+                >
+                  {trackDishes.map((dish, index) => (
+                    <li key={`${dish.id}-${index}`} className="foodHubTile">
+                      <div className="foodHubTileImage" aria-hidden={!dish.image}>
+                        {dish.image ? (
+                          <img
+                            className="foodHubTileImg"
+                            src={dish.image}
+                            alt={dish.name}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span>Image</span>
+                        )}
+                      </div>
+                      <div className="foodHubTileName">{dish.name}</div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+            <section className="foodHubExtras" aria-label="Food hub categories">
+              <div className="foodHubExtrasGrid" role="list">
+                {FOOD_HUB_EXTRAS.map((dish) => (
+                  <div
+                    key={dish.id}
+                    className="foodHubExtraTile glass-tile"
+                    role="listitem"
+                  >
+                    <div className="foodHubExtraTitle">{dish.name}</div>
+                    <div className="foodHubTileImage">
+                      <span>Image</span>
                     </div>
-                    <div className="foodHubTileName">{dish.name}</div>
-                  </li>
+                  </div>
                 ))}
-              </ul>
-            </div>
-          </section>
+              </div>
+            </section>
+          </>
         ) : null}
       </main>
 

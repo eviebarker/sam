@@ -27,8 +27,10 @@ body{
   --merge-duration: 1100ms;
   --orb-duration: 450ms;
   --offscreen-x: 120vw;
+  --offscreen-y: 120vh;
   --card-base: 0.92;
   --grid-width: calc(100vw - 56px);
+  --card-merge-x: 0px;
   overflow: hidden;
 }
 
@@ -144,6 +146,10 @@ body{
   --col-width: calc((var(--grid-width) - (2 * var(--col-gap))) / 3);
 }
 
+.page--foodhub .grid{
+  --card-merge-x: calc(((3 - 0.62) * var(--col-width)) + (2 * var(--col-gap)));
+}
+
 /* Explicit placement: left col (1), right col (3) */
 .slot-l1{ grid-column: 1; grid-row: 1; }
 .slot-r1{ grid-column: 3; grid-row: 1; }
@@ -208,9 +214,7 @@ body{
 
 .page--foodhub .card--merge{
   --merge-ratio: 0.62;
-  transform: translateX(
-    calc(((3 - var(--merge-ratio)) * var(--col-width)) + (2 * var(--col-gap)))
-  );
+  transform: translateX(var(--card-merge-x));
   max-width: 62%;
   justify-self: start;
 }
@@ -444,7 +448,7 @@ h2{
 
 .foodHubPanel{
   grid-column: 1 / span 2;
-  grid-row: 1 / span 2;
+  grid-row: 1;
   align-self: start;
   justify-self: start;
   padding: 18px;
@@ -470,6 +474,46 @@ h2{
   --dish-index: 0;
 }
 
+.foodHubExtras{
+  grid-column: 1 / span 2;
+  grid-row: 2;
+  align-self: start;
+  justify-self: start;
+  width: calc(100% + (var(--col-gap) - var(--dish-tile-gap)) + 180px);
+  display: grid;
+  gap: 12px;
+  --dish-tile-gap: clamp(8px, 1.6vw, 16px);
+}
+
+.foodHubExtrasGrid{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--dish-tile-gap);
+}
+
+.foodHubExtraTile{
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 20px;
+}
+
+.foodHubExtraTitle{
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.foodHubExtraTile .foodHubTileImage{
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  max-height: clamp(78px, 8.6vw, 140px);
+}
+
+
 .foodHubPanelHeader{
   display:flex;
   align-items:center;
@@ -485,25 +529,6 @@ h2{
   color: var(--muted);
 }
 
-.foodHubPanelActions{
-  display:flex;
-  gap: 8px;
-}
-
-.foodHubArrow{
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.foodHubArrow:disabled{
-  opacity: 0.35;
-  cursor: default;
-  transform: none;
-}
 
 .foodHubCarousel{
   width: 100%;
@@ -533,13 +558,13 @@ h2{
 .foodHubTile{
   flex: 0 0 var(--dish-tile-width);
   display: grid;
-  gap: 8px;
+  gap: 2px;
   text-align: center;
   transform-style: preserve-3d;
 }
 
 .foodHubTileImage{
-  height: clamp(48px, 10vw, 120px);
+  height: clamp(44px, 8.5vw, 104px);
   border-radius: 18px;
   background: linear-gradient(
     145deg,
@@ -580,8 +605,9 @@ h2{
 }
 
 .foodHubTileName{
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  line-height: 1.1;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text);
@@ -593,6 +619,16 @@ h2{
 
 .page--transitioning.page--to-dashboard .foodHubPanel{
   animation: foodHubPanelOut var(--merge-duration) ease both;
+}
+
+.page--transitioning.page--to-foodhub .foodHubExtraTile{
+  animation: foodHubExtraIn 520ms ease both;
+  animation-delay: calc(60ms + (var(--extra-index) * 70ms));
+}
+
+.page--transitioning.page--to-dashboard .foodHubExtraTile{
+  animation: foodHubExtraOut 520ms ease both;
+  animation-delay: calc(40ms + (var(--extra-index) * 40ms));
 }
 
 .page--transitioning.page--to-foodhub .foodHubTile{
@@ -613,6 +649,15 @@ h2{
 .foodHubTile:nth-child(11){ --tile-index: 10; }
 .foodHubTile:nth-child(12){ --tile-index: 11; }
 
+.foodHubExtraTile:nth-child(1){ --extra-index: 0; --extra-x: calc(var(--offscreen-x) * -1); --extra-y: 0; }
+.foodHubExtraTile:nth-child(2){ --extra-index: 1; --extra-x: 0; --extra-y: calc(var(--offscreen-y) * -1); }
+.foodHubExtraTile:nth-child(3){ --extra-index: 2; --extra-x: var(--offscreen-x); --extra-y: 0; }
+.foodHubExtraTile:nth-child(4){ --extra-index: 3; --extra-x: 0; --extra-y: var(--offscreen-y); }
+.foodHubExtraTile:nth-child(5){ --extra-index: 4; --extra-x: 0; --extra-y: calc(var(--offscreen-y) * -1); }
+.foodHubExtraTile:nth-child(6){ --extra-index: 5; --extra-x: calc(var(--offscreen-x) * -1); --extra-y: 0; }
+.foodHubExtraTile:nth-child(7){ --extra-index: 6; --extra-x: 0; --extra-y: var(--offscreen-y); }
+.foodHubExtraTile:nth-child(8){ --extra-index: 7; --extra-x: var(--offscreen-x); --extra-y: 0; }
+
 @keyframes foodHubPanelIn{
   from{
     transform: translateX(-120%);
@@ -628,6 +673,24 @@ h2{
   }
   to{
     transform: translateX(-120%);
+  }
+}
+
+@keyframes foodHubExtraIn{
+  from{
+    transform: translate3d(var(--extra-x), var(--extra-y), 0);
+  }
+  to{
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes foodHubExtraOut{
+  from{
+    transform: translate3d(0, 0, 0);
+  }
+  to{
+    transform: translate3d(var(--extra-x), var(--extra-y), 0);
   }
 }
 
@@ -886,6 +949,12 @@ h2{
 
   .foodHubPanel{
     padding: 16px;
+    grid-column: auto;
+    grid-row: auto;
+    width: 100%;
+  }
+
+  .foodHubExtras{
     grid-column: auto;
     grid-row: auto;
     width: 100%;
