@@ -7,5 +7,6 @@ Backend docs come first; frontend sections can be added alongside once needed.
 :caption: Contents
 
 backend/index
+frontend/index
 reference/index
 ```
