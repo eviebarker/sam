@@ -29,6 +29,7 @@ import roastImg from "./assets/roast.avif";
 import sausageMashImg from "./assets/sausage_mash_beans.jpg";
 import tomatoCasseroleImg from "./assets/tomato_and_sausage_casserole.jpg";
 import DarkVeil from "./components/DarkVeil";
+import GradientText from "./components/GradientText";
 import Orb from "./components/Orb";
 import FunFactCard from "./components/FunFactCard";
 import TextType from "./components/TextType";
@@ -95,14 +96,14 @@ const FOOD_HUB_DISHES = [
 
 const FOOD_HUB_VISIBLE = 6;
 const FOOD_HUB_EXTRAS = [
-  { id: 1, name: "10-15 Minute Wins" },
+  { id: 1, name: "10–15 Minute\nWins" },
   { id: 2, name: "30-Minute Staples" },
   { id: 3, name: "Zero-Brain Dinners" },
-  { id: 4, name: "One-Pan, No Plan" },
-  { id: 5, name: "Project Meals" },
-  { id: 6, name: "Show-Off But Easy" },
-  { id: 7, name: "No Dishes Mode" },
-  { id: 8, name: "Freezer First" },
+  { id: 4, name: "One-Pan, No\nPlan" },
+  { id: 5, name: "Project\nMeals" },
+  { id: 6, name: "Show-Off\nBut Easy" },
+  { id: 7, name: "No Dishes\nMode" },
+  { id: 8, name: "Freezer\nFirst" },
 ];
 
 function ymdLocal(d: Date) {
@@ -1605,9 +1606,15 @@ export default function App() {
                     className="foodHubExtraTile glass-tile"
                     role="listitem"
                   >
-                    <div className="foodHubExtraTitle">{dish.name}</div>
                     <div className="foodHubTileImage">
-                      <span>Image</span>
+                      <GradientText
+                        colors={["#9463e9", "#ffffff"]}
+                        animationSpeed={8}
+                        showBorder={false}
+                        className="foodHubCategoryText"
+                      >
+                        {dish.name}
+                      </GradientText>
                     </div>
                   </div>
                 ))}
