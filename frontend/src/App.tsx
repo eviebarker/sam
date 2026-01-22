@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   getDashboard,
   getWorkday,
@@ -89,7 +89,8 @@ export default function App() {
   const [transitionDir, setTransitionDir] = useState<
     "to-foodhub" | "to-dashboard" | null
   >(null);
-  const [dishIndex, setDishIndex] = useState(0);
+  const [trackIndex, setTrackIndex] = useState(FOOD_HUB_VISIBLE);
+  const [isTrackSnapping, setIsTrackSnapping] = useState(false);
   const [pillMode, setPillMode] = useState<"work" | "mic">("work");
   const [isWork, setIsWork] = useState<boolean | null>(null);
   const [workStart, setWorkStart] = useState<string | null>(null);
@@ -1021,20 +1022,79 @@ export default function App() {
     }
   }
 
-  const maxDishIndex = Math.max(0, FOOD_HUB_DISHES.length - FOOD_HUB_VISIBLE);
-  const canDishPrev = dishIndex > 0;
-  const canDishNext = dishIndex < maxDishIndex;
+  const maxDishIndex = Math.max(
+    0,
+    (Math.ceil(FOOD_HUB_DISHES.length / FOOD_HUB_VISIBLE) - 1) * FOOD_HUB_VISIBLE
+  );
+  const trackOffset = FOOD_HUB_VISIBLE;
+  const trackStart = trackOffset - FOOD_HUB_VISIBLE;
+  const trackMax = trackOffset + maxDishIndex;
+  const trackEnd = trackMax + FOOD_HUB_VISIBLE;
+  const trackDishes = [
+    ...FOOD_HUB_DISHES.slice(-FOOD_HUB_VISIBLE),
+    ...FOOD_HUB_DISHES,
+    ...FOOD_HUB_DISHES.slice(0, FOOD_HUB_VISIBLE),
+  ];
+  const pendingSnapRef = useRef<number | null>(null);
+  const autoCycleRef = useRef<number | null>(null);
 
-  function shiftDish(delta: number) {
-    setDishIndex((prev) => {
-      const next = prev + delta;
-      if (next < 0) return 0;
-      if (next > maxDishIndex) return maxDishIndex;
-      return next;
+  const shiftDish = useCallback((delta: number) => {
+    setTrackIndex((prevTrack) => {
+      const step = delta > 0 ? FOOD_HUB_VISIBLE : -FOOD_HUB_VISIBLE;
+      const nextTrack = prevTrack + step;
+      if (nextTrack < trackStart || nextTrack > trackEnd) {
+        return prevTrack;
+      }
+      if (nextTrack === trackEnd) {
+        pendingSnapRef.current = trackOffset;
+      } else if (nextTrack === trackStart) {
+        pendingSnapRef.current = trackMax;
+      } else {
+        pendingSnapRef.current = null;
+      }
+      return nextTrack;
     });
-  }
+  }, [trackEnd, trackStart, trackOffset, trackMax]);
 
   const isFoodHub = activePage === "food-hub";
+
+  const scheduleAutoCycle = useCallback(() => {
+    if (autoCycleRef.current != null) {
+      window.clearTimeout(autoCycleRef.current);
+    }
+    if (!isFoodHub) return;
+    autoCycleRef.current = window.setTimeout(() => {
+      shiftDish(1);
+      scheduleAutoCycle();
+    }, 10000);
+  }, [isFoodHub, shiftDish]);
+
+  useEffect(() => {
+    scheduleAutoCycle();
+    return () => {
+      if (autoCycleRef.current != null) {
+        window.clearTimeout(autoCycleRef.current);
+      }
+    };
+  }, [scheduleAutoCycle]);
+
+  function handleManualShift(delta: number) {
+    shiftDish(delta);
+    scheduleAutoCycle();
+  }
+
+  function handleTrackTransitionEnd() {
+    if (pendingSnapRef.current == null) return;
+    const snapIndex = pendingSnapRef.current;
+    pendingSnapRef.current = null;
+    setIsTrackSnapping(true);
+    setTrackIndex(snapIndex);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsTrackSnapping(false);
+      });
+    });
+  }
 
   function switchPage(next: "dashboard" | "food-hub") {
     if (activePage === next) return;
@@ -1481,8 +1541,7 @@ export default function App() {
                 <button
                   type="button"
                   className="glass-pill glass-pill--small foodHubArrow"
-                  onClick={() => shiftDish(-1)}
-                  disabled={!canDishPrev}
+                  onClick={() => handleManualShift(-1)}
                   aria-label="Scroll left"
                 >
                   <span aria-hidden="true">&larr;</span>
@@ -1490,8 +1549,7 @@ export default function App() {
                 <button
                   type="button"
                   className="glass-pill glass-pill--small foodHubArrow"
-                  onClick={() => shiftDish(1)}
-                  disabled={!canDishNext}
+                  onClick={() => handleManualShift(1)}
                   aria-label="Scroll right"
                 >
                   <span aria-hidden="true">&rarr;</span>
@@ -1500,11 +1558,12 @@ export default function App() {
             </div>
             <div className="foodHubCarousel">
               <ul
-                className="foodHubTrack"
-                style={{ "--dish-index": dishIndex } as CSSProperties}
+                className={`foodHubTrack${isTrackSnapping ? " foodHubTrack--snap" : ""}`}
+                style={{ "--dish-index": trackIndex } as CSSProperties}
+                onTransitionEnd={handleTrackTransitionEnd}
               >
-                {FOOD_HUB_DISHES.map((dish) => (
-                  <li key={dish.id} className="foodHubTile">
+                {trackDishes.map((dish, index) => (
+                  <li key={`${dish.id}-${index}`} className="foodHubTile">
                     <div className="foodHubTileImage" aria-hidden="true">
                       <span>Image</span>
                     </div>

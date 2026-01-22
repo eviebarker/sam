@@ -526,6 +526,10 @@ h2{
   will-change: transform;
 }
 
+.foodHubTrack--snap{
+  transition: none;
+}
+
 .foodHubTile{
   flex: 0 0 var(--dish-tile-width);
   display: grid;
@@ -582,7 +586,7 @@ h2{
 
 .page--transitioning.page--to-foodhub .foodHubTile{
   animation: foodHubTileFlip 520ms ease both;
-  animation-delay: calc(360ms + (var(--tile-index) * 70ms));
+  animation-delay: calc(60ms + (var(--tile-index) * 70ms));
 }
 
 .foodHubTile:nth-child(1){ --tile-index: 0; }
