@@ -190,9 +190,12 @@ export default function Orb({
       
       vec3 finalCol = mix(darkCol, lightCol, bgLuminance);
       float pulseWave = 1.0 + pulse * (0.22 + 0.18 * sin(iTime * pulseSpeed));
-      finalCol = clamp(finalCol * pulseWave, 0.0, 1.0);
-      
-      return extractAlpha(finalCol);
+      float edgeMask = 1.0 - smoothstep(0.95, 1.0, len);
+      float edgeBand = smoothstep(0.92, 0.98, len) - smoothstep(0.98, 1.0, len);
+      vec3 shaded = clamp(finalCol * pulseWave, 0.0, 1.0);
+      vec3 ringCol = mix(backgroundColor, colBase, 0.85);
+      vec3 withRing = mix(shaded, ringCol, edgeBand);
+      return vec4(withRing * edgeMask, edgeMask);
     }
 
     vec4 mainImage(vec2 fragCoord) {
@@ -204,12 +207,16 @@ export default function Orb({
       float s = sin(angle);
       float c = cos(angle);
       uv = vec2(c * uv.x - s * uv.y, s * uv.x + c * uv.y);
-      
-      float pulseZoom = 1.0 - pulse * (0.03 + 0.04 * sin(iTime * pulseSpeed));
-      uv *= pulseZoom;
+
+      float baseLen = length(uv);
 
       uv.x += hover * hoverIntensity * 0.1 * sin(uv.y * 10.0 + iTime);
       uv.y += hover * hoverIntensity * 0.1 * sin(uv.x * 10.0 + iTime);
+
+      float warpedLen = length(uv);
+      if (baseLen > 1e-6 && warpedLen > 1e-6) {
+        uv = uv / warpedLen * baseLen;
+      }
       
       return draw(uv);
     }
@@ -320,6 +327,7 @@ export default function Orb({
 
       let effectiveHover = forceHoverStateRef.current ? 1 : targetHover;
       let hoverWave = 0;
+      let autoHoverValue = 0;
       if (autoHoverRef.current) {
         const timeSec = t * 0.001;
         const speedJitter =
@@ -331,7 +339,10 @@ export default function Orb({
         const waveB = 0.5 + 0.5 * Math.sin(phase * 0.62 + 1.7);
         const waveC = 0.5 + 0.5 * Math.sin(phase * 1.31 - 0.8);
         hoverWave = waveA * 0.55 + waveB * 0.25 + waveC * 0.2;
-        effectiveHover = Math.min(1, Math.max(0, hoverWave * autoHoverIntensityRef.current));
+        autoHoverValue = Math.min(1, Math.max(0, hoverWave * autoHoverIntensityRef.current));
+      }
+      if (autoHoverRef.current) {
+        effectiveHover = Math.max(effectiveHover, autoHoverValue);
       }
       program.uniforms.hover.value += (effectiveHover - program.uniforms.hover.value) * 0.1;
 
