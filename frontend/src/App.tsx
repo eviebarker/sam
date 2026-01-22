@@ -979,7 +979,7 @@ export default function App() {
 
         {/* Middle column: Orb (no tile/background) */}
         <div className="orbSlot" aria-hidden="true">
-          <div className={`orbWrap${isVisualSpeaking ? " orbWrap--speaking" : ""}`}>
+          <div className="orbWrap orbWrap--speaking">
             <Orb
               hue={0}
               hoverIntensity={0.35 + audioPulse * 1.85}

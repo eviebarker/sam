@@ -198,9 +198,9 @@ export default function Orb({
       
       vec3 finalCol = mix(darkCol, lightCol, bgLuminance);
       float pulseWave = 1.0 + pulse * (0.22 + 0.18 * sin(iTime * pulseSpeed));
-      vec4 outCol = extractAlpha(finalCol);
-      outCol.rgb = clamp(outCol.rgb * pulseWave, 0.0, 1.0);
-      return outCol;
+      float edgeMask = 1.0 - smoothstep(0.95, 1.0, len);
+      vec3 shaded = clamp(finalCol * pulseWave, 0.0, 1.0);
+      return vec4(shaded * edgeMask, edgeMask);
     }
 
     vec4 mainImage(vec2 fragCoord) {
@@ -212,9 +212,16 @@ export default function Orb({
       float s = sin(angle);
       float c = cos(angle);
       uv = vec2(c * uv.x - s * uv.y, s * uv.x + c * uv.y);
+
+      float baseLen = length(uv);
       
       uv.x += hover * hoverIntensity * 0.1 * sin(uv.y * 10.0 + iTime);
       uv.y += hover * hoverIntensity * 0.1 * sin(uv.x * 10.0 + iTime);
+
+      float warpedLen = length(uv);
+      if (baseLen > 1e-6 && warpedLen > 1e-6) {
+        uv = uv / warpedLen * baseLen;
+      }
       
       return draw(uv);
     }
