@@ -1,3 +1,5 @@
+"""Work/off day overrides and default work hours."""
+
 from datetime import date as Date
 from backend.app.db.conn import get_conn
 
@@ -13,6 +15,7 @@ def set_work_day(
     start_hhmm: str | None = None,
     end_hhmm: str | None = None,
 ) -> None:
+    """Set or update a workday override with optional hours."""
     start_val = start_hhmm or DEFAULT_WORK_START
     end_val = end_hhmm or DEFAULT_WORK_END
     with get_conn() as conn:
@@ -24,6 +27,7 @@ def set_work_day(
         conn.commit()
 
 def is_work_day(date_yyyy_mm_dd: str) -> bool:
+    """Return True if the date is marked as work, else follow default pattern."""
     # 1) Explicit override wins
     with get_conn() as conn:
         row = conn.execute(
@@ -39,6 +43,7 @@ def is_work_day(date_yyyy_mm_dd: str) -> bool:
     return wd in DEFAULT_WORK_WEEKDAYS
 
 def get_work_day(date_yyyy_mm_dd: str) -> dict:
+    """Return work/off flag and hours, falling back to defaults if no override."""
     with get_conn() as conn:
         row = conn.execute(
             "SELECT is_work, start_hhmm, end_hhmm FROM work_days WHERE date=?;",

@@ -1,3 +1,5 @@
+"""Reminder status endpoints (active list + mark done)."""
+
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from typing import Optional
@@ -15,12 +17,14 @@ class DoneBody(BaseModel):
 
 @router.post("/api/reminders/done")
 def reminders_done(body: DoneBody):
+    """Mark an active reminder as done and log the action."""
     mark_done(body.active_id)
     log_action(body.reminder_key, "done")
     return {"ok": True}
 
 @router.get("/api/reminders/active")
 def reminders_active(date: Optional[str] = None):
+    """List reminders for a date (default today), including due window flag."""
     # date = YYYY-MM-DD (optional). Defaults to today in Europe/London.
     now_dt = datetime.now(TZ)
     dose_date = date or now_dt.date().isoformat()

@@ -53,6 +53,7 @@ OPUS_SAMPLE_RATE = 24000
 
 
 def wav_to_ogg(wav_path: str, ogg_path: str):
+    """Convert a WAV file to OGG (Opus), normalising to mono and target sample rate."""
     data, samplerate = sf.read(wav_path)
 
     # Ensure mono
@@ -162,6 +163,7 @@ def apply_pronunciations(text: str) -> str:
 
 
 def synthesize_and_play(input_text: str) -> None:
+    """Generate and play speech audio immediately using a detected system player."""
     player_cmd = _detect_player_cmd()
     if not player_cmd:
         raise RuntimeError("No audio player found. Set TTS_PLAYER_CMD.")
@@ -179,6 +181,7 @@ def synthesize_and_play(input_text: str) -> None:
 
 
 def synthesize_and_play_async(input_text: str) -> None:
+    """Fire-and-forget speech playback in a daemon thread."""
     thread = threading.Thread(
         target=synthesize_and_play, args=(input_text,), daemon=True
     )
@@ -186,6 +189,7 @@ def synthesize_and_play_async(input_text: str) -> None:
 
 
 def apply_pronunciations(text: str) -> str:
+    """Replace known terms with stored pronunciations before synthesis."""
     pronunciations = list_pronunciations()
     if not pronunciations:
         return text
@@ -202,6 +206,7 @@ def apply_pronunciations(text: str) -> str:
 
 
 def _format_pronunciation(pronunciation: str) -> str:
+    """Tidy user-supplied pronunciation strings for smoother speech."""
     cleaned = pronunciation.strip()
     tokens = cleaned.split()
     if len(tokens) >= 2 and all(len(t) <= 2 for t in tokens):
