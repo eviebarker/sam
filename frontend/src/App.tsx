@@ -188,6 +188,7 @@ export default function App() {
   const [winsExiting, setWinsExiting] = useState(false);
   const [hubTransitioning, setHubTransitioning] = useState(false);
   const [hubExiting, setHubExiting] = useState(false);
+  const [dashboardIntro, setDashboardIntro] = useState(false);
   const [titleMode, setTitleMode] = useState<"hub" | "wins">("hub");
   const [titlePhase, setTitlePhase] = useState<"out" | "in" | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -228,6 +229,7 @@ export default function App() {
   const winsExitTimerRef = useRef<number | null>(null);
   const hubTransitionTimerRef = useRef<number | null>(null);
   const hubExitTimerRef = useRef<number | null>(null);
+  const dashboardIntroTimerRef = useRef<number | null>(null);
   const titleSwapTimerRef = useRef<number | null>(null);
   const titleClearTimerRef = useRef<number | null>(null);
 
@@ -1296,6 +1298,38 @@ export default function App() {
     }, 1100);
   }
 
+  function exitWinsToDashboard() {
+    if (winsExiting) return;
+    setWinsTransitioning(false);
+    setWinsExiting(true);
+    setHubExiting(false);
+    setHubTransitioning(false);
+    setDashboardIntro(true);
+    setTitleMode("hub");
+    setTitlePhase(null);
+    if (winsTransitionTimerRef.current != null) {
+      window.clearTimeout(winsTransitionTimerRef.current);
+      winsTransitionTimerRef.current = null;
+    }
+    if (winsExitTimerRef.current != null) {
+      window.clearTimeout(winsExitTimerRef.current);
+    }
+    if (dashboardIntroTimerRef.current != null) {
+      window.clearTimeout(dashboardIntroTimerRef.current);
+    }
+    winsExitTimerRef.current = window.setTimeout(() => {
+      setWinsExiting(false);
+      winsExitTimerRef.current = null;
+    }, 900);
+    dashboardIntroTimerRef.current = window.setTimeout(() => {
+      setDashboardIntro(false);
+      dashboardIntroTimerRef.current = null;
+    }, 1200);
+    window.setTimeout(() => {
+      switchPage("dashboard");
+    }, 0);
+  }
+
   function transitionTitle(next: "hub" | "wins") {
     if (titleSwapTimerRef.current != null) {
       window.clearTimeout(titleSwapTimerRef.current);
@@ -1585,7 +1619,9 @@ export default function App() {
   );
 
   const showDashboardLayer =
-    !isFoodHub || (foodHubMode === "hub" && !hubTransitioning && !winsExiting);
+    !isFoodHub ||
+    dashboardIntro ||
+    (foodHubMode === "hub" && !hubTransitioning && !winsExiting);
   const showHubIntroCards = isFoodHub && hubTransitioning;
   const showWins =
     (isFoodHub || isTransitioning) && (foodHubMode === "wins" || winsExiting);
@@ -1601,7 +1637,9 @@ export default function App() {
         winsTransitioning ? " page--wins-transitioning" : ""
       }${winsExiting ? " page--wins-exiting" : ""}${
         hubTransitioning ? " page--hub-transitioning" : ""
-      }${hubExiting ? " page--hub-exiting" : ""}`}
+      }${hubExiting ? " page--hub-exiting" : ""}${
+        dashboardIntro ? " page--dashboard-intro" : ""
+      }`}
     >
       <div className="bg">
         <DarkVeil
@@ -1680,7 +1718,13 @@ export default function App() {
             className={`glass-pill glass-pill--small navPill${
               !isFoodHub ? " navPill--active" : ""
             }`}
-            onClick={() => switchPage("dashboard")}
+            onClick={() => {
+              if (isFoodHub && foodHubMode === "wins") {
+                exitWinsToDashboard();
+              } else {
+                switchPage("dashboard");
+              }
+            }}
             aria-current={!isFoodHub ? "page" : undefined}
           >
             Dashboard
