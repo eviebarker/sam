@@ -205,6 +205,13 @@ export default function App() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
+  const sttAudioCtxRef = useRef<AudioContext | null>(null);
+  const sttProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const sttSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const sttGainRef = useRef<GainNode | null>(null);
+  const sttBuffersRef = useRef<Float32Array[]>([]);
+  const sttSampleRateRef = useRef<number>(16000);
+  const sttManualRef = useRef(false);
 
   async function refresh() {
     try {
@@ -428,8 +435,8 @@ export default function App() {
     }
   }
 
-  async function handleAiSubmit() {
-    const prompt = aiInput.trim();
+  async function handleAiSubmit(overridePrompt?: string) {
+    const prompt = (overridePrompt ?? aiInput).trim();
     if (!prompt) return;
     try {
       setErr(null);
@@ -755,9 +762,149 @@ export default function App() {
     }
   }
 
+  function cleanupManualRecording() {
+    if (sttProcessorRef.current) {
+      try {
+        sttProcessorRef.current.disconnect();
+      } catch {
+        // Ignore disconnect errors for already-closed nodes.
+      }
+    }
+    if (sttSourceRef.current) {
+      try {
+        sttSourceRef.current.disconnect();
+      } catch {
+        // Ignore disconnect errors for already-closed nodes.
+      }
+    }
+    if (sttGainRef.current) {
+      try {
+        sttGainRef.current.disconnect();
+      } catch {
+        // Ignore disconnect errors for already-closed nodes.
+      }
+    }
+    sttProcessorRef.current = null;
+    sttSourceRef.current = null;
+    sttGainRef.current = null;
+    if (sttAudioCtxRef.current) {
+      try {
+        void sttAudioCtxRef.current.close();
+      } catch {
+        // Ignore close errors for already-closed contexts.
+      }
+      sttAudioCtxRef.current = null;
+    }
+    sttManualRef.current = false;
+  }
+
+  function encodeWav(samples: Float32Array, sampleRate: number) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+    const writeString = (offset: number, str: string) => {
+      for (let i = 0; i < str.length; i += 1) {
+        view.setUint8(offset + i, str.charCodeAt(i));
+      }
+    };
+
+    writeString(0, "RIFF");
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, "data");
+    view.setUint32(40, samples.length * 2, true);
+
+    let offset = 44;
+    for (let i = 0; i < samples.length; i += 1) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      offset += 2;
+    }
+
+    return buffer;
+  }
+
+  function buildWavBlob(buffers: Float32Array[], sampleRate: number) {
+    const totalLength = buffers.reduce((sum, b) => sum + b.length, 0);
+    const merged = new Float32Array(totalLength);
+    let offset = 0;
+    buffers.forEach((b) => {
+      merged.set(b, offset);
+      offset += b.length;
+    });
+    const wav = encodeWav(merged, sampleRate);
+    return new Blob([wav], { type: "audio/wav" });
+  }
+
+  function startManualRecording(stream: MediaStream) {
+    const AudioCtx =
+      window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) {
+      return false;
+    }
+    try {
+      const ctx = new AudioCtx();
+      sttAudioCtxRef.current = ctx;
+      sttSampleRateRef.current = ctx.sampleRate;
+      const source = ctx.createMediaStreamSource(stream);
+      const processor = ctx.createScriptProcessor(4096, 1, 1);
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      sttBuffersRef.current = [];
+      processor.onaudioprocess = (evt) => {
+        const input = evt.inputBuffer.getChannelData(0);
+        sttBuffersRef.current.push(new Float32Array(input));
+      };
+      source.connect(processor);
+      processor.connect(gain);
+      gain.connect(ctx.destination);
+      sttSourceRef.current = source;
+      sttProcessorRef.current = processor;
+      sttGainRef.current = gain;
+      sttManualRef.current = true;
+      void ctx.resume();
+      setIsRecording(true);
+      return true;
+    } catch {
+      cleanupManualRecording();
+      return false;
+    }
+  }
+
+  async function transcribeBlob(blob: Blob) {
+    if (!blob.size) {
+      setSttStatus("No audio captured.");
+      return;
+    }
+    try {
+      setSttStatus("Transcribing...");
+      const res = await sttTranscribe(blob);
+      const transcriptText = (res.text || "").trim();
+      setSttTranscript(transcriptText || "(no text)");
+      if (transcriptText) {
+        setAiInput(transcriptText);
+        if (!aiLoading) {
+          void handleAiSubmit(transcriptText);
+        }
+      }
+      setSttStatus(res.language ? `Language: ${res.language}` : "Done");
+    } catch (e: any) {
+      setErr(e?.message ?? "failed");
+      setSttStatus(null);
+    }
+  }
+
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      cleanupManualRecording();
     };
   }, []);
 
@@ -774,10 +921,55 @@ export default function App() {
       const stream =
         streamRef.current ?? (await navigator.mediaDevices.getUserMedia({ audio: true }));
       streamRef.current = stream;
-      const mimeType = MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
-        ? "audio/ogg;codecs=opus"
-        : "audio/webm;codecs=opus";
-      const recorder = new MediaRecorder(stream, { mimeType });
+      if (!stream.getAudioTracks().length) {
+        setErr("No audio track available from microphone.");
+        setSttStatus(null);
+        return;
+      }
+      let recorder: MediaRecorder | null = null;
+      const candidates: Array<string | null> = [
+        "audio/ogg;codecs=opus",
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        null,
+      ];
+      const candidateErrors: string[] = [];
+      for (const candidate of candidates) {
+        if (candidate && !MediaRecorder.isTypeSupported(candidate)) {
+          continue;
+        }
+        try {
+          recorder = candidate
+            ? new MediaRecorder(stream, { mimeType: candidate })
+            : new MediaRecorder(stream);
+          recorder.start();
+          break;
+        } catch (e: any) {
+          candidateErrors.push(
+            `${candidate ?? "default"}: ${e?.message ?? "unknown error"}`
+          );
+          recorder = null;
+        }
+      }
+      if (!recorder) {
+        const manualStarted = startManualRecording(stream);
+        if (manualStarted) {
+          mediaRecorderRef.current = null;
+          return;
+        }
+        const supported = candidates
+          .filter((t): t is string => Boolean(t) && MediaRecorder.isTypeSupported(t))
+          .join(", ");
+        const ua = navigator.userAgent || "unknown";
+        setErr(
+          `MediaRecorder start failed (supported: ${supported || "none"}, attempts: ${
+            candidateErrors.join(" | ") || "none"
+          }, ua: ${ua})`
+        );
+        setSttStatus(null);
+        return;
+      }
       chunksRef.current = [];
       recorder.ondataavailable = (evt) => {
         if (evt.data && evt.data.size > 0) {
@@ -788,21 +980,8 @@ export default function App() {
         setIsRecording(false);
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
         chunksRef.current = [];
-        if (!blob.size) {
-          setSttStatus("No audio captured.");
-          return;
-        }
-        try {
-          setSttStatus("Transcribing...");
-          const res = await sttTranscribe(blob);
-          setSttTranscript(res.text || "(no text)");
-          setSttStatus(res.language ? `Language: ${res.language}` : "Done");
-        } catch (e: any) {
-          setErr(e?.message ?? "failed");
-          setSttStatus(null);
-        }
+        await transcribeBlob(blob);
       };
-      recorder.start();
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
     } catch (e: any) {
@@ -813,10 +992,26 @@ export default function App() {
 
   function stopRecording() {
     const recorder = mediaRecorderRef.current;
-    if (!recorder) return;
-    if (recorder.state !== "inactive") {
+    if (recorder) {
+      if (recorder.state !== "inactive") {
+        setSttStatus("Processing...");
+        recorder.stop();
+      }
+      return;
+    }
+    if (sttManualRef.current) {
       setSttStatus("Processing...");
-      recorder.stop();
+      const buffers = sttBuffersRef.current;
+      sttBuffersRef.current = [];
+      const sampleRate = sttSampleRateRef.current;
+      cleanupManualRecording();
+      setIsRecording(false);
+      if (!buffers.length) {
+        setSttStatus("No audio captured.");
+        return;
+      }
+      const blob = buildWavBlob(buffers, sampleRate);
+      void transcribeBlob(blob);
     }
   }
 
@@ -1104,14 +1299,6 @@ export default function App() {
             Test speak
           </button>
           <p className="subtle">v1: button only (no hotword)</p>
-          {sttTranscript || sttStatus ? (
-            <div className="sttBox glass-soft">
-              <div className="aiLabel">Transcript</div>
-              {sttTranscript ? <div className="sttText">{sttTranscript}</div> : null}
-              {sttStatus ? <div className="sttStatus subtle">{sttStatus}</div> : null}
-            </div>
-          ) : null}
-
           <div className="aiBlock">
             <div className="aiLabel">Ask Sam</div>
             <textarea
