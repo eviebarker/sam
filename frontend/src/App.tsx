@@ -98,10 +98,22 @@ export default function App() {
   const analyserDataRef = useRef<Uint8Array | null>(null);
   const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const audioRafRef = useRef<number | null>(null);
+  const audioRelaxRafRef = useRef<number | null>(null);
   const lastLevelUpdateRef = useRef(0);
   const audioEnvRef = useRef(0);
+  const lastRelaxUpdateRef = useRef(0);
 
-  const audioPulse = Math.min(1, Math.max(0, audioLevel * 2.4 * 1.8));
+  const gate = Math.min(1, Math.max(0, (audioLevel - 0.015) / 0.12));
+  const pulseLevel = audioLevel * gate * gate;
+  const audioPulse = Math.min(1, Math.max(0, pulseLevel * 2.4));
+  const isVisualSpeaking = isSpeaking || audioLevel > 0.005;
+
+  function stopRelax() {
+    if (audioRelaxRafRef.current != null) {
+      cancelAnimationFrame(audioRelaxRafRef.current);
+      audioRelaxRafRef.current = null;
+    }
+  }
 
   function stopAudioMeter() {
     if (audioRafRef.current != null) {
@@ -116,8 +128,25 @@ export default function App() {
       }
       audioSourceRef.current = null;
     }
-    audioEnvRef.current = 0;
-    setAudioLevel(0);
+    stopRelax();
+    lastRelaxUpdateRef.current = 0;
+    const relaxDecayPerSec = 1.6;
+    const relaxTick = (t: number) => {
+      audioRelaxRafRef.current = requestAnimationFrame(relaxTick);
+      const last = lastRelaxUpdateRef.current || t;
+      const dtSec = Math.max(0.01, (t - last) / 1000);
+      lastRelaxUpdateRef.current = t;
+      const env = audioEnvRef.current * Math.exp(-relaxDecayPerSec * dtSec);
+      audioEnvRef.current = env;
+      if (env < 0.001) {
+        audioEnvRef.current = 0;
+        setAudioLevel(0);
+        stopRelax();
+        return;
+      }
+      setAudioLevel(env);
+    };
+    audioRelaxRafRef.current = requestAnimationFrame(relaxTick);
   }
 
   function startAudioMeter(audio: HTMLAudioElement) {
@@ -134,6 +163,7 @@ export default function App() {
 
     ctx.resume().catch(() => undefined);
     stopAudioMeter();
+    stopRelax();
     audioSourceRef.current = ctx.createMediaElementSource(audio);
     audioSourceRef.current.connect(analyser);
     analyser.connect(ctx.destination);
@@ -141,7 +171,7 @@ export default function App() {
     const tick = (t: number) => {
       audioRafRef.current = requestAnimationFrame(tick);
       const lastUpdate = lastLevelUpdateRef.current;
-      if (t - lastUpdate < 70) return;
+      if (t - lastUpdate < 16) return;
       lastLevelUpdateRef.current = t;
       analyser.getByteTimeDomainData(data);
       let sum = 0;
@@ -152,9 +182,15 @@ export default function App() {
       const rms = Math.sqrt(sum / data.length);
       const level = Math.min(1, rms * 3.0);
       const env = audioEnvRef.current;
-      const attack = 0.22;
-      const release = 0.06;
-      const nextEnv = level > env ? env + (level - env) * attack : env + (level - env) * release;
+      const dtSec = Math.max(0.01, (t - lastUpdate) / 1000);
+      const attack = 0.35;
+      const decayPerSec = 12.0;
+      let nextEnv = env;
+      if (level > env) {
+        nextEnv = env + (level - env) * attack;
+      } else {
+        nextEnv = env * Math.exp(-decayPerSec * dtSec);
+      }
       audioEnvRef.current = nextEnv;
       setAudioLevel(nextEnv);
     };
@@ -943,16 +979,16 @@ export default function App() {
 
         {/* Middle column: Orb (no tile/background) */}
         <div className="orbSlot" aria-hidden="true">
-          <div className={`orbWrap${isSpeaking ? " orbWrap--speaking" : ""}`}>
+          <div className={`orbWrap${isVisualSpeaking ? " orbWrap--speaking" : ""}`}>
             <Orb
               hue={0}
-              hoverIntensity={isSpeaking ? 1.6 + audioPulse * 0.8 : 0.35}
+              hoverIntensity={isVisualSpeaking ? audioPulse * 2.2 : 0.35}
               rotateOnHover
               forceHoverState={false}
               pulse={0}
               pulseSpeed={16.5}
-              autoHover={isSpeaking}
-              autoHoverIntensity={isSpeaking ? 0.7 + audioPulse * 0.8 : 1.0}
+              autoHover={isVisualSpeaking}
+              autoHoverIntensity={isVisualSpeaking ? audioPulse * 1.1 : 1.0}
               autoHoverSpeed={6.0}
             />
           </div>
