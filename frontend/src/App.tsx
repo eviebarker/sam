@@ -990,6 +990,7 @@ export default function App() {
               autoHover={isVisualSpeaking}
               autoHoverIntensity={isVisualSpeaking ? audioPulse * 1.1 : 1.0}
               autoHoverSpeed={6.0}
+              speaking={isVisualSpeaking}
             />
           </div>
         </div>

@@ -12,7 +12,8 @@ export default function Orb({
   pulseSpeed = 5.5,
   autoHover = false,
   autoHoverIntensity = 0.8,
-  autoHoverSpeed = 2.4
+  autoHoverSpeed = 2.4,
+  speaking = false
 }) {
   const ctnDom = useRef(null);
   const hueRef = useRef(hue);
@@ -25,6 +26,7 @@ export default function Orb({
   const autoHoverRef = useRef(autoHover);
   const autoHoverIntensityRef = useRef(autoHoverIntensity);
   const autoHoverSpeedRef = useRef(autoHoverSpeed);
+  const speakingRef = useRef(speaking);
 
   hueRef.current = hue;
   hoverIntensityRef.current = hoverIntensity;
@@ -36,6 +38,7 @@ export default function Orb({
   autoHoverRef.current = autoHover;
   autoHoverIntensityRef.current = autoHoverIntensity;
   autoHoverSpeedRef.current = autoHoverSpeed;
+  speakingRef.current = speaking;
 
   const vert = /* glsl */ `
     precision highp float;
@@ -59,6 +62,7 @@ export default function Orb({
     uniform float hoverIntensity;
     uniform float pulse;
     uniform float pulseSpeed;
+    uniform float speaking;
     uniform vec3 backgroundColor;
     varying vec2 vUv;
 
@@ -160,7 +164,8 @@ export default function Orb({
 
       v0 *= smoothstep(r0 * 1.05, r0, len);
       float innerFade = smoothstep(r0 * 0.8, r0 * 0.95, len);
-      v0 *= mix(innerFade, 1.0, bgLuminance * 0.7);
+      float innerFadeLift = mix(innerFade, 1.0, speaking);
+      v0 *= mix(innerFadeLift, 1.0, bgLuminance * 0.7);
       float cl = cos(ang + iTime * 2.0) * 0.5 + 0.5;
       
       float a = iTime * -1.0;
@@ -240,7 +245,8 @@ export default function Orb({
         hoverIntensity: { value: hoverIntensityRef.current },
         backgroundColor: { value: hexToVec3(backgroundColorRef.current) },
         pulse: { value: pulseRef.current },
-        pulseSpeed: { value: pulseSpeedRef.current }
+        pulseSpeed: { value: pulseSpeedRef.current },
+        speaking: { value: speakingRef.current ? 1 : 0 }
       }
     });
 
@@ -263,6 +269,7 @@ export default function Orb({
     let lastTime = 0;
     let currentRot = 0;
     let currentPulse = pulseRef.current;
+    let currentSpeaking = speakingRef.current ? 1 : 0;
     const rotationSpeed = 0.3;
 
     const handleMouseMove = e => {
@@ -305,6 +312,11 @@ export default function Orb({
       const pulseLerp = 1 - Math.exp(-dt * 8);
       currentPulse += (pulseRef.current - currentPulse) * pulseLerp;
       program.uniforms.pulse.value = currentPulse;
+
+      const speakingLerp = 1 - Math.exp(-dt * 6);
+      const targetSpeaking = speakingRef.current ? 1 : 0;
+      currentSpeaking += (targetSpeaking - currentSpeaking) * speakingLerp;
+      program.uniforms.speaking.value = currentSpeaking;
 
       let effectiveHover = forceHoverStateRef.current ? 1 : targetHover;
       let hoverWave = 0;
