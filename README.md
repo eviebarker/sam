@@ -1,5 +1,7 @@
 # Sam Kitchen PA
 
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue?style=for-the-badge)](https://eviebarker.github.io/sam/)
+
 A kitchen smart-display assistant: dashboard for calendar, tasks, reminders, and voice interaction.
 
 ## Quick start
