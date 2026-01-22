@@ -151,14 +151,7 @@ body{
 }
 
 .orbWrap--speaking{
-  animation: orbSpeakPulse 1.4s ease-in-out infinite;
   filter: drop-shadow(0 0 22px rgba(80, 180, 255, 0.35));
-}
-
-@keyframes orbSpeakPulse{
-  0% { transform: translateY(-52px) scale(0.98); }
-  50% { transform: translateY(-52px) scale(1.05); }
-  100% { transform: translateY(-52px) scale(0.98); }
 }
 
 .orbWrap .orb-container{
