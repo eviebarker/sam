@@ -19,6 +19,7 @@ import {
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
 import FunFactCard from "./components/FunFactCard";
+import TextType from "./components/TextType";
 import "./App.css";
 
 type Dashboard = {
@@ -95,7 +96,6 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const [aiInput, setAiInput] = useState("");
   const [aiOutput, setAiOutput] = useState<string | null>(null);
-  const [aiDisplay, setAiDisplay] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const speakingCountRef = useRef(0);
@@ -282,29 +282,6 @@ export default function App() {
     const id = setInterval(refresh, 5000);
     return () => clearInterval(id);
   }, []);
-
-  useEffect(() => {
-    if (!aiOutput) {
-      setAiDisplay(null);
-      return;
-    }
-    const tokens = aiOutput.trim().split(/\s+/);
-    let idx = 1;
-    if (!tokens.length) {
-      setAiDisplay("");
-      return;
-    }
-    setAiDisplay(tokens[0]);
-    const id = window.setInterval(() => {
-      if (idx >= tokens.length) {
-        window.clearInterval(id);
-        return;
-      }
-      setAiDisplay(tokens.slice(0, idx + 1).join(" "));
-      idx += 1;
-    }, 200);
-    return () => window.clearInterval(id);
-  }, [aiOutput]);
 
   const now = data?.now ? new Date(data.now) : null;
   const timeStr = now
@@ -1428,7 +1405,21 @@ export default function App() {
           </button>
         </div>
       </header>
-      {aiOutput ? <div className="aiResponse">{aiDisplay ?? aiOutput}</div> : null}
+      {aiOutput ? (
+        <div className="aiResponse">
+          <TextType
+            key={aiOutput}
+            text={aiOutput}
+            typingSpeed={30}
+            pauseDuration={600}
+            deletingSpeed={20}
+            loop={false}
+            showCursor
+            cursorCharacter="_"
+            cursorBlinkDuration={0.6}
+          />
+        </div>
+      ) : null}
 
       {err && <div className="err glass-soft">Backend error: {err}</div>}
 
