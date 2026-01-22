@@ -1,0 +1,67 @@
+.animated-gradient-text{
+  position: relative;
+  margin: 0 auto;
+  display: block;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  font-weight: 600;
+  transition: box-shadow 0.5s ease-out;
+  overflow: hidden;
+  width: 100%;
+}
+
+.animated-gradient-text.with-border{
+  padding: 0.35rem 0.75rem;
+}
+
+.gradient-overlay{
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--gt-gradient);
+  background-size: var(--gt-bg-size);
+  background-repeat: repeat;
+  background-position: var(--gt-bg-pos-from);
+  animation: gt-pan var(--gt-duration) ease-in-out infinite alternate;
+}
+
+.gradient-overlay::before{
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #060010;
+  z-index: -1;
+}
+
+.text-content{
+  display: block;
+  position: relative;
+  z-index: 2;
+  background-image: var(--gt-gradient);
+  background-size: var(--gt-bg-size);
+  background-repeat: repeat;
+  background-position: var(--gt-bg-pos-from);
+  animation: gt-pan var(--gt-duration) ease-in-out infinite alternate;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  text-align: center;
+  white-space: pre-line;
+}
+
+@keyframes gt-pan{
+  from{
+    background-position: var(--gt-bg-pos-from);
+  }
+  to{
+    background-position: var(--gt-bg-pos-to);
+  }
+}

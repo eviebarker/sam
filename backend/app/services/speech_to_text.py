@@ -90,8 +90,9 @@ class STTService:
         """
         Uses ffmpeg to normalise audio. This is the key step that makes browser audio painless.
         """
+        ffmpeg_bin = os.getenv("FFMPEG_PATH", "ffmpeg")
         cmd = [
-            "ffmpeg",
+            ffmpeg_bin,
             "-y",
             "-loglevel", "error",
             "-i", input_path,

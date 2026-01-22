@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   getDashboard,
   getWorkday,
@@ -16,9 +16,23 @@ import {
   aiPriority,
   sttTranscribe,
 } from "./api";
+import burgersImg from "./assets/burgers.jpeg";
+import chickenChorizoImg from "./assets/chicken_and_chorizo.jpg";
+import chickenCasseroleImg from "./assets/chicken_casserole.jpeg";
+import chickenCurryImg from "./assets/chicken_curry.jpg";
+import chilliJacketImg from "./assets/chilli_con_carne_with_jacket_potato.jpg";
+import fajitasImg from "./assets/fajitas.webp";
+import pizzaImg from "./assets/homemade_pizza.jpg";
+import lasagnaImg from "./assets/lasagna.jpeg";
+import risottoImg from "./assets/risotto.jpg";
+import roastImg from "./assets/roast.avif";
+import sausageMashImg from "./assets/sausage_mash_beans.jpg";
+import tomatoCasseroleImg from "./assets/tomato_and_sausage_casserole.jpg";
 import DarkVeil from "./components/DarkVeil";
+import GradientText from "./components/GradientText";
 import Orb from "./components/Orb";
 import FunFactCard from "./components/FunFactCard";
+import TextType from "./components/TextType";
 import "./App.css";
 
 type Dashboard = {
@@ -65,6 +79,98 @@ type RemindersResp = {
   reminders: Reminder[];
 };
 
+const FOOD_HUB_DISHES = [
+  { id: 1, name: "Risotto", image: risottoImg },
+  { id: 2, name: "Homemade pizza", image: pizzaImg },
+  { id: 3, name: "Chicken curry", image: chickenCurryImg },
+  { id: 4, name: "Chicken & chorizo", image: chickenChorizoImg },
+  { id: 5, name: "Sausage casserole", image: tomatoCasseroleImg },
+  { id: 6, name: "Roast Dinner", image: roastImg },
+  { id: 7, name: "Burgers", image: burgersImg },
+  { id: 8, name: "Fajitas", image: fajitasImg },
+  { id: 9, name: "Chilli con carne", image: chilliJacketImg },
+  { id: 10, name: "Chicken casserole", image: chickenCasseroleImg },
+  { id: 11, name: "Lasagna", image: lasagnaImg },
+  { id: 12, name: "Sausage mash & beans", image: sausageMashImg },
+];
+
+const FOOD_HUB_VISIBLE = 6;
+const FOOD_HUB_EXTRAS = [
+  { id: 1, name: "10–15 Minute\nWins" },
+  { id: 2, name: "30-Minute Staples" },
+  { id: 3, name: "Zero-Brain Dinners" },
+  { id: 4, name: "One-Pan, No\nPlan" },
+  { id: 5, name: "Project\nMeals" },
+  { id: 6, name: "Show-Off\nBut Easy" },
+  { id: 7, name: "No Dishes\nMode" },
+  { id: 8, name: "Freezer\nFirst" },
+];
+
+const WINS_MENU = [
+  {
+    id: 1,
+    title: "Tahini noodles with red cabbage & Sichuan peppercorn slaw",
+    time: "10 min",
+    note: "Toss noodles in tahini, add crunchy slaw and zing.",
+    tags: ["High-fibre", "Low calorie", "Vegetarian"],
+  },
+  {
+    id: 2,
+    title: "Lemon pepper chicken wraps",
+    time: "12 min",
+    note: "Quick sear strips, toss with lemon and yogurt.",
+    tags: ["wrap", "protein", "zesty"],
+  },
+  {
+    id: 3,
+    title: "Pesto gnocchi skillet",
+    time: "15 min",
+    note: "Crisp gnocchi, stir in pesto and cherry tomatoes.",
+    tags: ["greens", "saucy", "Vegetarian"],
+  },
+  {
+    id: 4,
+    title: "Garlic parmesan white beans",
+    time: "15 min",
+    note: "Warm beans with garlic, parmesan, and olive oil.",
+    tags: ["greens", "pantry"],
+  },
+  {
+    id: 5,
+    title: "Garlic butter prawns",
+    time: "12 min",
+    note: "Sizzle prawns with garlic, finish with lemon.",
+    tags: ["seafood", "bright"],
+  },
+  {
+    id: 6,
+    title: "Yaki udon (stir-fried udon noodles)",
+    time: "15 min",
+    note: "Stir-fry udon with veggies, soy, and sesame.",
+    tags: ["Vegetarian", "saucy"],
+  },
+  {
+    id: 8,
+    title: "Halloumi honey pita",
+    time: "12 min",
+    note: "Sear halloumi, add honey and a quick salad.",
+    tags: ["sweet-salty", "Vegetarian"],
+  },
+  {
+    id: 7,
+    title: "Pan-seared sea bass",
+    time: "15 min",
+    note: "Crisp skin, lemon butter, quick sautéed greens.",
+    tags: ["seafood", "bright"],
+  },
+];
+
+const WINS_BUILD_STEPS = [
+  { id: 1, title: "Pick a protein", desc: "eggs, tinned fish, tofu, chicken" },
+  { id: 2, title: "Heat a carb", desc: "pasta, noodles, wraps, potatoes, rice" },
+  { id: 3, title: "Finish bright", desc: "lemon, herbs, hot sauce" },
+];
+
 function ymdLocal(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -74,6 +180,24 @@ function ymdLocal(d: Date) {
 
 export default function App() {
   const [data, setData] = useState<Dashboard | null>(null);
+  const [activePage, setActivePage] = useState<"dashboard" | "food-hub">(
+    "dashboard"
+  );
+  const [foodHubMode, setFoodHubMode] = useState<"hub" | "wins">("hub");
+  const [winsTransitioning, setWinsTransitioning] = useState(false);
+  const [winsExiting, setWinsExiting] = useState(false);
+  const [hubTransitioning, setHubTransitioning] = useState(false);
+  const [hubExiting, setHubExiting] = useState(false);
+  const [dashboardIntro, setDashboardIntro] = useState(false);
+  const [titleMode, setTitleMode] = useState<"hub" | "wins">("hub");
+  const [titlePhase, setTitlePhase] = useState<"out" | "in" | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionDir, setTransitionDir] = useState<
+    "to-foodhub" | "to-dashboard" | null
+  >(null);
+  const [trackIndex, setTrackIndex] = useState(FOOD_HUB_VISIBLE);
+  const [isTrackSnapping, setIsTrackSnapping] = useState(false);
+  const [pillMode, setPillMode] = useState<"work" | "mic">("work");
   const [isWork, setIsWork] = useState<boolean | null>(null);
   const [workStart, setWorkStart] = useState<string | null>(null);
   const [workEnd, setWorkEnd] = useState<string | null>(null);
@@ -87,7 +211,6 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const [aiInput, setAiInput] = useState("");
   const [aiOutput, setAiOutput] = useState<string | null>(null);
-  const [aiDisplay, setAiDisplay] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const speakingCountRef = useRef(0);
@@ -102,6 +225,13 @@ export default function App() {
   const lastLevelUpdateRef = useRef(0);
   const audioEnvRef = useRef(0);
   const lastRelaxUpdateRef = useRef(0);
+  const winsTransitionTimerRef = useRef<number | null>(null);
+  const winsExitTimerRef = useRef<number | null>(null);
+  const hubTransitionTimerRef = useRef<number | null>(null);
+  const hubExitTimerRef = useRef<number | null>(null);
+  const dashboardIntroTimerRef = useRef<number | null>(null);
+  const titleSwapTimerRef = useRef<number | null>(null);
+  const titleClearTimerRef = useRef<number | null>(null);
 
   const gate = Math.min(1, Math.max(0, (audioLevel - 0.015) / 0.12));
   const pulseLevel = audioLevel * gate * gate;
@@ -205,6 +335,15 @@ export default function App() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
+  const sttAudioCtxRef = useRef<AudioContext | null>(null);
+  const sttProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const sttSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const sttGainRef = useRef<GainNode | null>(null);
+  const sttBuffersRef = useRef<Float32Array[]>([]);
+  const sttSampleRateRef = useRef<number>(16000);
+  const sttManualRef = useRef(false);
+  const transitionTimerRef = useRef<number | null>(null);
+  const pillTimerRef = useRef<number | null>(null);
 
   async function refresh() {
     try {
@@ -265,29 +404,6 @@ export default function App() {
     const id = setInterval(refresh, 5000);
     return () => clearInterval(id);
   }, []);
-
-  useEffect(() => {
-    if (!aiOutput) {
-      setAiDisplay(null);
-      return;
-    }
-    const tokens = aiOutput.trim().split(/\s+/);
-    let idx = 1;
-    if (!tokens.length) {
-      setAiDisplay("");
-      return;
-    }
-    setAiDisplay(tokens[0]);
-    const id = window.setInterval(() => {
-      if (idx >= tokens.length) {
-        window.clearInterval(id);
-        return;
-      }
-      setAiDisplay(tokens.slice(0, idx + 1).join(" "));
-      idx += 1;
-    }, 200);
-    return () => window.clearInterval(id);
-  }, [aiOutput]);
 
   const now = data?.now ? new Date(data.now) : null;
   const timeStr = now
@@ -428,8 +544,9 @@ export default function App() {
     }
   }
 
-  async function handleAiSubmit() {
-    const prompt = aiInput.trim();
+  async function handleAiSubmit(overridePrompt?: string | React.SyntheticEvent) {
+    const prompt =
+      (typeof overridePrompt === "string" ? overridePrompt : aiInput).trim();
     if (!prompt) return;
     try {
       setErr(null);
@@ -755,9 +872,160 @@ export default function App() {
     }
   }
 
+  function cleanupManualRecording() {
+    if (sttProcessorRef.current) {
+      try {
+        sttProcessorRef.current.disconnect();
+      } catch {
+        // Ignore disconnect errors for already-closed nodes.
+      }
+    }
+    if (sttSourceRef.current) {
+      try {
+        sttSourceRef.current.disconnect();
+      } catch {
+        // Ignore disconnect errors for already-closed nodes.
+      }
+    }
+    if (sttGainRef.current) {
+      try {
+        sttGainRef.current.disconnect();
+      } catch {
+        // Ignore disconnect errors for already-closed nodes.
+      }
+    }
+    sttProcessorRef.current = null;
+    sttSourceRef.current = null;
+    sttGainRef.current = null;
+    if (sttAudioCtxRef.current) {
+      try {
+        void sttAudioCtxRef.current.close();
+      } catch {
+        // Ignore close errors for already-closed contexts.
+      }
+      sttAudioCtxRef.current = null;
+    }
+    sttManualRef.current = false;
+  }
+
+  function encodeWav(samples: Float32Array, sampleRate: number) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+    const writeString = (offset: number, str: string) => {
+      for (let i = 0; i < str.length; i += 1) {
+        view.setUint8(offset + i, str.charCodeAt(i));
+      }
+    };
+
+    writeString(0, "RIFF");
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, "data");
+    view.setUint32(40, samples.length * 2, true);
+
+    let offset = 44;
+    for (let i = 0; i < samples.length; i += 1) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      offset += 2;
+    }
+
+    return buffer;
+  }
+
+  function buildWavBlob(buffers: Float32Array[], sampleRate: number) {
+    const totalLength = buffers.reduce((sum, b) => sum + b.length, 0);
+    const merged = new Float32Array(totalLength);
+    let offset = 0;
+    buffers.forEach((b) => {
+      merged.set(b, offset);
+      offset += b.length;
+    });
+    const wav = encodeWav(merged, sampleRate);
+    return new Blob([wav], { type: "audio/wav" });
+  }
+
+  function startManualRecording(stream: MediaStream) {
+    const AudioCtx =
+      window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) {
+      return false;
+    }
+    try {
+      const ctx = new AudioCtx();
+      sttAudioCtxRef.current = ctx;
+      sttSampleRateRef.current = ctx.sampleRate;
+      const source = ctx.createMediaStreamSource(stream);
+      const processor = ctx.createScriptProcessor(4096, 1, 1);
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      sttBuffersRef.current = [];
+      processor.onaudioprocess = (evt) => {
+        const input = evt.inputBuffer.getChannelData(0);
+        sttBuffersRef.current.push(new Float32Array(input));
+      };
+      source.connect(processor);
+      processor.connect(gain);
+      gain.connect(ctx.destination);
+      sttSourceRef.current = source;
+      sttProcessorRef.current = processor;
+      sttGainRef.current = gain;
+      sttManualRef.current = true;
+      void ctx.resume();
+      setIsRecording(true);
+      return true;
+    } catch {
+      cleanupManualRecording();
+      return false;
+    }
+  }
+
+  async function transcribeBlob(blob: Blob) {
+    if (!blob.size) {
+      setSttStatus("No audio captured.");
+      return;
+    }
+    try {
+      setSttStatus("Transcribing...");
+      const res = await sttTranscribe(blob);
+      const transcriptText = (res.text || "").trim();
+      setSttTranscript(transcriptText || "(no text)");
+      if (transcriptText) {
+        setAiInput(transcriptText);
+        if (!aiLoading) {
+          void handleAiSubmit(transcriptText);
+        }
+      }
+      setSttStatus(res.language ? `Language: ${res.language}` : "Done");
+    } catch (e: any) {
+      setErr(e?.message ?? "failed");
+      setSttStatus(null);
+    }
+  }
+
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      cleanupManualRecording();
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current != null) {
+        window.clearTimeout(transitionTimerRef.current);
+      }
+      if (pillTimerRef.current != null) {
+        window.clearTimeout(pillTimerRef.current);
+      }
     };
   }, []);
 
@@ -774,10 +1042,55 @@ export default function App() {
       const stream =
         streamRef.current ?? (await navigator.mediaDevices.getUserMedia({ audio: true }));
       streamRef.current = stream;
-      const mimeType = MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
-        ? "audio/ogg;codecs=opus"
-        : "audio/webm;codecs=opus";
-      const recorder = new MediaRecorder(stream, { mimeType });
+      if (!stream.getAudioTracks().length) {
+        setErr("No audio track available from microphone.");
+        setSttStatus(null);
+        return;
+      }
+      let recorder: MediaRecorder | null = null;
+      const candidates: Array<string | null> = [
+        "audio/ogg;codecs=opus",
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        null,
+      ];
+      const candidateErrors: string[] = [];
+      for (const candidate of candidates) {
+        if (candidate && !MediaRecorder.isTypeSupported(candidate)) {
+          continue;
+        }
+        try {
+          recorder = candidate
+            ? new MediaRecorder(stream, { mimeType: candidate })
+            : new MediaRecorder(stream);
+          recorder.start();
+          break;
+        } catch (e: any) {
+          candidateErrors.push(
+            `${candidate ?? "default"}: ${e?.message ?? "unknown error"}`
+          );
+          recorder = null;
+        }
+      }
+      if (!recorder) {
+        const manualStarted = startManualRecording(stream);
+        if (manualStarted) {
+          mediaRecorderRef.current = null;
+          return;
+        }
+        const supported = candidates
+          .filter((t): t is string => Boolean(t) && MediaRecorder.isTypeSupported(t))
+          .join(", ");
+        const ua = navigator.userAgent || "unknown";
+        setErr(
+          `MediaRecorder start failed (supported: ${supported || "none"}, attempts: ${
+            candidateErrors.join(" | ") || "none"
+          }, ua: ${ua})`
+        );
+        setSttStatus(null);
+        return;
+      }
       chunksRef.current = [];
       recorder.ondataavailable = (evt) => {
         if (evt.data && evt.data.size > 0) {
@@ -788,21 +1101,8 @@ export default function App() {
         setIsRecording(false);
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
         chunksRef.current = [];
-        if (!blob.size) {
-          setSttStatus("No audio captured.");
-          return;
-        }
-        try {
-          setSttStatus("Transcribing...");
-          const res = await sttTranscribe(blob);
-          setSttTranscript(res.text || "(no text)");
-          setSttStatus(res.language ? `Language: ${res.language}` : "Done");
-        } catch (e: any) {
-          setErr(e?.message ?? "failed");
-          setSttStatus(null);
-        }
+        await transcribeBlob(blob);
       };
-      recorder.start();
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
     } catch (e: any) {
@@ -813,15 +1113,534 @@ export default function App() {
 
   function stopRecording() {
     const recorder = mediaRecorderRef.current;
-    if (!recorder) return;
-    if (recorder.state !== "inactive") {
+    if (recorder) {
+      if (recorder.state !== "inactive") {
+        setSttStatus("Processing...");
+        recorder.stop();
+      }
+      return;
+    }
+    if (sttManualRef.current) {
       setSttStatus("Processing...");
-      recorder.stop();
+      const buffers = sttBuffersRef.current;
+      sttBuffersRef.current = [];
+      const sampleRate = sttSampleRateRef.current;
+      cleanupManualRecording();
+      setIsRecording(false);
+      if (!buffers.length) {
+        setSttStatus("No audio captured.");
+        return;
+      }
+      const blob = buildWavBlob(buffers, sampleRate);
+      void transcribeBlob(blob);
     }
   }
 
+  const maxDishIndex = Math.max(
+    0,
+    (Math.ceil(FOOD_HUB_DISHES.length / FOOD_HUB_VISIBLE) - 1) * FOOD_HUB_VISIBLE
+  );
+  const trackOffset = FOOD_HUB_VISIBLE;
+  const trackStart = trackOffset - FOOD_HUB_VISIBLE;
+  const trackMax = trackOffset + maxDishIndex;
+  const trackEnd = trackMax + FOOD_HUB_VISIBLE;
+  const trackDishes = [
+    ...FOOD_HUB_DISHES.slice(-FOOD_HUB_VISIBLE),
+    ...FOOD_HUB_DISHES,
+    ...FOOD_HUB_DISHES.slice(0, FOOD_HUB_VISIBLE),
+  ];
+  const pendingSnapRef = useRef<number | null>(null);
+  const autoCycleRef = useRef<number | null>(null);
+
+  const shiftDish = useCallback((delta: number) => {
+    setTrackIndex((prevTrack) => {
+      const step = delta > 0 ? FOOD_HUB_VISIBLE : -FOOD_HUB_VISIBLE;
+      const nextTrack = prevTrack + step;
+      if (nextTrack < trackStart || nextTrack > trackEnd) {
+        return prevTrack;
+      }
+      if (nextTrack === trackEnd) {
+        pendingSnapRef.current = trackOffset;
+      } else if (nextTrack === trackStart) {
+        pendingSnapRef.current = trackMax;
+      } else {
+        pendingSnapRef.current = null;
+      }
+      return nextTrack;
+    });
+  }, [trackEnd, trackStart, trackOffset, trackMax]);
+
+  const isFoodHub = activePage === "food-hub";
+
+  const scheduleAutoCycle = useCallback(() => {
+    if (autoCycleRef.current != null) {
+      window.clearTimeout(autoCycleRef.current);
+    }
+    if (!isFoodHub) return;
+    autoCycleRef.current = window.setTimeout(() => {
+      shiftDish(1);
+      scheduleAutoCycle();
+    }, 10000);
+  }, [isFoodHub, shiftDish]);
+
+  useEffect(() => {
+    scheduleAutoCycle();
+    return () => {
+      if (autoCycleRef.current != null) {
+        window.clearTimeout(autoCycleRef.current);
+      }
+    };
+  }, [scheduleAutoCycle]);
+
+  function handleManualShift(delta: number) {
+    shiftDish(delta);
+    scheduleAutoCycle();
+  }
+
+  function handleTrackTransitionEnd() {
+    if (pendingSnapRef.current == null) return;
+    const snapIndex = pendingSnapRef.current;
+    pendingSnapRef.current = null;
+    setIsTrackSnapping(true);
+    setTrackIndex(snapIndex);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsTrackSnapping(false);
+      });
+    });
+  }
+
+  function switchPage(next: "dashboard" | "food-hub") {
+    if (activePage === next) return;
+    const transitionDurationMs = 1100;
+    const pillFlipDelayMs = Math.round(transitionDurationMs / 2);
+    setActivePage(next);
+    if (next === "food-hub") {
+      setFoodHubMode("hub");
+      setTitleMode("hub");
+      setTitlePhase(null);
+    }
+    setIsTransitioning(true);
+    setTransitionDir(next === "food-hub" ? "to-foodhub" : "to-dashboard");
+    if (transitionTimerRef.current != null) {
+      window.clearTimeout(transitionTimerRef.current);
+    }
+    if (pillTimerRef.current != null) {
+      window.clearTimeout(pillTimerRef.current);
+    }
+    pillTimerRef.current = window.setTimeout(() => {
+      setPillMode(next === "food-hub" ? "mic" : "work");
+      pillTimerRef.current = null;
+    }, pillFlipDelayMs);
+    transitionTimerRef.current = window.setTimeout(() => {
+      setIsTransitioning(false);
+      setTransitionDir(null);
+      transitionTimerRef.current = null;
+    }, transitionDurationMs);
+  }
+
+  function enterWins() {
+    setFoodHubMode("wins");
+    setHubExiting(true);
+    setWinsExiting(false);
+    setHubTransitioning(false);
+    setWinsTransitioning(true);
+    transitionTitle("wins");
+    if (winsTransitionTimerRef.current != null) {
+      window.clearTimeout(winsTransitionTimerRef.current);
+    }
+    if (hubExitTimerRef.current != null) {
+      window.clearTimeout(hubExitTimerRef.current);
+    }
+    if (winsExitTimerRef.current != null) {
+      window.clearTimeout(winsExitTimerRef.current);
+      winsExitTimerRef.current = null;
+    }
+    if (hubTransitionTimerRef.current != null) {
+      window.clearTimeout(hubTransitionTimerRef.current);
+      hubTransitionTimerRef.current = null;
+    }
+    hubExitTimerRef.current = window.setTimeout(() => {
+      setHubExiting(false);
+      hubExitTimerRef.current = null;
+    }, 900);
+    winsTransitionTimerRef.current = window.setTimeout(() => {
+      setWinsTransitioning(false);
+      winsTransitionTimerRef.current = null;
+    }, 2200);
+  }
+
+  function exitWins() {
+    if (winsExiting) return;
+    setWinsTransitioning(false);
+    setWinsExiting(true);
+    setHubExiting(false);
+    setHubTransitioning(true);
+    setFoodHubMode("hub");
+    transitionTitle("hub");
+    if (winsTransitionTimerRef.current != null) {
+      window.clearTimeout(winsTransitionTimerRef.current);
+      winsTransitionTimerRef.current = null;
+    }
+    if (winsExitTimerRef.current != null) {
+      window.clearTimeout(winsExitTimerRef.current);
+    }
+    if (hubTransitionTimerRef.current != null) {
+      window.clearTimeout(hubTransitionTimerRef.current);
+    }
+    winsExitTimerRef.current = window.setTimeout(() => {
+      setWinsExiting(false);
+      winsExitTimerRef.current = null;
+    }, 900);
+    hubTransitionTimerRef.current = window.setTimeout(() => {
+      setHubTransitioning(false);
+      hubTransitionTimerRef.current = null;
+    }, 1100);
+  }
+
+  function exitWinsToDashboard() {
+    if (winsExiting) return;
+    setWinsTransitioning(false);
+    setWinsExiting(true);
+    setHubExiting(false);
+    setHubTransitioning(false);
+    setDashboardIntro(true);
+    setTitleMode("hub");
+    setTitlePhase(null);
+    if (winsTransitionTimerRef.current != null) {
+      window.clearTimeout(winsTransitionTimerRef.current);
+      winsTransitionTimerRef.current = null;
+    }
+    if (winsExitTimerRef.current != null) {
+      window.clearTimeout(winsExitTimerRef.current);
+    }
+    if (dashboardIntroTimerRef.current != null) {
+      window.clearTimeout(dashboardIntroTimerRef.current);
+    }
+    winsExitTimerRef.current = window.setTimeout(() => {
+      setWinsExiting(false);
+      winsExitTimerRef.current = null;
+    }, 900);
+    dashboardIntroTimerRef.current = window.setTimeout(() => {
+      setDashboardIntro(false);
+      dashboardIntroTimerRef.current = null;
+    }, 1200);
+    window.setTimeout(() => {
+      switchPage("dashboard");
+    }, 0);
+  }
+
+  function transitionTitle(next: "hub" | "wins") {
+    if (titleSwapTimerRef.current != null) {
+      window.clearTimeout(titleSwapTimerRef.current);
+    }
+    if (titleClearTimerRef.current != null) {
+      window.clearTimeout(titleClearTimerRef.current);
+    }
+    setTitlePhase("out");
+    titleSwapTimerRef.current = window.setTimeout(() => {
+      setTitleMode(next);
+      setTitlePhase("in");
+      titleClearTimerRef.current = window.setTimeout(() => {
+        setTitlePhase(null);
+        titleClearTimerRef.current = null;
+      }, 1100);
+      titleSwapTimerRef.current = null;
+    }, 520);
+  }
+
+  const renderTodayCard = (
+    slotClass: string,
+    alignClass: string,
+    extraClass?: string
+  ) => (
+    <section
+      className={`card glass-tile ${slotClass} ${alignClass}${
+        extraClass ? ` ${extraClass}` : ""
+      }`}
+    >
+      <div className="cardHeader">
+        <h2>Today</h2>
+      </div>
+      {hasTodayItems ? (
+        <ul className="list list--flush">
+          {isWork ? (
+            <li className={`eventRow${workFinished ? " eventRow--done" : ""}`}>
+              <span>
+                <strong>{workStart && workEnd ? `${workStart}-${workEnd}` : "Work"}</strong>{" "}
+                Work
+              </span>
+              {workStatus ? (
+                <span
+                  className={`eventMeta${
+                    workFinished ? " eventMeta--done" : " reminderStatus"
+                  }${workStatus === "now" ? " reminderStatus--missed" : ""}${
+                    workStatus !== "now" && !workFinished ? " reminderStatus--done" : ""
+                  }`}
+                >
+                  {workStatus}
+                </span>
+              ) : null}
+            </li>
+          ) : null}
+          {events.map((e) => {
+            const isAllDay = Boolean(e.all_day);
+            const timeLabel = isAllDay
+              ? "All day"
+              : e.start_hhmm && e.end_hhmm
+                ? `${e.start_hhmm}-${e.end_hhmm}`
+                : e.start_hhmm ?? "TBD";
+            let relativeLabel = "";
+            let isNow = false;
+            let isUpcoming = false;
+            let isDone = false;
+            if (isAllDay) {
+              relativeLabel = "now";
+              isNow = true;
+            } else if (e.start_hhmm) {
+              const eventStart = new Date(`${e.event_date}T${e.start_hhmm}:00`);
+              const eventStartMs = eventStart.getTime();
+              let eventEndMs = eventStartMs;
+              if (e.end_hhmm) {
+                const eventEnd = new Date(`${e.event_date}T${e.end_hhmm}:00`);
+                eventEndMs = eventEnd.getTime();
+              }
+              const diffMs = eventStartMs - nowMs;
+              const diffMins = Math.round(diffMs / 60000);
+              if (nowMs >= eventStartMs && nowMs <= eventEndMs) {
+                relativeLabel = "now";
+                isNow = true;
+              } else if (diffMins >= 0) {
+                const hours = Math.floor(diffMins / 60);
+                const mins = diffMins % 60;
+                relativeLabel = hours > 0 ? `in ${hours}h ${mins}m` : `in ${mins} mins`;
+                isUpcoming = true;
+              } else {
+                isDone = true;
+              }
+            }
+            return (
+              <li key={e.id} className={`eventRow${isDone ? " eventRow--done" : ""}`}>
+                <span>
+                  <strong>{timeLabel}</strong> {e.title}
+                </span>
+                {relativeLabel ? (
+                  <span
+                    className={`eventMeta${
+                      isNow || isUpcoming ? " reminderStatus" : ""
+                    }${isUpcoming ? " reminderStatus--done" : ""}${
+                      isNow ? " reminderStatus--missed" : ""
+                    }${isDone ? " eventMeta--done" : ""}`}
+                  >
+                    {relativeLabel}
+                  </span>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </section>
+  );
+
+  const renderTasksCard = (slotClass: string, alignClass: string) => (
+    <section className={`card glass-tile ${slotClass} ${alignClass}`}>
+      <div className="cardHeader">
+        <h2>Tasks</h2>
+        {tasksViewMode === "single" && currentTask ? (
+          <span className={`taskPriority taskPriority--${currentTask.priority}`}>
+            {currentTask.priority}
+          </span>
+        ) : null}
+      </div>
+      {tasksViewMode === "all" ? (
+        tasks.length ? (
+          <ul className="taskList">
+            {tasks.map((t) => (
+              <li key={t.id} className="taskRow">
+                <span className={`taskPriority taskPriority--${t.priority}`}>
+                  {t.priority}
+                </span>
+                <span>{t.title}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="big">Excellent work. Congrats on completing your tasks!</p>
+        )
+      ) : currentTask ? (
+        <>
+          <p className="big">{currentTask.title}</p>
+          <div className="taskControls">
+            <button className="glass-pill glass-pill--small" onClick={cycleTask}>
+              Next
+            </button>
+            <button className="glass-pill glass-pill--small" onClick={markTaskDone}>
+              Done
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="big">Excellent work. Congrats on completing your tasks!</p>
+      )}
+    </section>
+  );
+
+  const renderAlertsCard = (
+    slotClass: string,
+    alignClass: string,
+    extraClass?: string
+  ) => (
+    <section
+      className={`card glass-tile ${slotClass} ${alignClass}${
+        extraClass ? ` ${extraClass}` : ""
+      }`}
+    >
+      <div className="cardHeader">
+        <h2>Alerts</h2>
+      </div>
+
+      {/* Med reminders (active) */}
+      {visibleAlerts.length ? (
+        <div className="reminders">
+          {visibleAlerts.map((r) => {
+            const isMedReminder = ["lanny_zee", "morning_meds", "lunch_meds", "evening_meds"].includes(
+              r.reminder_key
+            );
+            const statusLabel =
+              r.derivedStatus === "done"
+                ? isMedReminder
+                  ? "Taken"
+                  : "Done"
+                : r.derivedStatus === "missed"
+                  ? "Missed"
+                  : null;
+            const showDone = r.derivedStatus === "active" && r.inWindow;
+            return (
+              <div
+                key={r.id}
+                className={`reminderRow${r.inWindow ? " reminderRow--due" : ""}${
+                  r.derivedStatus !== "active" ? " reminderRow--inactive" : ""
+                }${r.derivedStatus === "missed" ? " reminderRow--missed" : ""}${
+                  r.derivedStatus === "done" ? " reminderRow--done" : ""
+                }`}
+              >
+                <div className="reminderText">
+                  <div className="reminderTop">
+                    <strong>{r.label}</strong>{" "}
+                    <span className="subtle">due {r.scheduled_hhmm}</span>
+                    {statusLabel ? (
+                      <span
+                        className={`reminderStatus reminderStatus--${r.derivedStatus}`}
+                      >
+                        {statusLabel}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                {showDone ? (
+                  <button
+                    className="glass-pill glass-pill--small"
+                    onClick={() => markDone(r)}
+                  >
+                    Done
+                  </button>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {/* Normal alerts */}
+      {data?.alerts?.length ? (
+        <ul className="list list--pills">
+          {data.alerts.map((a, i) => (
+            <li key={i}>{a.message}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="big">{visibleAlerts.length ? "" : "None"}</p>
+      )}
+    </section>
+  );
+
+  const renderPushToTalkCard = (slotClass: string, alignClass: string) => (
+    <section className={`card glass-tile ${slotClass} ${alignClass}`}>
+      <div className="cardHeader">
+        <h2>Push to talk</h2>
+      </div>
+      <button
+        className={`glass-pill micPill${isRecording ? " micPill--recording" : ""}`}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          startRecording();
+        }}
+        onMouseUp={(e) => {
+          e.preventDefault();
+          stopRecording();
+        }}
+        onMouseLeave={() => {
+          if (isRecording) stopRecording();
+        }}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          startRecording();
+        }}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          stopRecording();
+        }}
+      >
+        {isRecording ? "Listening..." : "Hold to talk"}
+      </button>
+      <p className="subtle">v1: button only (no hotword)</p>
+      <div className="aiBlock">
+        <div className="aiLabel">Ask Sam</div>
+        <textarea
+          className="aiInput"
+          rows={3}
+          placeholder="Type a prompt..."
+          value={aiInput}
+          onChange={(e) => setAiInput(e.target.value)}
+        />
+        <div className="aiActions">
+          <button
+            className="glass-pill glass-pill--small"
+            onClick={handleAiSubmit}
+            disabled={aiLoading}
+          >
+            {aiLoading ? "Thinking..." : "Ask"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+
+  const showDashboardLayer =
+    !isFoodHub ||
+    dashboardIntro ||
+    (foodHubMode === "hub" && !hubTransitioning && !winsExiting);
+  const showHubIntroCards = isFoodHub && hubTransitioning;
+  const showWins =
+    (isFoodHub || isTransitioning) && (foodHubMode === "wins" || winsExiting);
+  const showHub =
+    (isFoodHub || isTransitioning) &&
+    (foodHubMode === "hub" || hubTransitioning || hubExiting);
+
   return (
-    <div className="page">
+    <div
+      className={`page${isFoodHub ? " page--foodhub" : ""}${
+        isTransitioning ? " page--transitioning" : ""
+      }${transitionDir ? ` page--${transitionDir}` : ""}${
+        winsTransitioning ? " page--wins-transitioning" : ""
+      }${winsExiting ? " page--wins-exiting" : ""}${
+        hubTransitioning ? " page--hub-transitioning" : ""
+      }${hubExiting ? " page--hub-exiting" : ""}${
+        dashboardIntro ? " page--dashboard-intro" : ""
+      }`}
+    >
       <div className="bg">
         <DarkVeil
           hueShift={0}
@@ -837,301 +1656,279 @@ export default function App() {
       <header className="top">
         <div className="topLeft">
           <div className="time">{timeStr}</div>
-          <div className="date">{dateStrPretty}</div>
+          <div className="dateRow">
+            <div className="date">{dateStrPretty}</div>
+            <div className="pillMorphWrap">
+              <button
+                className={`glass-pill glass-pill--small pillMorph${
+                  pillMode === "mic"
+                    ? " pillMorph--mic micPill micPill--compact"
+                    : " pillMorph--work"
+                }${isRecording ? " micPill--recording" : ""}`}
+                disabled={pillMode !== "mic"}
+                onMouseDown={(e) => {
+                  if (pillMode !== "mic") return;
+                  e.preventDefault();
+                  startRecording();
+                }}
+                onMouseUp={(e) => {
+                  if (pillMode !== "mic") return;
+                  e.preventDefault();
+                  stopRecording();
+                }}
+                onMouseLeave={() => {
+                  if (pillMode === "mic" && isRecording) stopRecording();
+                }}
+                onTouchStart={(e) => {
+                  if (pillMode !== "mic") return;
+                  e.preventDefault();
+                  startRecording();
+                }}
+                onTouchEnd={(e) => {
+                  if (pillMode !== "mic") return;
+                  e.preventDefault();
+                  stopRecording();
+                }}
+              >
+                {pillMode === "mic"
+                  ? isRecording
+                    ? "Listening..."
+                    : "Push to talk"
+                  : workLabel}
+              </button>
+            </div>
+          </div>
         </div>
 
+        {isFoodHub || isTransitioning ? (
+          <div className="topCenter">
+            <div
+              className={`foodHubTitle funFactTitle foodHubTitle--center${
+                titlePhase ? ` foodHubTitle--${titlePhase}` : ""
+              }`}
+            >
+              {titleMode === "wins" ? "10-15 minute wins" : "foodhub"}
+            </div>
+          </div>
+        ) : null}
+
         <div className="topRight">
-          <span className="glass-pill glass-pill--small">{workLabel}</span>
+          <button
+            type="button"
+            className={`glass-pill glass-pill--small navPill${
+              !isFoodHub ? " navPill--active" : ""
+            }`}
+            onClick={() => {
+              if (isFoodHub && foodHubMode === "wins") {
+                exitWinsToDashboard();
+              } else {
+                switchPage("dashboard");
+              }
+            }}
+            aria-current={!isFoodHub ? "page" : undefined}
+          >
+            Dashboard
+          </button>
+          <button
+            type="button"
+            className={`glass-pill glass-pill--small navPill${
+              isFoodHub ? " navPill--active" : ""
+            }`}
+            onClick={() => {
+              if (isFoodHub && foodHubMode === "wins") {
+                exitWins();
+              } else {
+                switchPage("food-hub");
+              }
+            }}
+            aria-current={isFoodHub ? "page" : undefined}
+          >
+            Food Hub
+          </button>
         </div>
       </header>
-      {aiOutput ? <div className="aiResponse">{aiDisplay ?? aiOutput}</div> : null}
+      {aiOutput ? (
+        <div className="aiResponse">
+          <TextType
+            key={aiOutput}
+            text={aiOutput}
+            typingSpeed={30}
+            pauseDuration={600}
+            deletingSpeed={20}
+            loop={false}
+            showCursor
+            cursorCharacter="_"
+            cursorBlinkDuration={0.6}
+          />
+        </div>
+      ) : null}
 
       {err && <div className="err glass-soft">Backend error: {err}</div>}
 
       <main className="grid">
-        {/* Left column, row 1 */}
-        <section className="card glass-tile slot-l1 card--left">
-          <div className="cardHeader">
-            <h2>Today</h2>
-          </div>
-          {hasTodayItems ? (
-            <ul className="list list--flush">
-              {isWork ? (
-                <li className={`eventRow${workFinished ? " eventRow--done" : ""}`}>
-                  <span>
-                    <strong>{workStart && workEnd ? `${workStart}-${workEnd}` : "Work"}</strong>{" "}
-                    Work
-                  </span>
-                  {workStatus ? (
-                    <span
-                      className={`eventMeta${
-                        workFinished ? " eventMeta--done" : " reminderStatus"
-                      }${workStatus === "now" ? " reminderStatus--missed" : ""}${
-                        workStatus !== "now" && !workFinished ? " reminderStatus--done" : ""
-                      }`}
-                    >
-                      {workStatus}
-                    </span>
-                  ) : null}
-                </li>
-              ) : null}
-              {events.map((e) => {
-                const isAllDay = Boolean(e.all_day);
-                const timeLabel = isAllDay
-                  ? "All day"
-                  : e.start_hhmm && e.end_hhmm
-                    ? `${e.start_hhmm}-${e.end_hhmm}`
-                    : e.start_hhmm ?? "TBD";
-                let relativeLabel = "";
-                let isNow = false;
-                let isUpcoming = false;
-                let isDone = false;
-                if (isAllDay) {
-                  relativeLabel = "now";
-                  isNow = true;
-                } else if (e.start_hhmm) {
-                  const eventStart = new Date(`${e.event_date}T${e.start_hhmm}:00`);
-                  const eventStartMs = eventStart.getTime();
-                  let eventEndMs = eventStartMs;
-                  if (e.end_hhmm) {
-                    const eventEnd = new Date(`${e.event_date}T${e.end_hhmm}:00`);
-                    eventEndMs = eventEnd.getTime();
-                  }
-                  const diffMs = eventStartMs - nowMs;
-                  const diffMins = Math.round(diffMs / 60000);
-                  if (nowMs >= eventStartMs && nowMs <= eventEndMs) {
-                    relativeLabel = "now";
-                    isNow = true;
-                  } else if (diffMins >= 0) {
-                    const hours = Math.floor(diffMins / 60);
-                    const mins = diffMins % 60;
-                    relativeLabel =
-                      hours > 0 ? `in ${hours}h ${mins}m` : `in ${mins} mins`;
-                    isUpcoming = true;
-                  } else {
-                    isDone = true;
-                  }
-                }
-                return (
-                  <li key={e.id} className={`eventRow${isDone ? " eventRow--done" : ""}`}>
-                    <span>
-                      <strong>{timeLabel}</strong> {e.title}
-                    </span>
-                    {relativeLabel ? (
-                      <span
-                        className={`eventMeta${
-                          isNow || isUpcoming ? " reminderStatus" : ""
-                        }${isUpcoming ? " reminderStatus--done" : ""}${
-                          isNow ? " reminderStatus--missed" : ""
-                        }${isDone ? " eventMeta--done" : ""}`}
-                      >
-                        {relativeLabel}
-                      </span>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-        </section>
+        {showDashboardLayer ? (
+          <>
+            {renderTodayCard("slot-l1", "card--left", "card--merge")}
+            {renderTasksCard("slot-r1", "card--right card--exit-up")}
 
-        {/* Right column, row 1 */}
-        <section className="card glass-tile slot-r1 card--right">
-          <div className="cardHeader">
-            <h2>Tasks</h2>
-            {tasksViewMode === "single" && currentTask ? (
-              <span className={`taskPriority taskPriority--${currentTask.priority}`}>
-                {currentTask.priority}
-              </span>
-            ) : null}
-          </div>
-          {tasksViewMode === "all" ? (
-            tasks.length ? (
-              <ul className="taskList">
-                {tasks.map((t) => (
-                  <li key={t.id} className="taskRow">
-                    <span className={`taskPriority taskPriority--${t.priority}`}>
-                      {t.priority}
-                    </span>
-                    <span>{t.title}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="big">Excellent work. Congrats on completing your tasks!</p>
-            )
-          ) : currentTask ? (
-            <>
-              <p className="big">{currentTask.title}</p>
-              <div className="taskControls">
-                <button className="glass-pill glass-pill--small" onClick={cycleTask}>
-                  Next
-                </button>
-                <button className="glass-pill glass-pill--small" onClick={markTaskDone}>
-                  Done
-                </button>
+            {/* Middle column: Orb (no tile/background) */}
+            <div className="orbSlot merge-off" aria-hidden="true">
+              <div className={`orbWrap${isVisualSpeaking ? " orbWrap--speaking" : ""}`}>
+                <Orb
+                  hue={0}
+                  hoverIntensity={isVisualSpeaking ? audioPulse * 2.2 : 0.35}
+                  rotateOnHover
+                  forceHoverState={false}
+                  pulse={0}
+                  pulseSpeed={16.5}
+                  autoHover={isVisualSpeaking}
+                  autoHoverIntensity={isVisualSpeaking ? audioPulse * 1.1 : 1.0}
+                  autoHoverSpeed={6.0}
+                  speaking={isVisualSpeaking}
+                />
               </div>
-            </>
-          ) : (
-            <p className="big">Excellent work. Congrats on completing your tasks!</p>
-          )}
-        </section>
+            </div>
 
-        {/* Middle column: Orb (no tile/background) */}
-        <div className="orbSlot" aria-hidden="true">
-          <div className={`orbWrap${isVisualSpeaking ? " orbWrap--speaking" : ""}`}>
-            <Orb
-              hue={0}
-              hoverIntensity={isVisualSpeaking ? audioPulse * 2.2 : 0.35}
-              rotateOnHover
-              forceHoverState={false}
-              pulse={0}
-              pulseSpeed={16.5}
-              autoHover={isVisualSpeaking}
-              autoHoverIntensity={isVisualSpeaking ? audioPulse * 1.1 : 1.0}
-              autoHoverSpeed={6.0}
-              speaking={isVisualSpeaking}
-            />
-          </div>
-        </div>
+            <div className="funFactDock merge-off">
+              <FunFactCard />
+            </div>
 
-        <div className="funFactDock">
-          <FunFactCard />
-        </div>
+            {renderAlertsCard("slot-l2", "card--left", "card--merge")}
+            {renderPushToTalkCard("slot-r2", "card--right card--exit-down")}
+          </>
+        ) : showHubIntroCards ? (
+          <>
+            {renderTodayCard(
+              "slot-l1",
+              "card--left card--hub-intro",
+              "card--merge"
+            )}
+            {renderAlertsCard(
+              "slot-l2",
+              "card--left card--hub-intro card--hub-intro--delay",
+              "card--merge"
+            )}
+          </>
+        ) : null}
 
-        {/* Left column, row 2 */}
-        <section className="card glass-tile slot-l2 card--left">
-          <div className="cardHeader">
-            <h2>Alerts</h2>
-          </div>
-
-          {/* Med reminders (active) */}
-          {visibleAlerts.length ? (
-            <div className="reminders">
-              {visibleAlerts.map((r) => {
-                const isMedReminder = ["lanny_zee", "morning_meds", "lunch_meds", "evening_meds"].includes(
-                  r.reminder_key
-                );
-                const statusLabel =
-                  r.derivedStatus === "done"
-                    ? isMedReminder
-                      ? "Taken"
-                      : "Done"
-                    : r.derivedStatus === "missed"
-                      ? "Missed"
-                      : null;
-                const showDone = r.derivedStatus === "active" && r.inWindow;
-                return (
-                  <div
-                    key={r.id}
-                    className={`reminderRow${r.inWindow ? " reminderRow--due" : ""}${
-                      r.derivedStatus !== "active" ? " reminderRow--inactive" : ""
-                    }${r.derivedStatus === "missed" ? " reminderRow--missed" : ""}${
-                      r.derivedStatus === "done" ? " reminderRow--done" : ""
-                    }`}
+        {showWins ? (
+          <section className="winsPage" aria-label="Ten to fifteen minute wins">
+              <div className="winsHero glass-tile">
+                <div className="winsHeroTop">
+                  <div className="winsEyebrow">10-15 minute wins</div>
+                  <button
+                    type="button"
+                    className="glass-pill glass-pill--small winsBack"
+                    onClick={exitWins}
                   >
-                    <div className="reminderText">
-                      <div className="reminderTop">
-                        <strong>{r.label}</strong>{" "}
-                        <span className="subtle">due {r.scheduled_hhmm}</span>
-                        {statusLabel ? (
-                          <span
-                            className={`reminderStatus reminderStatus--${r.derivedStatus}`}
-                          >
-                            {statusLabel}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="subtle">{r.speak_text}</div>
+                    Back to hub
+                  </button>
+                </div>
+                <h2 className="winsTitle">Fast, hot, done.</h2>
+                <p className="winsSubtitle">
+                  Pick one, add a side, and get back to life. Built for weeknights,
+                  low effort, high reward.
+                </p>
+                <div className="winsSteps" role="list">
+                  {WINS_BUILD_STEPS.map((step) => (
+                    <div key={step.id} className="winsStep" role="listitem">
+                      <div className="winsStepTitle">{step.title}</div>
+                      <div className="winsStepDesc">{step.desc}</div>
                     </div>
+                  ))}
+                </div>
+              </div>
 
-                    {showDone ? (
-                      <button
-                        className="glass-pill glass-pill--small"
-                        onClick={() => markDone(r)}
-                      >
-                        Done
-                      </button>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
+              <div className="winsGrid" role="list">
+                {WINS_MENU.map((item) => (
+                  <article
+                    key={item.id}
+                    className="winsCard glass-tile"
+                    role="listitem"
+                    data-win-id={item.id}
+                  >
+                    <div className="winsCardTop">
+                      <span className="winsTime">{item.time}</span>
+                    </div>
+                    <h3 className="winsCardTitle">{item.title}</h3>
+                    <p className="winsCardNote">{item.note}</p>
+                    <div className="winsTags">
+                      {item.tags.map((tag) => {
+                        const words = tag.replace(/-/g, " ");
+                        return (
+                          <span key={tag} className="winsTag" data-tag={tag}>
+                            {words}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </article>
+                ))}
+              </div>
 
-          {/* Normal alerts */}
-          {data?.alerts?.length ? (
-            <ul className="list list--pills">
-              {data.alerts.map((a, i) => (
-                <li key={i}>{a.message}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="big">{visibleAlerts.length ? "" : "None"}</p>
-          )}
-        </section>
+            </section>
+        ) : null}
 
-        {/* Right column, row 2 */}
-        <section className="card glass-tile slot-r2 card--right">
-          <div className="cardHeader">
-            <h2>Push to talk</h2>
+        {showHub ? (
+          <div className="foodHubStack">
+              <section className="foodHubPanel" aria-label="Food hub classics">
+                <div className="foodHubPanelHeader">
+                  <div className="foodHubPanelTitle">classics</div>
+                </div>
+                <div className="foodHubCarousel">
+                  <ul
+                    className={`foodHubTrack${isTrackSnapping ? " foodHubTrack--snap" : ""}`}
+                    style={{ "--dish-index": trackIndex } as CSSProperties}
+                    onTransitionEnd={handleTrackTransitionEnd}
+                  >
+                    {trackDishes.map((dish, index) => (
+                      <li key={`${dish.id}-${index}`} className="foodHubTile">
+                        <div className="foodHubTileImage" aria-hidden={!dish.image}>
+                          {dish.image ? (
+                            <img
+                              className="foodHubTileImg"
+                              src={dish.image}
+                              alt={dish.name}
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span>Image</span>
+                          )}
+                        </div>
+                        <div className="foodHubTileName">{dish.name}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+              <section className="foodHubExtras" aria-label="Food hub categories">
+                <div className="foodHubExtrasGrid" role="list">
+                  {FOOD_HUB_EXTRAS.map((dish) => (
+                    <button
+                      key={dish.id}
+                      type="button"
+                      className="foodHubExtraTile glass-tile"
+                      role="listitem"
+                      onClick={() => {
+                        if (dish.id === 1) enterWins();
+                      }}
+                    >
+                      <div className="foodHubTileImage">
+                        <GradientText
+                          colors={["#9463e9", "#ffffff"]}
+                          animationSpeed={8}
+                          showBorder={false}
+                          className="foodHubCategoryText"
+                        >
+                          {dish.name}
+                        </GradientText>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
           </div>
-          <button
-            className={`glass-pill micPill${isRecording ? " micPill--recording" : ""}`}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              startRecording();
-            }}
-            onMouseUp={(e) => {
-              e.preventDefault();
-              stopRecording();
-            }}
-            onMouseLeave={() => {
-              if (isRecording) stopRecording();
-            }}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              startRecording();
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              stopRecording();
-            }}
-          >
-            {isRecording ? "Listening..." : "Hold to talk"}
-          </button>
-          <button className="glass-pill glass-pill--small ttsButton" onClick={handleTtsClick}>
-            Test speak
-          </button>
-          <p className="subtle">v1: button only (no hotword)</p>
-          {sttTranscript || sttStatus ? (
-            <div className="sttBox glass-soft">
-              <div className="aiLabel">Transcript</div>
-              {sttTranscript ? <div className="sttText">{sttTranscript}</div> : null}
-              {sttStatus ? <div className="sttStatus subtle">{sttStatus}</div> : null}
-            </div>
-          ) : null}
-
-          <div className="aiBlock">
-            <div className="aiLabel">Ask Sam</div>
-            <textarea
-              className="aiInput"
-              rows={3}
-              placeholder="Type a prompt..."
-              value={aiInput}
-              onChange={(e) => setAiInput(e.target.value)}
-            />
-            <div className="aiActions">
-              <button
-                className="glass-pill glass-pill--small"
-                onClick={handleAiSubmit}
-                disabled={aiLoading}
-              >
-                {aiLoading ? "Thinking..." : "Ask"}
-              </button>
-            </div>
-          </div>
-        </section>
+        ) : null}
       </main>
 
     </div>
