@@ -106,6 +106,71 @@ const FOOD_HUB_EXTRAS = [
   { id: 8, name: "Freezer\nFirst" },
 ];
 
+const WINS_MENU = [
+  {
+    id: 1,
+    title: "Tahini noodles with red cabbage & Sichuan peppercorn slaw",
+    time: "10 min",
+    note: "Toss noodles in tahini, add crunchy slaw and zing.",
+    tags: ["High-fibre", "Low calorie", "Vegetarian"],
+  },
+  {
+    id: 2,
+    title: "Lemon pepper chicken wraps",
+    time: "12 min",
+    note: "Quick sear strips, toss with lemon and yogurt.",
+    tags: ["wrap", "protein", "zesty"],
+  },
+  {
+    id: 3,
+    title: "Pesto gnocchi skillet",
+    time: "15 min",
+    note: "Crisp gnocchi, stir in pesto and cherry tomatoes.",
+    tags: ["greens", "saucy", "Vegetarian"],
+  },
+  {
+    id: 4,
+    title: "Garlic parmesan white beans",
+    time: "15 min",
+    note: "Warm beans with garlic, parmesan, and olive oil.",
+    tags: ["greens", "pantry"],
+  },
+  {
+    id: 5,
+    title: "Garlic butter prawns",
+    time: "12 min",
+    note: "Sizzle prawns with garlic, finish with lemon.",
+    tags: ["seafood", "bright"],
+  },
+  {
+    id: 6,
+    title: "Yaki udon (stir-fried udon noodles)",
+    time: "15 min",
+    note: "Stir-fry udon with veggies, soy, and sesame.",
+    tags: ["Vegetarian", "saucy"],
+  },
+  {
+    id: 8,
+    title: "Halloumi honey pita",
+    time: "12 min",
+    note: "Sear halloumi, add honey and a quick salad.",
+    tags: ["sweet-salty", "Vegetarian"],
+  },
+  {
+    id: 7,
+    title: "Pan-seared sea bass",
+    time: "15 min",
+    note: "Crisp skin, lemon butter, quick sautéed greens.",
+    tags: ["seafood", "bright"],
+  },
+];
+
+const WINS_BUILD_STEPS = [
+  { id: 1, title: "Pick a protein", desc: "eggs, tinned fish, tofu, chicken" },
+  { id: 2, title: "Heat a carb", desc: "pasta, noodles, wraps, potatoes, rice" },
+  { id: 3, title: "Finish bright", desc: "lemon, herbs, hot sauce" },
+];
+
 function ymdLocal(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -118,6 +183,13 @@ export default function App() {
   const [activePage, setActivePage] = useState<"dashboard" | "food-hub">(
     "dashboard"
   );
+  const [foodHubMode, setFoodHubMode] = useState<"hub" | "wins">("hub");
+  const [winsTransitioning, setWinsTransitioning] = useState(false);
+  const [winsExiting, setWinsExiting] = useState(false);
+  const [hubTransitioning, setHubTransitioning] = useState(false);
+  const [hubExiting, setHubExiting] = useState(false);
+  const [titleMode, setTitleMode] = useState<"hub" | "wins">("hub");
+  const [titlePhase, setTitlePhase] = useState<"out" | "in" | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionDir, setTransitionDir] = useState<
     "to-foodhub" | "to-dashboard" | null
@@ -152,6 +224,12 @@ export default function App() {
   const lastLevelUpdateRef = useRef(0);
   const audioEnvRef = useRef(0);
   const lastRelaxUpdateRef = useRef(0);
+  const winsTransitionTimerRef = useRef<number | null>(null);
+  const winsExitTimerRef = useRef<number | null>(null);
+  const hubTransitionTimerRef = useRef<number | null>(null);
+  const hubExitTimerRef = useRef<number | null>(null);
+  const titleSwapTimerRef = useRef<number | null>(null);
+  const titleClearTimerRef = useRef<number | null>(null);
 
   const gate = Math.min(1, Math.max(0, (audioLevel - 0.015) / 0.12));
   const pulseLevel = audioLevel * gate * gate;
@@ -1135,6 +1213,11 @@ export default function App() {
     const transitionDurationMs = 1100;
     const pillFlipDelayMs = Math.round(transitionDurationMs / 2);
     setActivePage(next);
+    if (next === "food-hub") {
+      setFoodHubMode("hub");
+      setTitleMode("hub");
+      setTitlePhase(null);
+    }
     setIsTransitioning(true);
     setTransitionDir(next === "food-hub" ? "to-foodhub" : "to-dashboard");
     if (transitionTimerRef.current != null) {
@@ -1152,6 +1235,84 @@ export default function App() {
       setTransitionDir(null);
       transitionTimerRef.current = null;
     }, transitionDurationMs);
+  }
+
+  function enterWins() {
+    setFoodHubMode("wins");
+    setHubExiting(true);
+    setWinsExiting(false);
+    setHubTransitioning(false);
+    setWinsTransitioning(true);
+    transitionTitle("wins");
+    if (winsTransitionTimerRef.current != null) {
+      window.clearTimeout(winsTransitionTimerRef.current);
+    }
+    if (hubExitTimerRef.current != null) {
+      window.clearTimeout(hubExitTimerRef.current);
+    }
+    if (winsExitTimerRef.current != null) {
+      window.clearTimeout(winsExitTimerRef.current);
+      winsExitTimerRef.current = null;
+    }
+    if (hubTransitionTimerRef.current != null) {
+      window.clearTimeout(hubTransitionTimerRef.current);
+      hubTransitionTimerRef.current = null;
+    }
+    hubExitTimerRef.current = window.setTimeout(() => {
+      setHubExiting(false);
+      hubExitTimerRef.current = null;
+    }, 900);
+    winsTransitionTimerRef.current = window.setTimeout(() => {
+      setWinsTransitioning(false);
+      winsTransitionTimerRef.current = null;
+    }, 2200);
+  }
+
+  function exitWins() {
+    if (winsExiting) return;
+    setWinsTransitioning(false);
+    setWinsExiting(true);
+    setHubExiting(false);
+    setHubTransitioning(true);
+    setFoodHubMode("hub");
+    transitionTitle("hub");
+    if (winsTransitionTimerRef.current != null) {
+      window.clearTimeout(winsTransitionTimerRef.current);
+      winsTransitionTimerRef.current = null;
+    }
+    if (winsExitTimerRef.current != null) {
+      window.clearTimeout(winsExitTimerRef.current);
+    }
+    if (hubTransitionTimerRef.current != null) {
+      window.clearTimeout(hubTransitionTimerRef.current);
+    }
+    winsExitTimerRef.current = window.setTimeout(() => {
+      setWinsExiting(false);
+      winsExitTimerRef.current = null;
+    }, 900);
+    hubTransitionTimerRef.current = window.setTimeout(() => {
+      setHubTransitioning(false);
+      hubTransitionTimerRef.current = null;
+    }, 1100);
+  }
+
+  function transitionTitle(next: "hub" | "wins") {
+    if (titleSwapTimerRef.current != null) {
+      window.clearTimeout(titleSwapTimerRef.current);
+    }
+    if (titleClearTimerRef.current != null) {
+      window.clearTimeout(titleClearTimerRef.current);
+    }
+    setTitlePhase("out");
+    titleSwapTimerRef.current = window.setTimeout(() => {
+      setTitleMode(next);
+      setTitlePhase("in");
+      titleClearTimerRef.current = window.setTimeout(() => {
+        setTitlePhase(null);
+        titleClearTimerRef.current = null;
+      }, 1100);
+      titleSwapTimerRef.current = null;
+    }, 520);
   }
 
   const renderTodayCard = (
@@ -1423,11 +1584,24 @@ export default function App() {
     </section>
   );
 
+  const showDashboardLayer =
+    !isFoodHub || (foodHubMode === "hub" && !hubTransitioning && !winsExiting);
+  const showHubIntroCards = isFoodHub && hubTransitioning;
+  const showWins =
+    (isFoodHub || isTransitioning) && (foodHubMode === "wins" || winsExiting);
+  const showHub =
+    (isFoodHub || isTransitioning) &&
+    (foodHubMode === "hub" || hubTransitioning || hubExiting);
+
   return (
     <div
       className={`page${isFoodHub ? " page--foodhub" : ""}${
         isTransitioning ? " page--transitioning" : ""
-      }${transitionDir ? ` page--${transitionDir}` : ""}`}
+      }${transitionDir ? ` page--${transitionDir}` : ""}${
+        winsTransitioning ? " page--wins-transitioning" : ""
+      }${winsExiting ? " page--wins-exiting" : ""}${
+        hubTransitioning ? " page--hub-transitioning" : ""
+      }${hubExiting ? " page--hub-exiting" : ""}`}
     >
       <div className="bg">
         <DarkVeil
@@ -1490,8 +1664,12 @@ export default function App() {
 
         {isFoodHub || isTransitioning ? (
           <div className="topCenter">
-            <div className="foodHubTitle funFactTitle foodHubTitle--center">
-              foodhub
+            <div
+              className={`foodHubTitle funFactTitle foodHubTitle--center${
+                titlePhase ? ` foodHubTitle--${titlePhase}` : ""
+              }`}
+            >
+              {titleMode === "wins" ? "10-15 minute wins" : "foodhub"}
             </div>
           </div>
         ) : null}
@@ -1512,7 +1690,13 @@ export default function App() {
             className={`glass-pill glass-pill--small navPill${
               isFoodHub ? " navPill--active" : ""
             }`}
-            onClick={() => switchPage("food-hub")}
+            onClick={() => {
+              if (isFoodHub && foodHubMode === "wins") {
+                exitWins();
+              } else {
+                switchPage("food-hub");
+              }
+            }}
             aria-current={isFoodHub ? "page" : undefined}
           >
             Food Hub
@@ -1538,88 +1722,167 @@ export default function App() {
       {err && <div className="err glass-soft">Backend error: {err}</div>}
 
       <main className="grid">
-        {renderTodayCard("slot-l1", "card--left", "card--merge")}
-        {renderTasksCard("slot-r1", "card--right card--exit-up")}
+        {showDashboardLayer ? (
+          <>
+            {renderTodayCard("slot-l1", "card--left", "card--merge")}
+            {renderTasksCard("slot-r1", "card--right card--exit-up")}
 
-        {/* Middle column: Orb (no tile/background) */}
-        <div className="orbSlot merge-off" aria-hidden="true">
-          <div className={`orbWrap${isVisualSpeaking ? " orbWrap--speaking" : ""}`}>
-            <Orb
-              hue={0}
-              hoverIntensity={isVisualSpeaking ? audioPulse * 2.2 : 0.35}
-              rotateOnHover
-              forceHoverState={false}
-              pulse={0}
-              pulseSpeed={16.5}
-              autoHover={isVisualSpeaking}
-              autoHoverIntensity={isVisualSpeaking ? audioPulse * 1.1 : 1.0}
-              autoHoverSpeed={6.0}
-              speaking={isVisualSpeaking}
-            />
-          </div>
-        </div>
-
-        <div className="funFactDock merge-off">
-          <FunFactCard />
-        </div>
-
-        {renderAlertsCard("slot-l2", "card--left", "card--merge")}
-        {renderPushToTalkCard("slot-r2", "card--right card--exit-down")}
-
-        {isFoodHub || isTransitioning ? (
-          <div className="foodHubStack">
-            <section className="foodHubPanel" aria-label="Food hub classics">
-              <div className="foodHubPanelHeader">
-                <div className="foodHubPanelTitle">classics</div>
+            {/* Middle column: Orb (no tile/background) */}
+            <div className="orbSlot merge-off" aria-hidden="true">
+              <div className={`orbWrap${isVisualSpeaking ? " orbWrap--speaking" : ""}`}>
+                <Orb
+                  hue={0}
+                  hoverIntensity={isVisualSpeaking ? audioPulse * 2.2 : 0.35}
+                  rotateOnHover
+                  forceHoverState={false}
+                  pulse={0}
+                  pulseSpeed={16.5}
+                  autoHover={isVisualSpeaking}
+                  autoHoverIntensity={isVisualSpeaking ? audioPulse * 1.1 : 1.0}
+                  autoHoverSpeed={6.0}
+                  speaking={isVisualSpeaking}
+                />
               </div>
-              <div className="foodHubCarousel">
-                <ul
-                  className={`foodHubTrack${isTrackSnapping ? " foodHubTrack--snap" : ""}`}
-                  style={{ "--dish-index": trackIndex } as CSSProperties}
-                  onTransitionEnd={handleTrackTransitionEnd}
-                >
-                  {trackDishes.map((dish, index) => (
-                    <li key={`${dish.id}-${index}`} className="foodHubTile">
-                      <div className="foodHubTileImage" aria-hidden={!dish.image}>
-                        {dish.image ? (
-                          <img
-                            className="foodHubTileImg"
-                            src={dish.image}
-                            alt={dish.name}
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span>Image</span>
-                        )}
-                      </div>
-                      <div className="foodHubTileName">{dish.name}</div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
-            <section className="foodHubExtras" aria-label="Food hub categories">
-              <div className="foodHubExtrasGrid" role="list">
-                {FOOD_HUB_EXTRAS.map((dish) => (
-                  <div
-                    key={dish.id}
-                    className="foodHubExtraTile glass-tile"
-                    role="listitem"
+            </div>
+
+            <div className="funFactDock merge-off">
+              <FunFactCard />
+            </div>
+
+            {renderAlertsCard("slot-l2", "card--left", "card--merge")}
+            {renderPushToTalkCard("slot-r2", "card--right card--exit-down")}
+          </>
+        ) : showHubIntroCards ? (
+          <>
+            {renderTodayCard(
+              "slot-l1",
+              "card--left card--hub-intro",
+              "card--merge"
+            )}
+            {renderAlertsCard(
+              "slot-l2",
+              "card--left card--hub-intro card--hub-intro--delay",
+              "card--merge"
+            )}
+          </>
+        ) : null}
+
+        {showWins ? (
+          <section className="winsPage" aria-label="Ten to fifteen minute wins">
+              <div className="winsHero glass-tile">
+                <div className="winsHeroTop">
+                  <div className="winsEyebrow">10-15 minute wins</div>
+                  <button
+                    type="button"
+                    className="glass-pill glass-pill--small winsBack"
+                    onClick={exitWins}
                   >
-                    <div className="foodHubTileImage">
-                      <GradientText
-                        colors={["#9463e9", "#ffffff"]}
-                        animationSpeed={8}
-                        showBorder={false}
-                        className="foodHubCategoryText"
-                      >
-                        {dish.name}
-                      </GradientText>
+                    Back to hub
+                  </button>
+                </div>
+                <h2 className="winsTitle">Fast, hot, done.</h2>
+                <p className="winsSubtitle">
+                  Pick one, add a side, and get back to life. Built for weeknights,
+                  low effort, high reward.
+                </p>
+                <div className="winsSteps" role="list">
+                  {WINS_BUILD_STEPS.map((step) => (
+                    <div key={step.id} className="winsStep" role="listitem">
+                      <div className="winsStepTitle">{step.title}</div>
+                      <div className="winsStepDesc">{step.desc}</div>
                     </div>
-                  </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="winsGrid" role="list">
+                {WINS_MENU.map((item) => (
+                  <article
+                    key={item.id}
+                    className="winsCard glass-tile"
+                    role="listitem"
+                    data-win-id={item.id}
+                  >
+                    <div className="winsCardTop">
+                      <span className="winsTime">{item.time}</span>
+                    </div>
+                    <h3 className="winsCardTitle">{item.title}</h3>
+                    <p className="winsCardNote">{item.note}</p>
+                    <div className="winsTags">
+                      {item.tags.map((tag) => {
+                        const words = tag.replace(/-/g, " ");
+                        return (
+                          <span key={tag} className="winsTag" data-tag={tag}>
+                            {words}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </article>
                 ))}
               </div>
+
             </section>
+        ) : null}
+
+        {showHub ? (
+          <div className="foodHubStack">
+              <section className="foodHubPanel" aria-label="Food hub classics">
+                <div className="foodHubPanelHeader">
+                  <div className="foodHubPanelTitle">classics</div>
+                </div>
+                <div className="foodHubCarousel">
+                  <ul
+                    className={`foodHubTrack${isTrackSnapping ? " foodHubTrack--snap" : ""}`}
+                    style={{ "--dish-index": trackIndex } as CSSProperties}
+                    onTransitionEnd={handleTrackTransitionEnd}
+                  >
+                    {trackDishes.map((dish, index) => (
+                      <li key={`${dish.id}-${index}`} className="foodHubTile">
+                        <div className="foodHubTileImage" aria-hidden={!dish.image}>
+                          {dish.image ? (
+                            <img
+                              className="foodHubTileImg"
+                              src={dish.image}
+                              alt={dish.name}
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span>Image</span>
+                          )}
+                        </div>
+                        <div className="foodHubTileName">{dish.name}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+              <section className="foodHubExtras" aria-label="Food hub categories">
+                <div className="foodHubExtrasGrid" role="list">
+                  {FOOD_HUB_EXTRAS.map((dish) => (
+                    <button
+                      key={dish.id}
+                      type="button"
+                      className="foodHubExtraTile glass-tile"
+                      role="listitem"
+                      onClick={() => {
+                        if (dish.id === 1) enterWins();
+                      }}
+                    >
+                      <div className="foodHubTileImage">
+                        <GradientText
+                          colors={["#9463e9", "#ffffff"]}
+                          animationSpeed={8}
+                          showBorder={false}
+                          className="foodHubCategoryText"
+                        >
+                          {dish.name}
+                        </GradientText>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
           </div>
         ) : null}
       </main>
