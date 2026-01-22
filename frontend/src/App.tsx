@@ -1397,6 +1397,14 @@ export default function App() {
           </div>
         </div>
 
+        {isFoodHub || isTransitioning ? (
+          <div className="topCenter">
+            <div className="foodHubTitle funFactTitle foodHubTitle--center">
+              foodhub
+            </div>
+          </div>
+        ) : null}
+
         <div className="topRight">
           <button
             type="button"
@@ -1423,10 +1431,6 @@ export default function App() {
       {aiOutput ? <div className="aiResponse">{aiDisplay ?? aiOutput}</div> : null}
 
       {err && <div className="err glass-soft">Backend error: {err}</div>}
-
-      {isFoodHub || isTransitioning ? (
-        <div className="foodHubTitle funFactTitle">foodhub</div>
-      ) : null}
 
       <main className="grid">
         {renderTodayCard("slot-l1", "card--left", "card--merge")}
