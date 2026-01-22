@@ -1,4 +1,6 @@
 # Note: This requires ffmpeg to be installed on the system
+"""Speech-to-text helpers built around faster-whisper + ffmpeg normalisation."""
+
 from __future__ import annotations
 
 import os
