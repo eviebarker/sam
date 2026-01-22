@@ -1,3 +1,5 @@
+"""Event storage helpers (create/list/delete)."""
+
 from datetime import datetime
 from backend.app.db.conn import get_conn
 
@@ -9,6 +11,7 @@ def add_event(
     all_day: bool,
     reminder_preset: str,
 ) -> int:
+    """Insert an event row and return its id."""
     with get_conn() as conn:
         cur = conn.execute(
             """
@@ -29,6 +32,7 @@ def add_event(
         return int(cur.lastrowid)
 
 def list_events_for_date(event_date: str):
+    """List events for a specific date ordered by all-day then start time."""
     with get_conn() as conn:
         return conn.execute(
             """
@@ -41,6 +45,7 @@ def list_events_for_date(event_date: str):
         ).fetchall()
 
 def list_events_from_date(event_date: str):
+    """List events from a start date onward ordered by date."""
     with get_conn() as conn:
         return conn.execute(
             """
@@ -54,6 +59,7 @@ def list_events_from_date(event_date: str):
 
 
 def delete_event(event_id: int) -> None:
+    """Delete an event by id."""
     with get_conn() as conn:
         conn.execute("DELETE FROM events WHERE id = ?;", (event_id,))
         conn.commit()
