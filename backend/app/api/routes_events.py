@@ -1,3 +1,5 @@
+"""Event creation/listing endpoints plus reminder bootstrapping."""
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException
@@ -19,6 +21,7 @@ class NewEvent(BaseModel):
 
 @router.post("/api/events")
 def create_event(body: NewEvent):
+    """Create an event (all-day or timed) and schedule reminders if applicable."""
     preset = body.reminder_preset or "none"
     if not body.all_day:
         if not body.start_hhmm or not body.end_hhmm:
@@ -40,5 +43,6 @@ def create_event(body: NewEvent):
 
 @router.get("/api/events")
 def list_events(date: str):
+    """List events for a specific date (YYYY-MM-DD)."""
     events = list_events_for_date(date)
     return {"date": date, "events": [dict(e) for e in events]}
