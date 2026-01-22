@@ -1,3 +1,5 @@
+"""Reminder scheduling and nag loop (APScheduler entrypoints)."""
+
 from datetime import datetime, timedelta
 import random
 from zoneinfo import ZoneInfo
@@ -55,10 +57,12 @@ _ALERT_PREFIXES = [
 ]
 
 def _format_alert_speech(text: str) -> str:
+    """Apply a randomized prefix to the reminder speech text."""
     template = random.choice(_ALERT_PREFIXES)
     return template.format(text=text)
 
 def start_scheduler():
+    """Boot the scheduler, arm today's reminders, and register jobs."""
     seed_defaults_if_empty()
     arm_today()
 
@@ -79,6 +83,7 @@ def start_scheduler():
     scheduler.start()
 
 def arm_today():
+    """Load reminder schedules for the day type and create active rows."""
     today = datetime.now(TZ).date().isoformat()
     day_type = "work" if is_work_day(today) else "off"
 
@@ -98,6 +103,7 @@ def arm_today():
     create_event_reminders_for_date(today)
 
 def _nag_tick():
+    """Every 5s: fire due reminders, speak, and roll next_fire until window ends."""
     now_dt = datetime.now(TZ)
     now_iso = now_dt.isoformat(timespec="seconds")
     row = get_due_active(now_iso)

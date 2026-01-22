@@ -1,3 +1,5 @@
+"""Event reminder scheduling logic (monthly → weekly → day-before cadence)."""
+
 from datetime import date as Date, datetime
 from zoneinfo import ZoneInfo
 
@@ -7,12 +9,14 @@ from backend.app.db.reminder_queries import create_active_for_date
 TZ = ZoneInfo("Europe/London")
 
 def _months_until(event_date: Date, today: Date) -> int:
+    """Compute whole months between two dates (floor)."""
     months = (event_date.year - today.year) * 12 + (event_date.month - today.month)
     if event_date.day < today.day:
         months -= 1
     return months
 
 def _should_remind_today(event_date: Date, today: Date, preset: str) -> bool:
+    """Decide whether to schedule a reminder today for a future event."""
     days_until = (event_date - today).days
     if days_until < 0:
         return False
@@ -30,11 +34,13 @@ def _should_remind_today(event_date: Date, today: Date, preset: str) -> bool:
     return False
 
 def _reminder_time(start_hhmm: str | None, all_day: bool, days_until: int) -> str:
+    """Pick the reminder fire time based on start time and day distance."""
     if days_until == 0 and start_hhmm and not all_day:
         return start_hhmm
     return "09:00"
 
 def create_event_reminders_for_date(date_yyyy_mm_dd: str) -> None:
+    """Create active reminders for events relative to `date_yyyy_mm_dd`."""
     today = Date.fromisoformat(date_yyyy_mm_dd)
     events = list_events_from_date(date_yyyy_mm_dd)
     for e in events:
