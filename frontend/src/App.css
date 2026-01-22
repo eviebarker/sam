@@ -15,6 +15,7 @@ body{
     radial-gradient(900px 550px at 82% 18%, rgba(47,123,255,.08), transparent 62%),
     linear-gradient(180deg, var(--bg1), var(--bg0));
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  overflow: hidden;
 }
 
 /* Kiosk: fill the screen */
@@ -28,6 +29,7 @@ body{
   --offscreen-x: 120vw;
   --card-base: 0.92;
   --grid-width: calc(100vw - 56px);
+  overflow: hidden;
 }
 
 /* Animated background layer (DarkVeil) */
