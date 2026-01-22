@@ -88,6 +88,9 @@ body{
   font-weight: 700;
   box-shadow: 0 12px 36px rgba(0,0,0,0.28);
 }
+.navPill--active{
+  background: rgba(255,255,255,0.12);
+}
 
 /* Header */
 .top{
@@ -100,12 +103,20 @@ body{
 }
 
 .topLeft{ display:flex; flex-direction:column; gap: 6px; }
+.dateRow{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 .time{ font-size: clamp(42px, 5vw, 72px); font-weight: 780; letter-spacing: -0.03em; }
 .date{ font-size: clamp(14px, 1.4vw, 20px); color: var(--muted); }
 
 .topRight{
   display:flex;
+  flex-direction: row;
   align-items:flex-end;
+  gap: 10px;
 }
 
 /* Error */
@@ -176,6 +187,9 @@ body{
   width: 100%;
   max-width: 92%;
   justify-self: end;
+}
+.card--slim{
+  max-width: 62%;
 }
 
 .cardHeader{
@@ -342,6 +356,12 @@ h2{
   padding: 18px 18px;
   font-size: 20px;
   font-weight: 780;
+}
+.micPill--compact{
+  width: auto;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
 }
 .micPill--recording{
   background: radial-gradient(circle at 20% 20%, rgba(255,140,140,0.35), rgba(255,80,80,0.18));
