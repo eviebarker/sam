@@ -29,6 +29,7 @@ from backend.app.db.queries import (
 from backend.app.db.workday_queries import get_work_day, set_work_day
 from backend.app.db.reminder_queries import (
     create_active_for_date,
+    delete_active_reminder,
     delete_event_reminders,
     list_active_reminders,
     list_recent_reminders,
@@ -519,7 +520,7 @@ def _looks_mixed(prompt: str) -> bool:
 
 def _strip_date_words(text: str) -> str:
     cleaned = re.sub(
-        r"\b(today|tomorrow|tonight|next week|this week|next month|this month)\b",
+        r"\b(today|tomorrow|tonight|later|next week|this week|next month|this month)\b",
         "",
         text,
         flags=re.IGNORECASE,
@@ -552,6 +553,18 @@ def _extract_task_candidates(prompt: str) -> list[str]:
     parts = re.split(r"(?:,|\band\b|\bthen\b)", prompt, flags=re.IGNORECASE)
     candidates = []
     for part in parts:
+        if re.search(
+            r"\b(appointment|meeting|event|doctor|dentist|vet|clinic|hospital|lawyer)\b",
+            part,
+            re.IGNORECASE,
+        ):
+            continue
+        if re.search(
+            r"\b(at\s+\d{1,2}(:\d{2})?\s*(am|pm)?|from\s+\d|\d{1,2}(:\d{2})?\s*(am|pm))\b",
+            part,
+            re.IGNORECASE,
+        ):
+            continue
         match = re.search(r"\b(i\s+)?(need to|have to|got to)\b\s+(.*)", part, re.IGNORECASE)
         if not match:
             continue
@@ -559,6 +572,54 @@ def _extract_task_candidates(prompt: str) -> list[str]:
         if title:
             candidates.append(title)
     return candidates
+
+
+def _extract_time_hhmm(text: str) -> str | None:
+    match = re.search(r"\b([01]?\d|2[0-3]):([0-5]\d)\b", text)
+    if match:
+        return f"{int(match.group(1)):02d}:{match.group(2)}"
+    match = re.search(r"\b(\d{1,2})(?::([0-5]\d))?\s*(am|pm)\b", text, re.IGNORECASE)
+    if not match:
+        return None
+    hour = int(match.group(1))
+    minute = int(match.group(2) or "00")
+    suffix = match.group(3).lower()
+    if hour == 12:
+        hour = 0
+    if suffix == "pm":
+        hour += 12
+    return f"{hour:02d}:{minute:02d}"
+
+
+def _looks_like_appointment(prompt: str) -> bool:
+    lowered = prompt.lower()
+    if not re.search(
+        r"\b(appointment|meeting|doctor|dentist|lawyer|therapist|counselor|court|hearing|clinic|hospital|vet)\b",
+        lowered,
+    ):
+        return False
+    return re.search(
+        r"\b(at\s+\d{1,2}(:\d{2})?\s*(am|pm)?|from\s+\d|\d{1,2}(:\d{2})?\s*(am|pm)|in\s+\d+\s*(minute|minutes|hour|hours))\b",
+        lowered,
+    )
+
+
+def _looks_like_reminder(prompt: str) -> bool:
+    lowered = prompt.lower()
+    reminder_phrases = (
+        "remind me",
+        "remind me to",
+        "set a reminder",
+        "set reminder",
+        "add a reminder",
+        "schedule a reminder",
+        "alert me",
+        "set an alert",
+        "add an alert",
+        "ping me",
+        "nudge me",
+    )
+    return any(phrase in lowered for phrase in reminder_phrases)
 
 
 def _natural_time(hhmm: str | None) -> str:
@@ -700,6 +761,17 @@ def _extract_pronunciation(text: str) -> tuple[str | None, str | None]:
             pronunciation = re.sub(r"[.?!]+$", "", pronunciation).strip()
             return term, pronunciation
     return None, None
+
+
+def _extract_relative_hhmm_and_date(text: str, now_dt: datetime) -> tuple[str | None, str | None]:
+    match = re.search(r"\bin\s+(\d+)\s*(minute|minutes|hour|hours)\b", text, re.IGNORECASE)
+    if not match:
+        return None, None
+    amount = int(match.group(1))
+    unit = match.group(2).lower()
+    delta = timedelta(minutes=amount) if "minute" in unit else timedelta(hours=amount)
+    target_dt = now_dt + delta
+    return target_dt.strftime("%H:%M"), target_dt.date().isoformat()
 
 
 def _infer_term_from_history(history: list[dict]) -> str | None:
@@ -1177,17 +1249,121 @@ def ai_resolve(body: ResolveRequest):
     client = get_client()
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     lowered = prompt.lower()
+    deleted_events = []
+    deleted_reminders = []
+    if re.search(r"\b(delete|remove|cancel)\s+it\b", lowered):
+        reminders = list_active_reminders()
+        if not reminders:
+            reminders = list_recent_reminders()
+        completion_tokens = set(_tokenize(prompt))
+        med_keys = {"lanny_zee", "morning_meds", "lunch_meds", "evening_meds"}
+        allow_meds = any(
+            t in completion_tokens
+            for t in {
+                "med",
+                "meds",
+                "medication",
+                "medicine",
+                "pill",
+                "tablets",
+                "lanny",
+                "zee",
+                "lansoprazole",
+                "lanzoprazole",
+            }
+        )
+        if not allow_meds:
+            reminders = [r for r in reminders if r.get("reminder_key") not in med_keys]
+        if reminders:
+            latest = max(reminders, key=lambda r: r.get("id", 0))
+            delete_active_reminder(latest["id"])
+            deleted_reminders.append(latest)
+    if re.search(r"\bcancel\s+that\s+(alert|reminder)\b", lowered):
+        reminders = list_active_reminders()
+        if not reminders:
+            reminders = list_recent_reminders()
+        completion_tokens = set(_tokenize(prompt))
+        med_keys = {"lanny_zee", "morning_meds", "lunch_meds", "evening_meds"}
+        allow_meds = any(
+            t in completion_tokens
+            for t in {
+                "med",
+                "meds",
+                "medication",
+                "medicine",
+                "pill",
+                "tablets",
+                "lanny",
+                "zee",
+                "lansoprazole",
+                "lanzoprazole",
+            }
+        )
+        if not allow_meds:
+            reminders = [r for r in reminders if r.get("reminder_key") not in med_keys]
+        if reminders:
+            latest = max(reminders, key=lambda r: r.get("id", 0))
+            delete_active_reminder(latest["id"])
+            deleted_reminders.append(latest)
     if re.search(
         r"\b(cancel|cancelled|canceled|delete|remove|call off|called off|scrap|scratch)\b",
         lowered,
-    ) and re.search(r"\b(appointment|event|meeting)\b", lowered):
+    ) and re.search(r"\b(appointment|event|meeting|doctor|lawyer)\b", lowered):
         today = datetime.now(TZ).date().isoformat()
         events = [dict(e) for e in list_events_from_date(today)]
-        event_match = _best_match(prompt, events, "title")
-        if event_match:
-            delete_event_reminders(event_match["id"])
-            delete_event(event_match["id"])
-            return {"ok": True, "action": "delete", "target": "event", "event": event_match}
+        matched_events = {}
+        parts = [p.strip() for p in re.split(r",|\band\b|\beither\b", prompt) if p.strip()]
+        for part in parts:
+            event_match, score = _best_match_with_score(part, events, "title")
+            if event_match and score >= 0.3:
+                matched_events[event_match["id"]] = event_match
+        if not matched_events:
+            event_match = _best_match(prompt, events, "title")
+            if event_match:
+                matched_events[event_match["id"]] = event_match
+        if matched_events:
+            for event in matched_events.values():
+                delete_event_reminders(event["id"])
+                delete_event(event["id"])
+                deleted_events.append(event)
+    if re.search(
+        r"\b(cancel|cancelled|canceled|delete|remove|call off|called off|scrap|scratch)\b",
+        lowered,
+    ) and re.search(r"\b(alert|alerts|reminder|reminders)\b", lowered):
+        today = datetime.now(TZ).date().isoformat()
+        reminders = list_active_reminders()
+        if not reminders:
+            reminders = list_recent_reminders()
+        completion_tokens = set(_tokenize(prompt))
+        med_keys = {"lanny_zee", "morning_meds", "lunch_meds", "evening_meds"}
+        allow_meds = any(
+            t in completion_tokens
+            for t in {
+                "med",
+                "meds",
+                "medication",
+                "medicine",
+                "pill",
+                "tablets",
+                "lanny",
+                "zee",
+                "lansoprazole",
+                "lanzoprazole",
+            }
+        )
+        if not allow_meds:
+            reminders = [r for r in reminders if r.get("reminder_key") not in med_keys]
+        if re.search(r"\b(today|tonight)\b", lowered):
+            reminders = [r for r in reminders if r.get("dose_date") == today]
+        ranked = _rank_matches(prompt, reminders, "label")
+        matches = [r["item"] for r in ranked if r["score"] >= 0.3]
+        if not matches:
+            reminder_match = _best_match(prompt, reminders, "label")
+            if reminder_match:
+                matches = [reminder_match]
+        for reminder in matches:
+            delete_active_reminder(reminder["id"])
+            deleted_reminders.append(reminder)
     list_match = re.search(
         r"\b(i\s+have\s+done|i\s+did|i\s+finished|i\s+completed|i[' ]?ve)\b\s+(.*)",
         lowered,
@@ -1219,7 +1395,25 @@ def ai_resolve(body: ResolveRequest):
         r"\b(mark|complete|completed|finish|finished|done)\b", lowered
     ):
         count = mark_all_tasks_done()
-        return {"ok": True, "action": "complete", "target": "task", "count": count}
+        response = {"ok": True, "action": "complete", "target": "task", "count": count}
+        if deleted_events:
+            response["events_deleted"] = deleted_events
+        if deleted_reminders:
+            response["reminders_deleted"] = deleted_reminders
+        return response
+    if deleted_events or deleted_reminders:
+        response = {"ok": True, "action": "delete"}
+        if deleted_events:
+            response["events"] = deleted_events
+        if deleted_reminders:
+            response["reminders"] = deleted_reminders
+        if deleted_events and deleted_reminders:
+            response["target"] = "mixed"
+        elif deleted_events:
+            response["target"] = "event"
+        else:
+            response["target"] = "reminder"
+        return response
     parsed = _parse_resolve(client, prompt, model)
     if not parsed or parsed.action == "none":
         completion_words = {"done", "did", "finished", "completed", "called", "took", "taken"}
@@ -1526,6 +1720,7 @@ def ai_schedule(body: ScheduleRequest):
     if not prompt:
         raise HTTPException(status_code=400, detail="text is required")
 
+    today = datetime.now(TZ).date().isoformat()
     client = get_client()
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     parsed = _parse_schedule(client, prompt, model)
@@ -1539,13 +1734,16 @@ def ai_schedule(body: ScheduleRequest):
             parsed.items = mixed_items
     if parsed.items:
         existing_tasks = {
-            (item.title or "").strip().lower()
+            _normalize_task_phrase(_strip_date_words((item.title or "").strip())).lower()
             for item in parsed.items
             if item.type == "task"
         }
         for title in _extract_task_candidates(prompt):
-            lower_title = title.lower()
-            if any(lower_title in existing for existing in existing_tasks):
+            normalized_title = _normalize_task_phrase(_strip_date_words(title)).lower()
+            if any(
+                normalized_title in existing or existing in normalized_title
+                for existing in existing_tasks
+            ):
                 continue
             parsed.items.append(
                 ScheduleItem(
@@ -1559,10 +1757,25 @@ def ai_schedule(body: ScheduleRequest):
                     priority=None,
                     is_work=None,
                 )
-            )
-            existing_tasks.add(lower_title)
-    if lowered.startswith("remind me"):
+                )
+            existing_tasks.add(normalized_title)
+    if _looks_like_reminder(prompt):
         parsed.action = "reminder"
+    elif _looks_like_appointment(prompt):
+        parsed.action = "event"
+        if not parsed.date:
+            parsed.date = today
+        if not parsed.start_hhmm:
+            parsed.start_hhmm = _extract_time_hhmm(prompt)
+        if not parsed.start_hhmm:
+            now_dt = datetime.now(TZ)
+            rel_hhmm, rel_date = _extract_relative_hhmm_and_date(prompt, now_dt)
+            if rel_hhmm:
+                parsed.start_hhmm = rel_hhmm
+            if rel_date and not parsed.date:
+                parsed.date = rel_date
+        if parsed.start_hhmm:
+            parsed.all_day = False
     elif any(phrase in lowered for phrase in ("i need to", "i have to", "add a task", "todo")):
         parsed.action = "task"
     elif any(
@@ -1573,6 +1786,7 @@ def ai_schedule(body: ScheduleRequest):
 
     if parsed.items and len(parsed.items) > 1:
         created = {"tasks": [], "reminders": [], "events": [], "workdays": []}
+        created_task_titles = set()
         for item in parsed.items:
             item_type = item.type
             if item_type == "task":
@@ -1582,6 +1796,10 @@ def ai_schedule(body: ScheduleRequest):
                 title = (item.title or "").strip()
                 if not title:
                     continue
+                normalized_title = _normalize_task_phrase(_strip_date_words(title)).lower()
+                if not normalized_title or normalized_title in created_task_titles:
+                    continue
+                created_task_titles.add(normalized_title)
                 add_task(title, priority)
                 created["tasks"].append({"title": title, "priority": priority})
             elif item_type == "reminder":
@@ -1695,7 +1913,6 @@ def ai_schedule(body: ScheduleRequest):
                 )
 
         if any(created.values()):
-            today = datetime.now(TZ).date().isoformat()
             create_event_reminders_for_date(today)
             return {"ok": True, "action": "mixed", **created}
 
