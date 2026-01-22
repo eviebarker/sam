@@ -283,6 +283,11 @@ body{
 }
 
 .page--foodhub .orbSlot.merge-off{
+  opacity: 0;
+  transform: scale(0.02);
+}
+
+.page--transitioning.page--to-foodhub .orbSlot.merge-off{
   animation: orbExit var(--orb-duration) ease forwards;
 }
 
@@ -493,11 +498,31 @@ h2{
   animation: foodHubOut 700ms ease forwards;
 }
 
+.foodHubTitle--in{
+  animation: titleRollIn 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.foodHubTitle--out{
+  animation: foodHubOut 620ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
 @keyframes foodHubIn{
   from{
     transform: translateY(-120vh) rotateX(90deg);
   }
   to{
+    transform: translateY(0) rotateX(0deg);
+  }
+}
+
+@keyframes titleRollIn{
+  0%{
+    transform: translateY(-120vh) rotateX(90deg);
+  }
+  82%{
+    transform: translateY(6px) rotateX(4deg);
+  }
+  100%{
     transform: translateY(0) rotateX(0deg);
   }
 }
@@ -564,6 +589,12 @@ h2{
   border-radius: 20px;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  appearance: none;
 }
 
 .foodHubExtraTile .foodHubTileImage{
@@ -665,6 +696,379 @@ h2{
   text-transform: uppercase;
   color: var(--text);
 }
+
+.foodHubExtraTile:focus-visible{
+  outline: 2px solid rgba(255,255,255,0.4);
+  outline-offset: 2px;
+}
+
+.winsPage{
+  grid-column: 1 / span 3;
+  grid-row: 1 / span 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.8fr);
+  gap: 18px;
+  align-items: start;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.winsHero{
+  padding: 22px;
+  display: grid;
+  gap: 14px;
+  background:
+    radial-gradient(360px 260px at 18% 0%, rgba(255,170,80,0.18), transparent 60%),
+    radial-gradient(420px 280px at 82% 12%, rgba(120,220,255,0.16), transparent 62%),
+    rgba(255,255,255,0.03);
+}
+
+.winsHeroTop{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.winsEyebrow{
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+}
+
+.winsBack{
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.winsTitle{
+  margin: 0;
+  font-size: clamp(26px, 3vw, 36px);
+  letter-spacing: -0.02em;
+}
+
+.winsSubtitle{
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.winsSteps{
+  display: grid;
+  gap: 10px;
+}
+
+.winsStep{
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.24);
+  display: grid;
+  gap: 4px;
+}
+
+.winsStepTitle{
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.winsStepDesc{
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.winsGrid{
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.winsCard{
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  --extra-x: 0;
+  --extra-y: 0;
+}
+
+.winsCardTop{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.winsTime{
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+}
+
+.winsCardTitle{
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.winsCardNote{
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.winsTags{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.winsCard[data-win-id="2"] .winsTags{
+  margin-top: 24px;
+}
+
+.page--transitioning.page--to-foodhub .winsHero{
+  animation: foodHubPanelIn var(--merge-duration) ease both;
+}
+
+.page--transitioning.page--to-dashboard .winsHero{
+  animation: foodHubPanelOut var(--merge-duration) ease both;
+}
+
+.page--wins-transitioning .winsHero{
+  animation: foodHubPanelIn 720ms ease both;
+}
+
+.page--wins-exiting .winsHero{
+  animation: foodHubPanelOut 720ms ease both;
+}
+
+.page--transitioning.page--to-foodhub .winsCard{
+  animation: foodHubExtraIn 520ms ease both;
+  animation-delay: calc(80ms + (var(--wins-index) * 70ms));
+}
+
+.page--transitioning.page--to-dashboard .winsCard{
+  animation: foodHubExtraOut 520ms ease both;
+  animation-delay: calc(40ms + (var(--wins-index) * 40ms));
+}
+
+.page--wins-transitioning .winsCard{
+  animation: foodHubExtraIn 520ms ease both;
+  animation-delay: calc(80ms + (var(--wins-index) * 70ms));
+}
+
+.page--wins-exiting .winsCard{
+  animation: foodHubExtraOut 520ms ease both;
+  animation-delay: calc(40ms + (var(--wins-index) * 40ms));
+}
+
+.page--transitioning.page--to-foodhub .winsCard:nth-child(n + 5),
+.page--wins-transitioning .winsCard:nth-child(n + 5){
+  animation-duration: 900ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page--transitioning.page--to-foodhub .winsCard[data-win-id="5"],
+.page--transitioning.page--to-foodhub .winsCard[data-win-id="6"],
+.page--transitioning.page--to-foodhub .winsCard[data-win-id="8"],
+.page--wins-transitioning .winsCard[data-win-id="5"],
+.page--wins-transitioning .winsCard[data-win-id="6"],
+.page--wins-transitioning .winsCard[data-win-id="8"]{
+  animation-name: winsExtraInSlow;
+  animation-duration: 1400ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page--hub-transitioning .foodHubPanel{
+  animation: foodHubPanelIn var(--merge-duration) ease both;
+}
+
+.page--hub-transitioning .foodHubExtraTile{
+  animation: foodHubExtraIn 520ms ease both;
+  animation-delay: calc(60ms + (var(--extra-index) * 70ms));
+}
+
+.page--hub-transitioning .foodHubTile{
+  animation: foodHubTileFlip 520ms ease both;
+  animation-delay: calc(60ms + (var(--tile-index) * 70ms));
+}
+
+.page--hub-transitioning .card--hub-intro{
+  animation: hubCardIn 700ms ease both;
+  transform: translateX(var(--card-merge-x));
+}
+
+.page--hub-transitioning .card--hub-intro--delay{
+  animation-delay: 120ms;
+}
+
+@keyframes hubCardIn{
+  from{
+    transform: translateX(calc(var(--card-merge-x) + 16vw));
+    opacity: 0;
+  }
+  to{
+    transform: translateX(var(--card-merge-x));
+    opacity: 1;
+  }
+}
+
+.page--hub-exiting .foodHubTitle{
+  animation: foodHubOut 700ms ease forwards;
+}
+
+.page--hub-exiting .foodHubPanel{
+  animation: foodHubPanelOut var(--merge-duration) ease both;
+}
+
+.page--hub-exiting .foodHubExtraTile{
+  animation: foodHubExtraOut 520ms ease both;
+  animation-delay: calc(40ms + (var(--extra-index) * 40ms));
+}
+
+@keyframes winsExtraInSlow{
+  from{
+    transform: translate3d(var(--extra-x), var(--extra-y), 0);
+    opacity: 0;
+  }
+  to{
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+.winsCard:nth-child(1){ --wins-index: 0; --extra-x: calc(var(--offscreen-x) * -1); --extra-y: 0; }
+.winsCard:nth-child(2){ --wins-index: 1; --extra-x: 0; --extra-y: calc(var(--offscreen-y) * -1); }
+.winsCard:nth-child(3){ --wins-index: 2; --extra-x: var(--offscreen-x); --extra-y: 0; }
+.winsCard:nth-child(4){ --wins-index: 3; --extra-x: 0; --extra-y: var(--offscreen-y); }
+.winsCard:nth-child(5){ --wins-index: 4; --extra-x: calc(var(--offscreen-x) * -1); --extra-y: 0; }
+.winsCard:nth-child(6){ --wins-index: 5; --extra-x: 0; --extra-y: calc(var(--offscreen-y) * -1); }
+.winsCard:nth-child(7){ --wins-index: 6; --extra-x: var(--offscreen-x); --extra-y: 0; }
+.winsCard:nth-child(8){ --wins-index: 7; --extra-x: 0; --extra-y: var(--offscreen-y); }
+
+.winsTag{
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  padding: 0 8px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.72);
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.winsTag[data-tag="greens"]{
+  background: rgba(150,255,190,0.18);
+  color: rgba(220,255,235,0.95);
+}
+
+.winsTag[data-tag="spicy"]{
+  background: rgba(255,120,120,0.2);
+  color: rgba(255,210,210,0.95);
+}
+
+.winsTag[data-tag="wrap"]{
+  background: rgba(255,210,120,0.18);
+  color: rgba(255,235,205,0.95);
+}
+
+.winsTag[data-tag="protein"]{
+  background: rgba(170,200,255,0.18);
+  color: rgba(220,235,255,0.95);
+}
+
+.winsTag[data-tag="zesty"]{
+  background: rgba(255,230,120,0.2);
+  color: rgba(255,245,210,0.95);
+}
+
+.winsTag[data-tag="saucy"]{
+  background: rgba(200,150,255,0.18);
+  color: rgba(235,220,255,0.95);
+}
+
+.winsTag[data-tag="bowl"]{
+  background: rgba(120,210,255,0.18);
+  color: rgba(210,245,255,0.95);
+}
+
+.winsTag[data-tag="pantry"]{
+  background: rgba(150,210,180,0.2);
+  color: rgba(220,255,235,0.95);
+}
+
+.winsTag[data-tag="seafood"]{
+  background: rgba(120,190,255,0.2);
+  color: rgba(210,235,255,0.95);
+}
+
+.winsTag[data-tag="bright"]{
+  background: rgba(255,240,160,0.22);
+  color: rgba(255,250,220,0.95);
+}
+
+.winsTag[data-tag="no-cook"]{
+  background: rgba(190,255,230,0.18);
+  color: rgba(220,255,245,0.95);
+}
+
+.winsTag[data-tag="fresh"]{
+  background: rgba(140,255,200,0.18);
+  color: rgba(220,255,235,0.95);
+}
+
+.winsTag[data-tag="one-pot"]{
+  background: rgba(255,200,140,0.18);
+  color: rgba(255,235,210,0.95);
+}
+
+.winsTag[data-tag="warm"]{
+  background: rgba(255,170,140,0.2);
+  color: rgba(255,225,210,0.95);
+}
+
+.winsTag[data-tag="slurp"]{
+  background: rgba(170,200,255,0.2);
+  color: rgba(220,235,255,0.95);
+}
+
+.winsTag[data-tag="sweet-salty"]{
+  background: rgba(255,160,200,0.2);
+  color: rgba(255,220,235,0.95);
+}
+
+.winsTag[data-tag="fast"]{
+  background: rgba(255,230,140,0.18);
+  color: rgba(255,245,210,0.95);
+}
+
+.winsTag[data-tag="High-fibre"]{
+  background: rgba(170,200,255,0.2);
+  color: rgba(220,235,255,0.95);
+}
+
+.winsTag[data-tag="Low calorie"]{
+  background: rgba(255,210,140,0.2);
+  color: rgba(255,235,210,0.95);
+}
+
+.winsTag[data-tag="Vegetarian"]{
+  background: rgba(140,255,200,0.18);
+  color: rgba(220,255,235,0.95);
+}
+
 
 .page--transitioning.page--to-foodhub .foodHubPanel{
   animation: foodHubPanelIn var(--merge-duration) ease both;
@@ -1027,6 +1431,16 @@ h2{
 
   .foodHubTileImage{
     border-radius: 14px;
+  }
+
+  .winsPage{
+    grid-column: auto;
+    grid-row: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .winsGrid{
+    grid-template-columns: 1fr;
   }
 }
 
