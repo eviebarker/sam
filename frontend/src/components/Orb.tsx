@@ -8,6 +8,8 @@ export type OrbProps = {
   rotateOnHover?: boolean;
   forceHoverState?: boolean;
   backgroundColor?: string;
+  pulse?: number;
+  pulseSpeed?: number;
 };
 
 export default function Orb({
@@ -16,6 +18,8 @@ export default function Orb({
   rotateOnHover = true,
   forceHoverState = false,
   backgroundColor = "#000000",
+  pulse = 0,
+  pulseSpeed = 5.5,
 }: OrbProps) {
   const ctnDom = useRef<HTMLDivElement | null>(null);
 
@@ -39,6 +43,8 @@ export default function Orb({
     uniform float hover;
     uniform float rot;
     uniform float hoverIntensity;
+    uniform float pulse;
+    uniform float pulseSpeed;
     uniform vec3 backgroundColor;
     varying vec2 vUv;
 
@@ -164,6 +170,8 @@ export default function Orb({
       lightCol = clamp(lightCol, 0.0, 1.0);
       
       vec3 finalCol = mix(darkCol, lightCol, bgLuminance);
+      float pulseWave = 1.0 + pulse * (0.12 + 0.08 * sin(iTime * pulseSpeed));
+      finalCol = clamp(finalCol * pulseWave, 0.0, 1.0);
       
       return extractAlpha(finalCol);
     }
@@ -218,6 +226,8 @@ export default function Orb({
         rot: { value: 0 },
         hoverIntensity: { value: hoverIntensity },
         backgroundColor: { value: hexToVec3(backgroundColor) },
+        pulse: { value: pulse },
+        pulseSpeed: { value: pulseSpeed },
       },
     });
 
@@ -278,6 +288,8 @@ export default function Orb({
       program.uniforms.hue.value = hue;
       program.uniforms.hoverIntensity.value = hoverIntensity;
       program.uniforms.backgroundColor.value = hexToVec3(backgroundColor);
+      program.uniforms.pulse.value = pulse;
+      program.uniforms.pulseSpeed.value = pulseSpeed;
 
       const effectiveHover = forceHoverState ? 1 : targetHover;
       program.uniforms.hover.value +=
@@ -307,6 +319,8 @@ export default function Orb({
     rotateOnHover,
     forceHoverState,
     backgroundColor,
+    pulse,
+    pulseSpeed,
     vert,
     frag,
   ]);

@@ -864,9 +864,10 @@ export default function App() {
           <div className="orbWrap">
             <Orb
               hue={0}
-              hoverIntensity={isSpeaking ? 2 : 0}
-              rotateOnHover={isSpeaking}
-              forceHoverState={isSpeaking}
+              hoverIntensity={0.35}
+              rotateOnHover
+              forceHoverState={false}
+              pulse={isSpeaking ? 1 : 0}
             />
           </div>
         </div>
