@@ -105,20 +105,42 @@ export async function aiSchedule(text: string) {
   return r.json() as Promise<{
     ok: boolean;
     message?: string;
-    action?: "event" | "reminder" | "task";
+    action?: "event" | "reminder" | "task" | "workday" | "mixed";
     event?: {
       title: string;
       date: string | null;
+      end_date?: string | null;
       start_hhmm: string | null;
       end_hhmm: string | null;
       all_day: boolean;
     };
+    events?: Array<{
+      title: string;
+      date: string | null;
+      end_date?: string | null;
+      start_hhmm: string | null;
+      end_hhmm: string | null;
+      all_day: boolean;
+      ids?: number[];
+    }>;
+    workdays?: Array<{
+      date: string;
+      is_work: boolean;
+      start_hhmm: string | null;
+      end_hhmm: string | null;
+    }>;
     reminder?: {
       title: string;
       date: string;
       scheduled_hhmm: string;
     };
+    reminders?: Array<{
+      title: string;
+      date: string;
+      scheduled_hhmm: string;
+    }>;
     task?: { title: string; priority: string };
+    tasks?: Array<{ title: string; priority: string }>;
   }>;
 }
 
@@ -153,6 +175,21 @@ export async function aiReclassify(text: string) {
     needs_confirmation?: boolean;
     target?: "task" | "reminder" | "event";
     options?: { item_type: string; item_id: number; label: string }[];
+  }>;
+}
+
+export async function aiPriority(text: string) {
+  const r = await fetch("/api/ai/priority", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!r.ok) throw new Error(`ai priority failed: ${r.status}`);
+  return r.json() as Promise<{
+    ok: boolean;
+    message?: string;
+    priority?: "trivial" | "medium" | "vital";
+    task?: { id: number; title: string; priority?: string };
   }>;
 }
 

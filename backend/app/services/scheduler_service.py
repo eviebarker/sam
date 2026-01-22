@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import random
 from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -19,6 +20,43 @@ from backend.app.db.reminder_queries import (
 
 TZ = ZoneInfo("Europe/London")
 scheduler = BackgroundScheduler(timezone=TZ)
+
+_ALERT_PREFIXES = [
+    "Hey Sam, {text}",
+    "Sam, {text}",
+    "Hi Sam, {text}",
+    "Sam - {text}",
+    "Quick reminder, Sam: {text}",
+    "{text}, Sam",
+    "Just a heads up, Sam: {text}",
+    "Reminder, Sam: {text}",
+    "Sam, just a heads up: {text}",
+    "Hey Sam - {text}",
+    "Sam, reminder: {text}",
+    "Hey Sam - reminder: {text}",
+    "Sam, quick reminder: {text}",
+    "Sam, just a reminder: {text}",
+    "Just a reminder, Sam: {text}",
+    "Hey Sam, just a reminder: {text}",
+    "Sam, heads up: {text}",
+    "Heads up, Sam: {text}",
+    "Sam, FYI: {text}",
+    "FYI, Sam: {text}",
+    "Sam, note: {text}",
+    "Note, Sam: {text}",
+    "Sam, a quick note: {text}",
+    "Quick note, Sam: {text}",
+    "Hey Sam, quick note: {text}",
+    "Sam, a heads up: {text}",
+    "Just a heads up, Sam - {text}",
+    "Hey Sam, heads up: {text}",
+    "Sam, reminder for you: {text}",
+    "Reminder for you, Sam: {text}",
+]
+
+def _format_alert_speech(text: str) -> str:
+    template = random.choice(_ALERT_PREFIXES)
+    return template.format(text=text)
 
 def start_scheduler():
     seed_defaults_if_empty()
@@ -88,12 +126,12 @@ def _nag_tick():
     if row_next_fire.tzinfo is None:
         row_next_fire = row_next_fire.replace(tzinfo=TZ)
     if row["reminder_key"] in med_keys:
-        speak_text = f"Hey Sam, {row['speak_text']}"
+        speak_text = _format_alert_speech(row["speak_text"])
         synthesize_and_play_async(speak_text)
     else:
         # Speak once for non-med reminders (first fire only).
         if abs((row_next_fire - due_dt).total_seconds()) <= 60:
-            speak_text = f"Hey Sam, {row['speak_text']}"
+            speak_text = _format_alert_speech(row["speak_text"])
             synthesize_and_play_async(speak_text)
     next_fire_dt = row_next_fire + timedelta(minutes=5)
     if next_fire_dt > window_end:

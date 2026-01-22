@@ -13,6 +13,7 @@ import {
   aiResolve,
   aiReclassify,
   aiReclassifyConfirm,
+  aiPriority,
   sttTranscribe,
 } from "./api";
 import DarkVeil from "./components/DarkVeil";
@@ -80,10 +81,16 @@ export default function App() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
+  const [taskBrowseActive, setTaskBrowseActive] = useState(false);
+  const [tasksViewMode, setTasksViewMode] = useState<"all" | "single">("all");
+  const lastTasksDayRef = useRef<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [aiInput, setAiInput] = useState("");
   const [aiOutput, setAiOutput] = useState<string | null>(null);
+  const [aiDisplay, setAiDisplay] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const speakingCountRef = useRef(0);
   const [reclassifyOptions, setReclassifyOptions] = useState<
     { item_type: "task" | "reminder" | "event"; item_id: number; label: string; target: "task" | "reminder" | "event" }[]
   >([]);
@@ -127,6 +134,16 @@ export default function App() {
     }
   }
 
+  useEffect(() => {
+    if (!data?.now) return;
+    const day = ymdLocal(new Date(data.now));
+    if (lastTasksDayRef.current && lastTasksDayRef.current !== day) {
+      setTasksViewMode("all");
+      setTaskBrowseActive(false);
+    }
+    lastTasksDayRef.current = day;
+  }, [data?.now]);
+
   async function markDone(r: Reminder) {
     try {
       setErr(null);
@@ -143,6 +160,29 @@ export default function App() {
     const id = setInterval(refresh, 5000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!aiOutput) {
+      setAiDisplay(null);
+      return;
+    }
+    const tokens = aiOutput.trim().split(/\s+/);
+    let idx = 1;
+    if (!tokens.length) {
+      setAiDisplay("");
+      return;
+    }
+    setAiDisplay(tokens[0]);
+    const id = window.setInterval(() => {
+      if (idx >= tokens.length) {
+        window.clearInterval(id);
+        return;
+      }
+      setAiDisplay(tokens.slice(0, idx + 1).join(" "));
+      idx += 1;
+    }, 200);
+    return () => window.clearInterval(id);
+  }, [aiOutput]);
 
   const now = data?.now ? new Date(data.now) : null;
   const timeStr = now
@@ -218,6 +258,18 @@ export default function App() {
     setCurrentTaskId(nextTask.id);
   }
 
+  function advanceTaskAndGet(): string | null {
+    if (!tasks.length) return null;
+    if (tasks.length === 1) {
+      setCurrentTaskId(tasks[0].id);
+      return tasks[0].title;
+    }
+    const idx = taskIndex >= 0 ? taskIndex : 0;
+    const nextTask = tasks[(idx + 1) % tasks.length];
+    setCurrentTaskId(nextTask.id);
+    return nextTask.title;
+  }
+
   async function markTaskDone() {
     if (!currentTask) return;
     try {
@@ -241,8 +293,17 @@ export default function App() {
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       const cleanup = () => URL.revokeObjectURL(url);
-      audio.onended = cleanup;
-      audio.onerror = cleanup;
+      speakingCountRef.current += 1;
+      setIsSpeaking(true);
+      const finish = () => {
+        cleanup();
+        speakingCountRef.current = Math.max(0, speakingCountRef.current - 1);
+        if (speakingCountRef.current === 0) {
+          setIsSpeaking(false);
+        }
+      };
+      audio.onended = finish;
+      audio.onerror = finish;
       await audio.play();
     } catch (e: any) {
       setErr(e?.message ?? "failed");
@@ -276,67 +337,290 @@ export default function App() {
         setAiOutput("Please reply with a valid option number.");
         return;
       }
+      const nextTaskTrigger = /\b(next task|what'?s the next task|show me the next task)\b/i;
+      const topPriorityTrigger =
+        /\b(top priority task|top priority today|highest priority task|most important task|most important thing|most important thing i need to do|what do i need to do today|what should i do today|what'?s the most important thing i need to do today|what'?s the most important task today|what'?s the top thing today|what'?s my top task today|what should i tackle first|what do i tackle first|what should i do first|what do i do first|what'?s the highest priority thing today|what'?s the most urgent task|what is the most urgent thing)\b/i;
+      const otherTasksTrigger =
+        /\b(what other tasks|what else do i have|any other tasks|more tasks)\b/i;
+      const continueTasksTrigger = /\b(yes|yeah|yep|next|keep going|more)\b/i;
+      const stopTasksTrigger = /\b(no|nope|stop|that's all|done)\b/i;
+      const singleTasksTrigger =
+        /\b(one task at a time|one task at a time please|focus mode|low overwhelm mode|reduce overwhelm|show one task|single task mode)\b/i;
+      const allTasksTrigger =
+        /\b(show all tasks|show all my tasks|list all tasks|show tasks list|all tasks view|show me all tasks|show me all my tasks)\b/i;
+
+      if (singleTasksTrigger.test(prompt)) {
+        setTasksViewMode("single");
+        const title = currentTask?.title ?? advanceTaskAndGet();
+        const ack = title
+          ? `Okay, one task at a time. Next task: ${title}.`
+          : "Okay, one task at a time. You have no tasks.";
+        setAiOutput(ack);
+        await playTts(ack);
+        return;
+      }
+
+      if (allTasksTrigger.test(prompt)) {
+        setTasksViewMode("all");
+        setTaskBrowseActive(false);
+        const ack = "Okay, showing all tasks.";
+        setAiOutput(ack);
+        await playTts(ack);
+        return;
+      }
+
+      if (taskBrowseActive) {
+        if (continueTasksTrigger.test(prompt)) {
+          const title = advanceTaskAndGet();
+          if (title) {
+            const ack = `Next task: ${title}. Want to hear the next one?`;
+            setAiOutput(ack);
+            await playTts(ack);
+          } else {
+            const ack = "You have no tasks.";
+            setAiOutput(ack);
+            await playTts(ack);
+            setTaskBrowseActive(false);
+          }
+          return;
+        }
+        if (stopTasksTrigger.test(prompt)) {
+          setTaskBrowseActive(false);
+          const ack = "Okay.";
+          setAiOutput(ack);
+          await playTts(ack);
+          return;
+        }
+      }
+
+      if (nextTaskTrigger.test(prompt)) {
+        setTasksViewMode("single");
+        const title = advanceTaskAndGet();
+        const ack = title ? `Next task: ${title}.` : "You have no tasks.";
+        setAiOutput(ack);
+        await playTts(ack);
+        return;
+      }
+
+      if (otherTasksTrigger.test(prompt)) {
+        setTasksViewMode("single");
+        const title = advanceTaskAndGet();
+        if (title) {
+          const ack = `Next task: ${title}. Want to hear the next one?`;
+          setAiOutput(ack);
+          await playTts(ack);
+          setTaskBrowseActive(true);
+        } else {
+          const ack = "You have no tasks.";
+          setAiOutput(ack);
+          await playTts(ack);
+        }
+        return;
+      }
+
+      if (topPriorityTrigger.test(prompt)) {
+        setTasksViewMode("single");
+        const topTask = tasks.length ? tasks[0] : null;
+        if (topTask) {
+          setCurrentTaskId(topTask.id);
+        }
+        const ack = topTask
+          ? `Top priority task: ${topTask.title}.`
+          : "You have no tasks.";
+        setAiOutput(ack);
+        await playTts(ack);
+        return;
+      }
+
       const resolveRes = await aiResolve(prompt);
       if (resolveRes.ok) {
-        let ack = "Done.";
-        if (resolveRes.target === "task" && resolveRes.task) {
-          ack = `Marked task done: ${resolveRes.task.title}`;
-        } else if (resolveRes.target === "reminder" && resolveRes.reminder) {
-          ack = `Marked reminder done: ${resolveRes.reminder.label}`;
-        } else if (resolveRes.target === "event" && resolveRes.event) {
-          ack = `Removed event: ${resolveRes.event.title}`;
+        const completionAcks = [
+          "Ok, I'll mark it as done.",
+          "Got it, marking that as done.",
+          "All set, I marked it as done.",
+          "Done. I've marked it.",
+          "No problem, it's marked as done.",
+          "Okay, marked as done.",
+          "Sure, I'll mark it done.",
+          "Understood. Marked as done.",
+          "Got it. Marked as done.",
+          "Okay, I'll mark that as done.",
+          "Done. I've got it marked.",
+          "All right, it's marked as done.",
+          "Consider it done.",
+          "Done and marked.",
+          "Marked it as done.",
+          "Okay, done.",
+          "Yep, marking it as done now.",
+          "Done. Marked it.",
+          "Got it, that's done.",
+          "All done. Marked.",
+          "Sorted. Marked as done.",
+          "Done, I'll mark it.",
+          "Okay, I'll mark it.",
+          "Great, it's marked as done.",
+          "Got it. I'll mark it as done.",
+          "All right, I'll mark it as done.",
+          "Done — marked as done.",
+          "No worries, I marked it done.",
+          "Sure thing, it's marked as done.",
+          "Okay, that's marked as done.",
+        ];
+        const ack =
+          completionAcks[Math.floor(Math.random() * completionAcks.length)];
+        setAiOutput(ack);
+        await playTts(ack);
+        await refresh();
+        return;
+      }
+      const reclassifyTrigger = /(?:\bmove\b|\breclassif(?:y|y)\b|\bshould be\b|\bmake\b.*\b(task|reminder|event)\b)/i;
+      if (reclassifyTrigger.test(prompt)) {
+        const reclassifyRes = await aiReclassify(prompt);
+        if (reclassifyRes.needs_confirmation && reclassifyRes.options?.length) {
+          const target = reclassifyRes.target ?? "task";
+          const nextOptions = reclassifyRes.options.map((o) => ({
+            ...o,
+            target,
+          }));
+          setReclassifyOptions(nextOptions);
+          const optionsText = nextOptions
+            .map((o, i) => `${i + 1}) ${o.label} (${o.item_type})`)
+            .join("\n");
+          setAiOutput(`Which one should I move to ${target}?\n${optionsText}`);
+          return;
         }
-        setAiOutput(ack);
-        await playTts(ack);
-        await refresh();
-        return;
+        if (reclassifyRes.ok) {
+          const ack = "Moved it.";
+          setAiOutput(ack);
+          await playTts(ack);
+          await refresh();
+          return;
+        }
       }
-      const reclassifyRes = await aiReclassify(prompt);
-      if (reclassifyRes.needs_confirmation && reclassifyRes.options?.length) {
-        const target = reclassifyRes.target ?? "task";
-        const nextOptions = reclassifyRes.options.map((o) => ({
-          ...o,
-          target,
-        }));
-        setReclassifyOptions(nextOptions);
-        const optionsText = nextOptions
-          .map((o, i) => `${i + 1}) ${o.label} (${o.item_type})`)
-          .join("\n");
-        setAiOutput(`Which one should I move to ${target}?\n${optionsText}`);
-        return;
-      }
-      if (reclassifyRes.ok) {
-        const ack = "Moved it.";
-        setAiOutput(ack);
-        await playTts(ack);
-        await refresh();
-        return;
+      const priorityTrigger =
+        /\b(priority|prioritis(?:e|e)|urgent|important|vital|high|low|medium)\b/i;
+      if (priorityTrigger.test(prompt)) {
+        const priorityRes = await aiPriority(prompt);
+        if (priorityRes.ok && priorityRes.priority) {
+          const priorityAcks = [
+            `Okay, set it to ${priorityRes.priority}.`,
+            `Got it, it’s now ${priorityRes.priority}.`,
+            `Done, priority set to ${priorityRes.priority}.`,
+            `All set, marked as ${priorityRes.priority}.`,
+            `Okay, updated to ${priorityRes.priority}.`,
+            `Got it — ${priorityRes.priority} priority.`,
+            `Done — ${priorityRes.priority}.`,
+            `Updated. It’s ${priorityRes.priority} now.`,
+          ];
+          const ack =
+            priorityAcks[Math.floor(Math.random() * priorityAcks.length)];
+          setAiOutput(ack);
+          await playTts(ack);
+          await refresh();
+          return;
+        }
       }
       const scheduleRes = await aiSchedule(prompt);
       if (scheduleRes.ok) {
         const action = scheduleRes.action ?? "event";
+        const addAcks = [
+          "Got it, I added the {type}.",
+          "Okay, I added the {type}.",
+          "Done — I added the {type}.",
+          "All set, the {type} is added.",
+          "Sorted, I added the {type}.",
+          "Great, I’ve added the {type}.",
+          "No problem, I added the {type}.",
+          "Okay, the {type} is in.",
+          "Added the {type}.",
+          "That {type} is added now.",
+          "Got it — added the {type}.",
+          "All good, I added the {type}.",
+          "Consider the {type} added.",
+          "Done, the {type} is added.",
+          "Noted and added the {type}.",
+          "Added the {type} for you.",
+          "Got it, that {type} is added.",
+          "Okay, that {type} is added.",
+          "Sure, I added the {type}.",
+          "Done, added the {type}.",
+          "Alright, I added the {type}.",
+          "Okay, I’ve put the {type} in.",
+          "All set — added the {type}.",
+          "No worries, the {type} is added.",
+          "Added the {type}, all set.",
+          "Done, the {type} is in.",
+          "Got it, the {type} is now added.",
+          "Alright, the {type} is added.",
+          "Okay, you’re set — the {type} is added.",
+          "Got it — the {type} is added now.",
+        ];
+        const pickAddAck = (type: "event" | "task" | "tasks" | "alert") =>
+          addAcks[Math.floor(Math.random() * addAcks.length)].replace(
+            "{type}",
+            type
+          );
+        const workdayAcks = [
+          "Got it, I've updated your work schedule.",
+          "Okay, your workdays are updated.",
+          "All set, I updated your work schedule.",
+          "Done — I updated your workdays.",
+          "Sorted, I've updated your work schedule.",
+          "Okay, I've made those workday changes.",
+          "Got it, your workday changes are saved.",
+          "All good, your work schedule is updated.",
+        ];
+        const pickWorkdayAck =
+          workdayAcks[Math.floor(Math.random() * workdayAcks.length)];
+        const mixedAcks = [
+          "Got it, I added everything.",
+          "All set, I added those.",
+          "Okay, I added all of that.",
+          "Done — I added everything.",
+          "Sorted, I added those items.",
+          "All good, I added it all.",
+          "Got it, everything’s added.",
+          "Okay, those are added.",
+        ];
+        const pickMixedAck =
+          mixedAcks[Math.floor(Math.random() * mixedAcks.length)];
         let ack = "Done.";
         if (action === "task" && scheduleRes.task) {
-          ack = `Added task: ${scheduleRes.task.title}`;
+          const totalTasks = scheduleRes.tasks?.length ?? 1;
+          ack = totalTasks > 1 ? pickAddAck("tasks") : pickAddAck("task");
         } else if (action === "reminder" && scheduleRes.reminder) {
-          const todayStr = ymdLocal(new Date());
-          if (scheduleRes.reminder.date === todayStr) {
-            ack = `Added reminder: ${scheduleRes.reminder.title} (${scheduleRes.reminder.scheduled_hhmm})`;
+          ack = pickAddAck("alert");
+        } else if (action === "workday") {
+          ack = pickWorkdayAck;
+        } else if (action === "mixed") {
+          const mixedCounts = {
+            tasks: scheduleRes.tasks?.length ?? 0,
+            reminders: scheduleRes.reminders?.length ?? 0,
+            events: scheduleRes.events?.length ?? 0,
+            workdays: scheduleRes.workdays?.length ?? 0,
+          };
+          const total =
+            mixedCounts.tasks +
+            mixedCounts.reminders +
+            mixedCounts.events +
+            mixedCounts.workdays;
+          if (total === 1) {
+            if (mixedCounts.tasks) {
+              ack = pickAddAck("task");
+            } else if (mixedCounts.reminders) {
+              ack = pickAddAck("alert");
+            } else if (mixedCounts.events) {
+              ack = pickAddAck("event");
+            } else if (mixedCounts.workdays) {
+              ack = pickWorkdayAck;
+            } else {
+              ack = pickMixedAck;
+            }
           } else {
-            const dt = new Date(`${scheduleRes.reminder.date}T${scheduleRes.reminder.scheduled_hhmm}:00`);
-            const dateLabel = dt.toLocaleDateString([], {
-              weekday: "short",
-              day: "2-digit",
-              month: "short",
-            });
-            const timeLabel = dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-            ack = `Added reminder: ${scheduleRes.reminder.title} (${dateLabel} at ${timeLabel})`;
+            ack = pickMixedAck;
           }
         } else if (scheduleRes.event) {
-          const when = scheduleRes.event.all_day
-            ? scheduleRes.event.date
-            : `${scheduleRes.event.date} ${scheduleRes.event.start_hhmm}-${scheduleRes.event.end_hhmm}`;
-          ack = `Added ${action}: ${scheduleRes.event.title} (${when})`;
+          ack = pickAddAck("event");
         }
         setAiOutput(ack);
         await playTts(ack);
@@ -442,7 +726,7 @@ export default function App() {
           <span className="glass-pill glass-pill--small">{workLabel}</span>
         </div>
       </header>
-      {aiOutput ? <div className="aiResponse">{aiOutput}</div> : null}
+      {aiOutput ? <div className="aiResponse">{aiDisplay ?? aiOutput}</div> : null}
 
       {err && <div className="err glass-soft">Backend error: {err}</div>}
 
@@ -537,13 +821,28 @@ export default function App() {
         <section className="card glass-tile slot-r1 card--right">
           <div className="cardHeader">
             <h2>Tasks</h2>
-            {currentTask ? (
+            {tasksViewMode === "single" && currentTask ? (
               <span className={`taskPriority taskPriority--${currentTask.priority}`}>
                 {currentTask.priority}
               </span>
             ) : null}
           </div>
-          {currentTask ? (
+          {tasksViewMode === "all" ? (
+            tasks.length ? (
+              <ul className="taskList">
+                {tasks.map((t) => (
+                  <li key={t.id} className="taskRow">
+                    <span className={`taskPriority taskPriority--${t.priority}`}>
+                      {t.priority}
+                    </span>
+                    <span>{t.title}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="big">Excellent work. Congrats on completing your tasks!</p>
+            )
+          ) : currentTask ? (
             <>
               <p className="big">{currentTask.title}</p>
               <div className="taskControls">
@@ -563,7 +862,12 @@ export default function App() {
         {/* Middle column: Orb (no tile/background) */}
         <div className="orbSlot" aria-hidden="true">
           <div className="orbWrap">
-            <Orb hue={0} hoverIntensity={2} rotateOnHover={false} forceHoverState={false} />
+            <Orb
+              hue={0}
+              hoverIntensity={isSpeaking ? 2 : 0}
+              rotateOnHover={isSpeaking}
+              forceHoverState={isSpeaking}
+            />
           </div>
         </div>
 

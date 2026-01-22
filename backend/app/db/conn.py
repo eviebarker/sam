@@ -52,4 +52,10 @@ def init_db() -> None:
             conn.execute("ALTER TABLE ai_memories ADD COLUMN embedding TEXT;")
         if "last_used_at" not in memory_columns:
             conn.execute("ALTER TABLE ai_memories ADD COLUMN last_used_at TEXT;")
+        pronunciation_columns = [
+            r["name"] for r in conn.execute("PRAGMA table_info(pronunciations);")
+        ]
+        if pronunciation_columns:
+            if "updated_at" not in pronunciation_columns:
+                conn.execute("ALTER TABLE pronunciations ADD COLUMN updated_at TEXT;")
         conn.commit()

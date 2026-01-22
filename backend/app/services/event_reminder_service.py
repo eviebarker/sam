@@ -6,19 +6,28 @@ from backend.app.db.reminder_queries import create_active_for_date
 
 TZ = ZoneInfo("Europe/London")
 
+def _months_until(event_date: Date, today: Date) -> int:
+    months = (event_date.year - today.year) * 12 + (event_date.month - today.month)
+    if event_date.day < today.day:
+        months -= 1
+    return months
+
 def _should_remind_today(event_date: Date, today: Date, preset: str) -> bool:
     days_until = (event_date - today).days
     if days_until < 0:
         return False
     if preset != "standard":
         return False
-    if days_until == 0:
+    if days_until == 1:
         return True
-    if days_until < 7:
+    if days_until <= 7:
+        return False
+    if days_until <= 28:
+        return days_until % 7 == 0
+    months_until = _months_until(event_date, today)
+    if months_until >= 2 and today.day == event_date.day:
         return True
-    if days_until < 30:
-        return today.weekday() == event_date.weekday()
-    return today.day == event_date.day
+    return False
 
 def _reminder_time(start_hhmm: str | None, all_day: bool, days_until: int) -> str:
     if days_until == 0 and start_hhmm and not all_day:
@@ -29,6 +38,8 @@ def create_event_reminders_for_date(date_yyyy_mm_dd: str) -> None:
     today = Date.fromisoformat(date_yyyy_mm_dd)
     events = list_events_from_date(date_yyyy_mm_dd)
     for e in events:
+        if e["title"].strip().lower() == "work":
+            continue
         event_date = Date.fromisoformat(e["event_date"])
         preset = e["reminder_preset"] or "standard"
         if not _should_remind_today(event_date, today, preset):

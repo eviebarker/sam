@@ -62,6 +62,11 @@ def mark_done(active_id: int):
         conn.execute("UPDATE reminder_active SET status='done' WHERE id=?;", (active_id,))
         conn.commit()
 
+def delete_active_reminder(active_id: int):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM reminder_active WHERE id=?;", (active_id,))
+        conn.commit()
+
 def mark_missed(active_id: int):
     with get_conn() as conn:
         conn.execute("UPDATE reminder_active SET status='missed' WHERE id=?;", (active_id,))

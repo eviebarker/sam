@@ -301,7 +301,15 @@ export default function Orb({
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hue, hoverIntensity, rotateOnHover, forceHoverState, backgroundColor, vert, frag]);
+  }, [
+    hue,
+    hoverIntensity,
+    rotateOnHover,
+    forceHoverState,
+    backgroundColor,
+    vert,
+    frag,
+  ]);
 
   return <div ref={ctnDom} className="orb-container" />;
 }
