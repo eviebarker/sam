@@ -14,6 +14,7 @@ import {
   aiReclassify,
   aiReclassifyConfirm,
   aiPriority,
+  sttTranscribe,
 } from "./api";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
@@ -93,6 +94,12 @@ export default function App() {
   const [reclassifyOptions, setReclassifyOptions] = useState<
     { item_type: "task" | "reminder" | "event"; item_id: number; label: string; target: "task" | "reminder" | "event" }[]
   >([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [sttTranscript, setSttTranscript] = useState<string | null>(null);
+  const [sttStatus, setSttStatus] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
 
   async function refresh() {
     try {
@@ -630,6 +637,71 @@ export default function App() {
     }
   }
 
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  async function startRecording() {
+    if (isRecording) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErr("Microphone not supported in this browser.");
+      return;
+    }
+    try {
+      setErr(null);
+      setSttTranscript(null);
+      setSttStatus("Listening...");
+      const stream =
+        streamRef.current ?? (await navigator.mediaDevices.getUserMedia({ audio: true }));
+      streamRef.current = stream;
+      const mimeType = MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
+        ? "audio/ogg;codecs=opus"
+        : "audio/webm;codecs=opus";
+      const recorder = new MediaRecorder(stream, { mimeType });
+      chunksRef.current = [];
+      recorder.ondataavailable = (evt) => {
+        if (evt.data && evt.data.size > 0) {
+          chunksRef.current.push(evt.data);
+        }
+      };
+      recorder.onstop = async () => {
+        setIsRecording(false);
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
+        chunksRef.current = [];
+        if (!blob.size) {
+          setSttStatus("No audio captured.");
+          return;
+        }
+        try {
+          setSttStatus("Transcribing...");
+          const res = await sttTranscribe(blob);
+          setSttTranscript(res.text || "(no text)");
+          setSttStatus(res.language ? `Language: ${res.language}` : "Done");
+        } catch (e: any) {
+          setErr(e?.message ?? "failed");
+          setSttStatus(null);
+        }
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (e: any) {
+      setErr(e?.message ?? "Microphone failed");
+      setSttStatus(null);
+    }
+  }
+
+  function stopRecording() {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) return;
+    if (recorder.state !== "inactive") {
+      setSttStatus("Processing...");
+      recorder.stop();
+    }
+  }
+
   return (
     <div className="page">
       <div className="bg">
@@ -880,13 +952,41 @@ export default function App() {
           <div className="cardHeader">
             <h2>Push to talk</h2>
           </div>
-          <button className="glass-pill micPill" onClick={() => alert("PTT coming soon")}>
-            Hold to talk
+          <button
+            className={`glass-pill micPill${isRecording ? " micPill--recording" : ""}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              startRecording();
+            }}
+            onMouseUp={(e) => {
+              e.preventDefault();
+              stopRecording();
+            }}
+            onMouseLeave={() => {
+              if (isRecording) stopRecording();
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              startRecording();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              stopRecording();
+            }}
+          >
+            {isRecording ? "Listening..." : "Hold to talk"}
           </button>
           <button className="glass-pill glass-pill--small ttsButton" onClick={handleTtsClick}>
             Test speak
           </button>
           <p className="subtle">v1: button only (no hotword)</p>
+          {sttTranscript || sttStatus ? (
+            <div className="sttBox glass-soft">
+              <div className="aiLabel">Transcript</div>
+              {sttTranscript ? <div className="sttText">{sttTranscript}</div> : null}
+              {sttStatus ? <div className="sttStatus subtle">{sttStatus}</div> : null}
+            </div>
+          ) : null}
 
           <div className="aiBlock">
             <div className="aiLabel">Ask Sam</div>
