@@ -16,6 +16,18 @@ import {
   aiPriority,
   sttTranscribe,
 } from "./api";
+import burgersImg from "./assets/burgers.jpeg";
+import chickenChorizoImg from "./assets/chicken_and_chorizo.jpg";
+import chickenCasseroleImg from "./assets/chicken_casserole.jpeg";
+import chickenCurryImg from "./assets/chicken_curry.jpg";
+import chilliJacketImg from "./assets/chilli_con_carne_with_jacket_potato.jpg";
+import fajitasImg from "./assets/fajitas.webp";
+import pizzaImg from "./assets/homemade_pizza.jpg";
+import lasagnaImg from "./assets/lasagna.jpeg";
+import risottoImg from "./assets/risotto.jpg";
+import roastImg from "./assets/roast.avif";
+import sausageMashImg from "./assets/sausage_mash_beans.jpg";
+import tomatoCasseroleImg from "./assets/tomato_and_sausage_casserole.jpg";
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
 import FunFactCard from "./components/FunFactCard";
@@ -66,10 +78,20 @@ type RemindersResp = {
   reminders: Reminder[];
 };
 
-const FOOD_HUB_DISHES = Array.from({ length: 12 }, (_, index) => ({
-  id: index + 1,
-  name: `Dish ${String(index + 1).padStart(2, "0")}`,
-}));
+const FOOD_HUB_DISHES = [
+  { id: 1, name: "Risotto", image: risottoImg },
+  { id: 2, name: "Homemade pizza", image: pizzaImg },
+  { id: 3, name: "Chicken curry", image: chickenCurryImg },
+  { id: 4, name: "Chicken & chorizo", image: chickenChorizoImg },
+  { id: 5, name: "Tomato sausage casserole", image: tomatoCasseroleImg },
+  { id: 6, name: "Roast Dinner", image: roastImg },
+  { id: 7, name: "Burgers", image: burgersImg },
+  { id: 8, name: "Fajitas", image: fajitasImg },
+  { id: 9, name: "Chilli con carne", image: chilliJacketImg },
+  { id: 10, name: "Chicken casserole", image: chickenCasseroleImg },
+  { id: 11, name: "Lasagna", image: lasagnaImg },
+  { id: 12, name: "Sausage mash & beans", image: sausageMashImg },
+];
 
 const FOOD_HUB_VISIBLE = 6;
 
@@ -1564,8 +1586,17 @@ export default function App() {
               >
                 {trackDishes.map((dish, index) => (
                   <li key={`${dish.id}-${index}`} className="foodHubTile">
-                    <div className="foodHubTileImage" aria-hidden="true">
-                      <span>Image</span>
+                    <div className="foodHubTileImage" aria-hidden={!dish.image}>
+                      {dish.image ? (
+                        <img
+                          className="foodHubTileImg"
+                          src={dish.image}
+                          alt={dish.name}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span>Image</span>
+                      )}
                     </div>
                     <div className="foodHubTileName">{dish.name}</div>
                   </li>
