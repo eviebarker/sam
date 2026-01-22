@@ -19,6 +19,7 @@ import {
 import DarkVeil from "./components/DarkVeil";
 import Orb from "./components/Orb";
 import FunFactCard from "./components/FunFactCard";
+import FoodHub from "./pages/FoodHub";
 import "./App.css";
 
 type Dashboard = {
@@ -74,6 +75,9 @@ function ymdLocal(d: Date) {
 
 export default function App() {
   const [data, setData] = useState<Dashboard | null>(null);
+  const [activePage, setActivePage] = useState<"dashboard" | "food-hub">(
+    "dashboard"
+  );
   const [isWork, setIsWork] = useState<boolean | null>(null);
   const [workStart, setWorkStart] = useState<string | null>(null);
   const [workEnd, setWorkEnd] = useState<string | null>(null);
@@ -1015,6 +1019,278 @@ export default function App() {
     }
   }
 
+  const isFoodHub = activePage === "food-hub";
+
+  const renderTodayCard = (
+    slotClass: string,
+    alignClass: string,
+    extraClass?: string
+  ) => (
+    <section
+      className={`card glass-tile ${slotClass} ${alignClass}${
+        extraClass ? ` ${extraClass}` : ""
+      }`}
+    >
+      <div className="cardHeader">
+        <h2>Today</h2>
+      </div>
+      {hasTodayItems ? (
+        <ul className="list list--flush">
+          {isWork ? (
+            <li className={`eventRow${workFinished ? " eventRow--done" : ""}`}>
+              <span>
+                <strong>{workStart && workEnd ? `${workStart}-${workEnd}` : "Work"}</strong>{" "}
+                Work
+              </span>
+              {workStatus ? (
+                <span
+                  className={`eventMeta${
+                    workFinished ? " eventMeta--done" : " reminderStatus"
+                  }${workStatus === "now" ? " reminderStatus--missed" : ""}${
+                    workStatus !== "now" && !workFinished ? " reminderStatus--done" : ""
+                  }`}
+                >
+                  {workStatus}
+                </span>
+              ) : null}
+            </li>
+          ) : null}
+          {events.map((e) => {
+            const isAllDay = Boolean(e.all_day);
+            const timeLabel = isAllDay
+              ? "All day"
+              : e.start_hhmm && e.end_hhmm
+                ? `${e.start_hhmm}-${e.end_hhmm}`
+                : e.start_hhmm ?? "TBD";
+            let relativeLabel = "";
+            let isNow = false;
+            let isUpcoming = false;
+            let isDone = false;
+            if (isAllDay) {
+              relativeLabel = "now";
+              isNow = true;
+            } else if (e.start_hhmm) {
+              const eventStart = new Date(`${e.event_date}T${e.start_hhmm}:00`);
+              const eventStartMs = eventStart.getTime();
+              let eventEndMs = eventStartMs;
+              if (e.end_hhmm) {
+                const eventEnd = new Date(`${e.event_date}T${e.end_hhmm}:00`);
+                eventEndMs = eventEnd.getTime();
+              }
+              const diffMs = eventStartMs - nowMs;
+              const diffMins = Math.round(diffMs / 60000);
+              if (nowMs >= eventStartMs && nowMs <= eventEndMs) {
+                relativeLabel = "now";
+                isNow = true;
+              } else if (diffMins >= 0) {
+                const hours = Math.floor(diffMins / 60);
+                const mins = diffMins % 60;
+                relativeLabel = hours > 0 ? `in ${hours}h ${mins}m` : `in ${mins} mins`;
+                isUpcoming = true;
+              } else {
+                isDone = true;
+              }
+            }
+            return (
+              <li key={e.id} className={`eventRow${isDone ? " eventRow--done" : ""}`}>
+                <span>
+                  <strong>{timeLabel}</strong> {e.title}
+                </span>
+                {relativeLabel ? (
+                  <span
+                    className={`eventMeta${
+                      isNow || isUpcoming ? " reminderStatus" : ""
+                    }${isUpcoming ? " reminderStatus--done" : ""}${
+                      isNow ? " reminderStatus--missed" : ""
+                    }${isDone ? " eventMeta--done" : ""}`}
+                  >
+                    {relativeLabel}
+                  </span>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </section>
+  );
+
+  const renderTasksCard = (slotClass: string, alignClass: string) => (
+    <section className={`card glass-tile ${slotClass} ${alignClass}`}>
+      <div className="cardHeader">
+        <h2>Tasks</h2>
+        {tasksViewMode === "single" && currentTask ? (
+          <span className={`taskPriority taskPriority--${currentTask.priority}`}>
+            {currentTask.priority}
+          </span>
+        ) : null}
+      </div>
+      {tasksViewMode === "all" ? (
+        tasks.length ? (
+          <ul className="taskList">
+            {tasks.map((t) => (
+              <li key={t.id} className="taskRow">
+                <span className={`taskPriority taskPriority--${t.priority}`}>
+                  {t.priority}
+                </span>
+                <span>{t.title}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="big">Excellent work. Congrats on completing your tasks!</p>
+        )
+      ) : currentTask ? (
+        <>
+          <p className="big">{currentTask.title}</p>
+          <div className="taskControls">
+            <button className="glass-pill glass-pill--small" onClick={cycleTask}>
+              Next
+            </button>
+            <button className="glass-pill glass-pill--small" onClick={markTaskDone}>
+              Done
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="big">Excellent work. Congrats on completing your tasks!</p>
+      )}
+    </section>
+  );
+
+  const renderAlertsCard = (
+    slotClass: string,
+    alignClass: string,
+    extraClass?: string
+  ) => (
+    <section
+      className={`card glass-tile ${slotClass} ${alignClass}${
+        extraClass ? ` ${extraClass}` : ""
+      }`}
+    >
+      <div className="cardHeader">
+        <h2>Alerts</h2>
+      </div>
+
+      {/* Med reminders (active) */}
+      {visibleAlerts.length ? (
+        <div className="reminders">
+          {visibleAlerts.map((r) => {
+            const isMedReminder = ["lanny_zee", "morning_meds", "lunch_meds", "evening_meds"].includes(
+              r.reminder_key
+            );
+            const statusLabel =
+              r.derivedStatus === "done"
+                ? isMedReminder
+                  ? "Taken"
+                  : "Done"
+                : r.derivedStatus === "missed"
+                  ? "Missed"
+                  : null;
+            const showDone = r.derivedStatus === "active" && r.inWindow;
+            return (
+              <div
+                key={r.id}
+                className={`reminderRow${r.inWindow ? " reminderRow--due" : ""}${
+                  r.derivedStatus !== "active" ? " reminderRow--inactive" : ""
+                }${r.derivedStatus === "missed" ? " reminderRow--missed" : ""}${
+                  r.derivedStatus === "done" ? " reminderRow--done" : ""
+                }`}
+              >
+                <div className="reminderText">
+                  <div className="reminderTop">
+                    <strong>{r.label}</strong>{" "}
+                    <span className="subtle">due {r.scheduled_hhmm}</span>
+                    {statusLabel ? (
+                      <span
+                        className={`reminderStatus reminderStatus--${r.derivedStatus}`}
+                      >
+                        {statusLabel}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="subtle">{r.speak_text}</div>
+                </div>
+
+                {showDone ? (
+                  <button
+                    className="glass-pill glass-pill--small"
+                    onClick={() => markDone(r)}
+                  >
+                    Done
+                  </button>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {/* Normal alerts */}
+      {data?.alerts?.length ? (
+        <ul className="list list--pills">
+          {data.alerts.map((a, i) => (
+            <li key={i}>{a.message}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="big">{visibleAlerts.length ? "" : "None"}</p>
+      )}
+    </section>
+  );
+
+  const renderPushToTalkCard = (slotClass: string, alignClass: string) => (
+    <section className={`card glass-tile ${slotClass} ${alignClass}`}>
+      <div className="cardHeader">
+        <h2>Push to talk</h2>
+      </div>
+      <button
+        className={`glass-pill micPill${isRecording ? " micPill--recording" : ""}`}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          startRecording();
+        }}
+        onMouseUp={(e) => {
+          e.preventDefault();
+          stopRecording();
+        }}
+        onMouseLeave={() => {
+          if (isRecording) stopRecording();
+        }}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          startRecording();
+        }}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          stopRecording();
+        }}
+      >
+        {isRecording ? "Listening..." : "Hold to talk"}
+      </button>
+      <p className="subtle">v1: button only (no hotword)</p>
+      <div className="aiBlock">
+        <div className="aiLabel">Ask Sam</div>
+        <textarea
+          className="aiInput"
+          rows={3}
+          placeholder="Type a prompt..."
+          value={aiInput}
+          onChange={(e) => setAiInput(e.target.value)}
+        />
+        <div className="aiActions">
+          <button
+            className="glass-pill glass-pill--small"
+            onClick={handleAiSubmit}
+            disabled={aiLoading}
+          >
+            {aiLoading ? "Thinking..." : "Ask"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+
   return (
     <div className="page">
       <div className="bg">
@@ -1032,291 +1308,105 @@ export default function App() {
       <header className="top">
         <div className="topLeft">
           <div className="time">{timeStr}</div>
-          <div className="date">{dateStrPretty}</div>
+          <div className="dateRow">
+            <div className="date">{dateStrPretty}</div>
+            {!isFoodHub ? (
+              <span className="glass-pill glass-pill--small">{workLabel}</span>
+            ) : null}
+            {isFoodHub ? (
+              <button
+                className={`glass-pill glass-pill--small micPill micPill--compact${
+                  isRecording ? " micPill--recording" : ""
+                }`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  startRecording();
+                }}
+                onMouseUp={(e) => {
+                  e.preventDefault();
+                  stopRecording();
+                }}
+                onMouseLeave={() => {
+                  if (isRecording) stopRecording();
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  startRecording();
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  stopRecording();
+                }}
+              >
+                {isRecording ? "Listening..." : "Push to talk"}
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div className="topRight">
-          <span className="glass-pill glass-pill--small">{workLabel}</span>
+          <button
+            type="button"
+            className={`glass-pill glass-pill--small navPill${
+              !isFoodHub ? " navPill--active" : ""
+            }`}
+            onClick={() => setActivePage("dashboard")}
+            aria-current={!isFoodHub ? "page" : undefined}
+          >
+            Dashboard
+          </button>
+          <button
+            type="button"
+            className={`glass-pill glass-pill--small navPill${
+              isFoodHub ? " navPill--active" : ""
+            }`}
+            onClick={() => setActivePage("food-hub")}
+            aria-current={isFoodHub ? "page" : undefined}
+          >
+            Food Hub
+          </button>
         </div>
       </header>
       {aiOutput ? <div className="aiResponse">{aiDisplay ?? aiOutput}</div> : null}
 
       {err && <div className="err glass-soft">Backend error: {err}</div>}
 
-      <main className="grid">
-        {/* Left column, row 1 */}
-        <section className="card glass-tile slot-l1 card--left">
-          <div className="cardHeader">
-            <h2>Today</h2>
-          </div>
-          {hasTodayItems ? (
-            <ul className="list list--flush">
-              {isWork ? (
-                <li className={`eventRow${workFinished ? " eventRow--done" : ""}`}>
-                  <span>
-                    <strong>{workStart && workEnd ? `${workStart}-${workEnd}` : "Work"}</strong>{" "}
-                    Work
-                  </span>
-                  {workStatus ? (
-                    <span
-                      className={`eventMeta${
-                        workFinished ? " eventMeta--done" : " reminderStatus"
-                      }${workStatus === "now" ? " reminderStatus--missed" : ""}${
-                        workStatus !== "now" && !workFinished ? " reminderStatus--done" : ""
-                      }`}
-                    >
-                      {workStatus}
-                    </span>
-                  ) : null}
-                </li>
-              ) : null}
-              {events.map((e) => {
-                const isAllDay = Boolean(e.all_day);
-                const timeLabel = isAllDay
-                  ? "All day"
-                  : e.start_hhmm && e.end_hhmm
-                    ? `${e.start_hhmm}-${e.end_hhmm}`
-                    : e.start_hhmm ?? "TBD";
-                let relativeLabel = "";
-                let isNow = false;
-                let isUpcoming = false;
-                let isDone = false;
-                if (isAllDay) {
-                  relativeLabel = "now";
-                  isNow = true;
-                } else if (e.start_hhmm) {
-                  const eventStart = new Date(`${e.event_date}T${e.start_hhmm}:00`);
-                  const eventStartMs = eventStart.getTime();
-                  let eventEndMs = eventStartMs;
-                  if (e.end_hhmm) {
-                    const eventEnd = new Date(`${e.event_date}T${e.end_hhmm}:00`);
-                    eventEndMs = eventEnd.getTime();
-                  }
-                  const diffMs = eventStartMs - nowMs;
-                  const diffMins = Math.round(diffMs / 60000);
-                  if (nowMs >= eventStartMs && nowMs <= eventEndMs) {
-                    relativeLabel = "now";
-                    isNow = true;
-                  } else if (diffMins >= 0) {
-                    const hours = Math.floor(diffMins / 60);
-                    const mins = diffMins % 60;
-                    relativeLabel =
-                      hours > 0 ? `in ${hours}h ${mins}m` : `in ${mins} mins`;
-                    isUpcoming = true;
-                  } else {
-                    isDone = true;
-                  }
-                }
-                return (
-                  <li key={e.id} className={`eventRow${isDone ? " eventRow--done" : ""}`}>
-                    <span>
-                      <strong>{timeLabel}</strong> {e.title}
-                    </span>
-                    {relativeLabel ? (
-                      <span
-                        className={`eventMeta${
-                          isNow || isUpcoming ? " reminderStatus" : ""
-                        }${isUpcoming ? " reminderStatus--done" : ""}${
-                          isNow ? " reminderStatus--missed" : ""
-                        }${isDone ? " eventMeta--done" : ""}`}
-                      >
-                        {relativeLabel}
-                      </span>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-        </section>
+      {isFoodHub ? (
+        <FoodHub
+          rightTop={renderTodayCard("slot-r1", "card--right", "card--slim")}
+          rightBottom={renderAlertsCard("slot-r2", "card--right", "card--slim")}
+        />
+      ) : (
+        <main className="grid">
+          {renderTodayCard("slot-l1", "card--left")}
+          {renderTasksCard("slot-r1", "card--right")}
 
-        {/* Right column, row 1 */}
-        <section className="card glass-tile slot-r1 card--right">
-          <div className="cardHeader">
-            <h2>Tasks</h2>
-            {tasksViewMode === "single" && currentTask ? (
-              <span className={`taskPriority taskPriority--${currentTask.priority}`}>
-                {currentTask.priority}
-              </span>
-            ) : null}
-          </div>
-          {tasksViewMode === "all" ? (
-            tasks.length ? (
-              <ul className="taskList">
-                {tasks.map((t) => (
-                  <li key={t.id} className="taskRow">
-                    <span className={`taskPriority taskPriority--${t.priority}`}>
-                      {t.priority}
-                    </span>
-                    <span>{t.title}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="big">Excellent work. Congrats on completing your tasks!</p>
-            )
-          ) : currentTask ? (
-            <>
-              <p className="big">{currentTask.title}</p>
-              <div className="taskControls">
-                <button className="glass-pill glass-pill--small" onClick={cycleTask}>
-                  Next
-                </button>
-                <button className="glass-pill glass-pill--small" onClick={markTaskDone}>
-                  Done
-                </button>
-              </div>
-            </>
-          ) : (
-            <p className="big">Excellent work. Congrats on completing your tasks!</p>
-          )}
-        </section>
-
-        {/* Middle column: Orb (no tile/background) */}
-        <div className="orbSlot" aria-hidden="true">
-          <div className={`orbWrap${isVisualSpeaking ? " orbWrap--speaking" : ""}`}>
-            <Orb
-              hue={0}
-              hoverIntensity={isVisualSpeaking ? audioPulse * 2.2 : 0.35}
-              rotateOnHover
-              forceHoverState={false}
-              pulse={0}
-              pulseSpeed={16.5}
-              autoHover={isVisualSpeaking}
-              autoHoverIntensity={isVisualSpeaking ? audioPulse * 1.1 : 1.0}
-              autoHoverSpeed={6.0}
-              speaking={isVisualSpeaking}
-            />
-          </div>
-        </div>
-
-        <div className="funFactDock">
-          <FunFactCard />
-        </div>
-
-        {/* Left column, row 2 */}
-        <section className="card glass-tile slot-l2 card--left">
-          <div className="cardHeader">
-            <h2>Alerts</h2>
-          </div>
-
-          {/* Med reminders (active) */}
-          {visibleAlerts.length ? (
-            <div className="reminders">
-              {visibleAlerts.map((r) => {
-                const isMedReminder = ["lanny_zee", "morning_meds", "lunch_meds", "evening_meds"].includes(
-                  r.reminder_key
-                );
-                const statusLabel =
-                  r.derivedStatus === "done"
-                    ? isMedReminder
-                      ? "Taken"
-                      : "Done"
-                    : r.derivedStatus === "missed"
-                      ? "Missed"
-                      : null;
-                const showDone = r.derivedStatus === "active" && r.inWindow;
-                return (
-                  <div
-                    key={r.id}
-                    className={`reminderRow${r.inWindow ? " reminderRow--due" : ""}${
-                      r.derivedStatus !== "active" ? " reminderRow--inactive" : ""
-                    }${r.derivedStatus === "missed" ? " reminderRow--missed" : ""}${
-                      r.derivedStatus === "done" ? " reminderRow--done" : ""
-                    }`}
-                  >
-                    <div className="reminderText">
-                      <div className="reminderTop">
-                        <strong>{r.label}</strong>{" "}
-                        <span className="subtle">due {r.scheduled_hhmm}</span>
-                        {statusLabel ? (
-                          <span
-                            className={`reminderStatus reminderStatus--${r.derivedStatus}`}
-                          >
-                            {statusLabel}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="subtle">{r.speak_text}</div>
-                    </div>
-
-                    {showDone ? (
-                      <button
-                        className="glass-pill glass-pill--small"
-                        onClick={() => markDone(r)}
-                      >
-                        Done
-                      </button>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
-
-          {/* Normal alerts */}
-          {data?.alerts?.length ? (
-            <ul className="list list--pills">
-              {data.alerts.map((a, i) => (
-                <li key={i}>{a.message}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="big">{visibleAlerts.length ? "" : "None"}</p>
-          )}
-        </section>
-
-        {/* Right column, row 2 */}
-        <section className="card glass-tile slot-r2 card--right">
-          <div className="cardHeader">
-            <h2>Push to talk</h2>
-          </div>
-          <button
-            className={`glass-pill micPill${isRecording ? " micPill--recording" : ""}`}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              startRecording();
-            }}
-            onMouseUp={(e) => {
-              e.preventDefault();
-              stopRecording();
-            }}
-            onMouseLeave={() => {
-              if (isRecording) stopRecording();
-            }}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              startRecording();
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              stopRecording();
-            }}
-          >
-            {isRecording ? "Listening..." : "Hold to talk"}
-          </button>
-          <p className="subtle">v1: button only (no hotword)</p>
-          <div className="aiBlock">
-            <div className="aiLabel">Ask Sam</div>
-            <textarea
-              className="aiInput"
-              rows={3}
-              placeholder="Type a prompt..."
-              value={aiInput}
-              onChange={(e) => setAiInput(e.target.value)}
-            />
-            <div className="aiActions">
-              <button
-                className="glass-pill glass-pill--small"
-                onClick={handleAiSubmit}
-                disabled={aiLoading}
-              >
-                {aiLoading ? "Thinking..." : "Ask"}
-              </button>
+          {/* Middle column: Orb (no tile/background) */}
+          <div className="orbSlot" aria-hidden="true">
+            <div className={`orbWrap${isVisualSpeaking ? " orbWrap--speaking" : ""}`}>
+              <Orb
+                hue={0}
+                hoverIntensity={isVisualSpeaking ? audioPulse * 2.2 : 0.35}
+                rotateOnHover
+                forceHoverState={false}
+                pulse={0}
+                pulseSpeed={16.5}
+                autoHover={isVisualSpeaking}
+                autoHoverIntensity={isVisualSpeaking ? audioPulse * 1.1 : 1.0}
+                autoHoverSpeed={6.0}
+                speaking={isVisualSpeaking}
+              />
             </div>
           </div>
-        </section>
-      </main>
+
+          <div className="funFactDock">
+            <FunFactCard />
+          </div>
+
+          {renderAlertsCard("slot-l2", "card--left")}
+          {renderPushToTalkCard("slot-r2", "card--right")}
+        </main>
+      )}
 
     </div>
   );
