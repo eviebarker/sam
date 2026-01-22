@@ -1,3 +1,5 @@
+"""AI message + memory persistence helpers (chat history and embeddings)."""
+
 import json
 from datetime import datetime
 from backend.app.db.conn import get_conn
@@ -6,6 +8,7 @@ SHORT_MAX_WORDS = 50
 
 
 def add_ai_message(role: str, content: str, created_at: str | None = None) -> None:
+    """Append a chat message (user/assistant)."""
     ts = created_at or datetime.utcnow().isoformat(timespec="seconds")
     with get_conn() as conn:
         conn.execute(
@@ -16,6 +19,7 @@ def add_ai_message(role: str, content: str, created_at: str | None = None) -> No
 
 
 def list_ai_messages_since(since_iso: str) -> list[dict]:
+    """List chat messages since a timestamp (inclusive)."""
     with get_conn() as conn:
         rows = conn.execute(
             "SELECT role, content, created_at FROM ai_messages "
@@ -30,6 +34,7 @@ def add_ai_memory(
     embedding: list[float] | None = None,
     created_at: str | None = None,
 ) -> None:
+    """Insert a memory summary with optional embedding; skips empty strings."""
     words = summary.split()
     word_count = len(words)
     if word_count == 0:
@@ -48,6 +53,7 @@ def add_ai_memory(
 
 
 def list_ai_memories(limit: int = 20) -> list[dict]:
+    """List recent memories without embeddings (for quick reads)."""
     with get_conn() as conn:
         rows = conn.execute(
             "SELECT summary, kind, word_count, created_at FROM ai_memories "
@@ -58,6 +64,7 @@ def list_ai_memories(limit: int = 20) -> list[dict]:
 
 
 def list_ai_memories_with_embeddings() -> list[dict]:
+    """List memories that have embeddings (for similarity search)."""
     with get_conn() as conn:
         rows = conn.execute(
             "SELECT id, summary, kind, word_count, embedding, last_used_at, created_at "
@@ -68,6 +75,7 @@ def list_ai_memories_with_embeddings() -> list[dict]:
 
 
 def prune_ai_memories(kind: str, max_count: int) -> None:
+    """Keep only the most-recently-used memories of a kind up to max_count."""
     with get_conn() as conn:
         rows = conn.execute(
             "SELECT id FROM ai_memories WHERE kind = ? "
@@ -85,6 +93,7 @@ def prune_ai_memories(kind: str, max_count: int) -> None:
 
 
 def touch_ai_memories(memory_ids: list[int]) -> None:
+    """Update last_used_at for the given memory ids."""
     if not memory_ids:
         return
     ts = datetime.utcnow().isoformat(timespec="seconds")
