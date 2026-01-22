@@ -211,7 +211,25 @@ export async function sttTranscribe(audioBlob: Blob) {
   const fd = new FormData();
   fd.append("file", audioBlob, "speech.ogg");
   const r = await fetch("/api/stt", { method: "POST", body: fd });
-  if (!r.ok) throw new Error(`stt failed: ${r.status}`);
+  if (!r.ok) {
+    const contentType = r.headers.get("content-type") || "";
+    let detail = "";
+    if (contentType.includes("application/json")) {
+      try {
+        const data = await r.json();
+        if (data?.detail) detail = String(data.detail);
+      } catch {
+        detail = "";
+      }
+    } else {
+      try {
+        detail = await r.text();
+      } catch {
+        detail = "";
+      }
+    }
+    throw new Error(detail ? `stt failed: ${r.status} ${detail}` : `stt failed: ${r.status}`);
+  }
   return r.json() as Promise<{
     text: string;
     language?: string | null;
