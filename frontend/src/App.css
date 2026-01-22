@@ -23,6 +23,8 @@ body{
   width: 100vw;
   padding: 28px;
   box-sizing: border-box;
+  --merge-duration: 1100ms;
+  --offscreen-x: 120vw;
 }
 
 /* Animated background layer (DarkVeil) */
@@ -133,6 +135,7 @@ body{
   grid-template-rows: auto auto;
   align-items: stretch;
   position: relative;
+  --col-gap: 18px;
 }
 
 /* Explicit placement: left col (1), right col (3) */
@@ -190,6 +193,44 @@ body{
 }
 .card--slim{
   max-width: 62%;
+}
+.card--merge{
+  transition: transform var(--merge-duration) ease, max-width var(--merge-duration) ease;
+  will-change: transform;
+  --merge-ratio: 1;
+}
+
+.page--foodhub .card--merge{
+  --merge-ratio: 0.62;
+  transform: translateX(calc((200% / var(--merge-ratio)) + (2 * var(--col-gap))));
+  max-width: 62%;
+  justify-self: end;
+}
+
+.card--off{
+  transition: transform var(--merge-duration) ease;
+  will-change: transform;
+}
+
+.page--foodhub .card--off{
+  transform: translateX(var(--offscreen-x));
+}
+
+.orbSlot{
+  transition: transform var(--merge-duration) ease;
+}
+
+.page--foodhub .orbSlot.merge-off{
+  transform: translate3d(var(--offscreen-x), 0, 0);
+}
+
+.funFactDock{
+  transition: transform var(--merge-duration) ease;
+}
+
+.page--foodhub .funFactDock.merge-off{
+  transform: translate3d(calc(-50% + var(--offscreen-x)), 0, 0);
+  pointer-events: none;
 }
 
 .cardHeader{
@@ -465,6 +506,18 @@ h2{
   .card--right{
     max-width: 100%;
     justify-self: stretch;
+  }
+
+  .page--foodhub .card--merge{
+    transform: none;
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
+  .page--foodhub .card--off,
+  .page--foodhub .orbSlot.merge-off,
+  .page--foodhub .funFactDock.merge-off{
+    transform: none;
   }
 
   .orbWrap{
