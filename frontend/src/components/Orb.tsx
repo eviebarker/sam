@@ -199,8 +199,11 @@ export default function Orb({
       vec3 finalCol = mix(darkCol, lightCol, bgLuminance);
       float pulseWave = 1.0 + pulse * (0.22 + 0.18 * sin(iTime * pulseSpeed));
       float edgeMask = 1.0 - smoothstep(0.95, 1.0, len);
+      float edgeBand = smoothstep(0.92, 0.98, len) - smoothstep(0.98, 1.0, len);
       vec3 shaded = clamp(finalCol * pulseWave, 0.0, 1.0);
-      return vec4(shaded * edgeMask, edgeMask);
+      vec3 ringCol = mix(backgroundColor, colBase, 0.85);
+      vec3 withRing = mix(shaded, ringCol, edgeBand);
+      return vec4(withRing * edgeMask, edgeMask);
     }
 
     vec4 mainImage(vec2 fragCoord) {
