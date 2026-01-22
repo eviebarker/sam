@@ -398,6 +398,21 @@ h2{
   font-size: 14px;
   letter-spacing: 0.26em;
 }
+.topCenter{
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.foodHubTitle--center{
+  margin: 0;
+  text-align: center;
+}
 
 .page--transitioning.page--to-foodhub .foodHubTitle{
   animation: foodHubIn 700ms ease forwards;
