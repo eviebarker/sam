@@ -9,7 +9,7 @@ const FACT_TEXT_KEY = "funFactText";
 const FACT_FETCHED_AT_KEY = "funFactFetchedAtISO";
 const FACT_LAST_SLOT_KEY = "funFactLastSlotId";
 
-const SLOT_HOURS = [9, 13, 17, 21];
+const SLOT_HOURS = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
 const SLOT_CHECK_MS = 60_000;
 
 function getLondonParts(date: Date) {
@@ -35,15 +35,7 @@ function getLondonParts(date: Date) {
 
 export function getSlotId(now: Date): string {
   const parts = getLondonParts(now);
-  let slotHour = SLOT_HOURS[0];
-  if (parts.hour < SLOT_HOURS[0]) {
-    const prev = getLondonParts(new Date(now.getTime() - 24 * 60 * 60 * 1000));
-    return `${prev.year}-${prev.month}-${prev.day}-21`;
-  }
-  if (parts.hour < SLOT_HOURS[1]) slotHour = SLOT_HOURS[0];
-  else if (parts.hour < SLOT_HOURS[2]) slotHour = SLOT_HOURS[1];
-  else if (parts.hour < SLOT_HOURS[3]) slotHour = SLOT_HOURS[2];
-  else slotHour = SLOT_HOURS[3];
+  const slotHour = SLOT_HOURS[Math.floor(parts.hour / 2)] ?? SLOT_HOURS[0];
   return `${parts.year}-${parts.month}-${parts.day}-${String(slotHour).padStart(2, "0")}`;
 }
 

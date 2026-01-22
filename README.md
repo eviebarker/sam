@@ -139,7 +139,7 @@ If it needs new data, extend the dashboard response in `dashboard_service.py`.
 
 ## Fun fact timing (current behavior)
 - Stored in `localStorage` to survive refresh (`funFactText`, `funFactFetchedAtISO`)
-- Fetch is gated by time slots (Europe/London): **09:00, 13:00, 17:00, 21:00**
+- Fetch is gated by time slots (Europe/London): **every 2 hours** at **00:00, 02:00, 04:00, …, 22:00**
 - No manual refresh button; it updates automatically on the next slot
 
 ## AI + TTS (current behavior)
@@ -223,8 +223,9 @@ Later, user: “What reminder style should I use?”
 - Tasks view defaults to **show all tasks** each day; you can switch to **one‑at‑a‑time** with phrases like “focus mode / one task at a time,” and switch back with “show all tasks.”
 - “Top priority task / most important thing today” jumps to the highest‑priority open task and reads it.
 - Rules:
-  - “Remind me …” → reminder (alert).
+  - “Remind me …”, “set a reminder …”, “alert me …”, “ping/nudge me …” → reminder (alert).
   - “I need to / I have to / add a task / todo …” → task.
+  - Appointment-like phrasing with a time (including “in X hours”) → event.
 - Reminders without a time default to **now + 1 hour**.
 - Relative times like **“in 1 minute/hour”** are parsed and scheduled correctly.
 - Reminders create **alerts** (not events), so they appear in the Alerts card.
@@ -256,8 +257,9 @@ Later, user: “What reminder style should I use?”
 - Matching uses token overlap (e.g. “docs” ↔ “doctors”) and falls back to recent reminders.
 - Actions:
   - Tasks → mark done
-  - Reminders → mark done
+  - Reminders → delete
   - Events → delete (and remove their reminders)
+  - “Cancel/remove/delete that alert/reminder” → delete the most recent alert
 
 ### Reclassify intent (`/api/ai/reclassify`)
 - Moves an existing item into a different bucket (task/reminder/event).
