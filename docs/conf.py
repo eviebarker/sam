@@ -34,8 +34,8 @@ html_static_path = ["_static"]
 # AutoAPI (code reference) ----------------------------------------------------
 autoapi_type = "python"
 autoapi_dirs = [BACKEND_APP]
-autoapi_root = "reference"
-autoapi_add_toctree_entry = True
+autoapi_root = "reference/autoapi"
+autoapi_add_toctree_entry = False
 autoapi_python_class_content = "both"
 
 # Autodoc defaults ------------------------------------------------------------
