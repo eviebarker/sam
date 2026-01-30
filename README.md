@@ -5,6 +5,8 @@
 A kitchen smart-display assistant: dashboard for calendar, tasks, reminders, and voice interaction.
 
 ## Quick start
+- One-shot setup (installs backend deps, builds frontend if missing): `./install.sh`
+- Run after setup: `./start.sh` (uses `.venv`, serves API + built UI)
 - Backend: `python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt && uvicorn backend.app.main:app --reload`
 - Frontend: `npm install && npm run dev` (Vite proxy points `/api` to `127.0.0.1:8000`)
 - Docs: `python -m venv .venv-docs && source .venv-docs/bin/activate && pip install -r docs/requirements.txt && make -C docs html` (open `docs/_build/html/index.html`)
