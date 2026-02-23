@@ -924,13 +924,14 @@ h2{
 }
 
 .decideTitle{
-  font-size: clamp(24px, 2.6vw, 34px);
+  font-size: clamp(34px, 3.4vw, 44px);
   letter-spacing: -0.02em;
 }
 
 .decideSubtitle{
   color: var(--muted);
   margin-top: 6px;
+  font-size: clamp(16px, 1.5vw, 20px);
 }
 
 .decideActions{
@@ -953,7 +954,7 @@ h2{
 .decideRowLabel{
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(255,255,255,0.6);
 }
 
@@ -965,6 +966,8 @@ h2{
 
 .decidePill{
   transition: all 200ms ease;
+  font-size: 15px;
+  padding: 10px 16px;
 }
 
 .decidePill--active{
@@ -975,9 +978,33 @@ h2{
 .decideFooter{
   display: flex;
   gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: 6px;
+  align-items: stretch;
+  flex-direction: column;
+  margin-top: 10px;
+  justify-content: flex-start;
+}
+
+.decideFooter .glass-pill{
+  font-size: 15px;
+}
+
+.decideReset{
+  margin-right: 0;
+  align-self: flex-start;
+}
+
+.decideFight{
+  margin: 0 auto;
+  font-size: 22px;
+  padding: 18px 44px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 16px;
+}
+
+.decideFightBorder{
+  border-radius: 16px;
+  align-self: center;
 }
 
 .decideFooter--battle{

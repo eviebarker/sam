@@ -84,6 +84,7 @@ import GradientText from "./components/GradientText";
 import Orb from "./components/Orb";
 import FunFactCard from "./components/FunFactCard";
 import TextType from "./components/TextType";
+import ElectricBorder from "./components/ElectricBorder";
 import "./App.css";
 
 type Dashboard = {
@@ -3009,17 +3010,25 @@ export default function App() {
                     </div>
                   ))}
                   <div className="decideFooter">
-                    <button
-                      type="button"
-                      className="glass-pill"
-                      onClick={startHelpDecideBracket}
-                      disabled={!helpDecideAllRecipes.length}
+                    <ElectricBorder
+                      color="#80c1ff"
+                      speed={3}
+                      chaos={0.09}
+                      borderRadius={16}
+                      className="decideFightBorder"
                     >
-                      Start bracket
-                    </button>
+                      <button
+                        type="button"
+                        className="glass-pill decideFight"
+                        onClick={startHelpDecideBracket}
+                        disabled={!helpDecideAllRecipes.length}
+                      >
+                        FIGHT
+                      </button>
+                    </ElectricBorder>
                     <button
                       type="button"
-                      className="glass-pill glass-pill--small"
+                      className="glass-pill glass-pill--small decideReset"
                       onClick={resetHelpDecidePrefs}
                     >
                       Reset
