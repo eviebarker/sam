@@ -184,6 +184,128 @@ const FOOD_HUB_DISHES = [
 ];
 
 const FOOD_HUB_VISIBLE = 6;
+const FOOD_HUB_TRIGGER_PHRASES: string[] = [
+  "Take me to the food hub",
+  "Open the food hub",
+  "Go to the food hub",
+  "Bring up the food hub",
+  "Launch the food hub",
+  "Start the food hub",
+  "Pull up the food hub",
+  "Show me the food hub",
+  "Load the food hub",
+  "Food hub, please",
+  "Let’s go to the food hub",
+  "Can you take me to the food hub",
+  "I want the food hub",
+  "I need the food hub",
+  "Navigate to the food hub",
+  "Switch to the food hub",
+  "Head to the food hub",
+  "Jump to the food hub",
+  "Open food hub",
+  "Take me to food hub",
+  "Show food hub",
+  "Bring me to the food hub",
+  "Take us to the food hub",
+  "Put me in the food hub",
+  "Send me to the food hub",
+  "Enter the food hub",
+  "Take me into the food hub",
+  "Go into the food hub",
+  "Visit the food hub",
+  "Get me to the food hub",
+  "Get us to the food hub",
+  "Food hub time",
+  "I’m going to the food hub",
+  "Let’s open the food hub",
+  "Let’s launch the food hub",
+  "Let’s load the food hub",
+  "Let’s start the food hub",
+  "Take me to cooking",
+  "Take me to the cooking hub",
+  "Open the cooking hub",
+  "Let’s cook dinner",
+  "Let’s make dinner",
+  "Let’s get dinner started",
+  "Let’s start dinner",
+  "Let’s do dinner",
+  "Time to cook dinner",
+  "Time to make dinner",
+  "I want to cook dinner",
+  "I’m cooking dinner",
+  "Help me cook dinner",
+  "Help me make dinner",
+  "Start cooking dinner",
+  "Start dinner prep",
+  "Let’s prep dinner",
+  "Let’s sort dinner",
+  "Let’s cook tea",
+  "Let’s make tea",
+  "Let’s get tea started",
+  "Let’s start tea",
+  "Time to cook tea",
+  "Time to make tea",
+  "I want to cook tea",
+  "I’m making tea",
+  "Help me cook tea",
+  "Help me make tea",
+  "Let’s make food",
+  "Let’s cook food",
+  "Let’s cook something",
+  "Let’s make something to eat",
+  "Let’s make a meal",
+  "Let’s cook a meal",
+  "Let’s make dinner now",
+  "Let’s cook dinner now",
+  "Start making dinner",
+  "Start cooking tea",
+  "Start making tea",
+  "Put dinner on",
+  "Get dinner on",
+  "Get tea on",
+  "Put tea on",
+  "It’s dinner time",
+  "It’s tea time",
+  "Dinner time",
+  "Tea time",
+  "Let’s eat",
+  "Let’s make dinner tonight",
+  "Let’s cook dinner tonight",
+  "Let’s do tea",
+  "Let’s do dinner",
+  "Let’s get cooking",
+  "Let’s get dinner going",
+  "Let’s get tea going",
+  "Time to cook",
+  "Time to make food",
+  "What’s for dinner",
+  "What’s for tea",
+  "What are we cooking",
+  "What should we cook tonight",
+  "I need to make dinner",
+  "I need to cook dinner",
+  "I have to make dinner",
+  "I have to cook dinner",
+];
+
+function normalizeTriggerText(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isFoodHubTrigger(prompt: string) {
+  const normalizedPrompt = normalizeTriggerText(prompt);
+  if (!normalizedPrompt) return false;
+  return FOOD_HUB_TRIGGER_PHRASES.some((phrase) => {
+    const normalizedPhrase = normalizeTriggerText(phrase);
+    return normalizedPhrase.length > 0 && normalizedPrompt.includes(normalizedPhrase);
+  });
+}
+
 const FOOD_HUB_EXTRAS = [
   { id: 1, name: "10–15 Minute\nWins" },
   { id: 2, name: "30-Minute Staples" },
@@ -1465,6 +1587,141 @@ export default function App() {
         setAiOutput("Please reply with a valid option number.");
         return;
       }
+
+      if (isFoodHubTrigger(prompt)) {
+        if (activePage === "food-hub" && foodHubMode === "wins") {
+          exitWins();
+        } else {
+          switchPage("food-hub");
+        }
+        const alreadyInHub = activePage === "food-hub" && foodHubMode !== "wins";
+        const foodHubAcks = [
+          "Let's cook.",
+          "Get your chef's hat on.",
+          "Food Hub is up.",
+          "Heading to Food Hub.",
+          "Opening Food Hub now.",
+          "Bringing up Food Hub.",
+          "All right, let's make dinner.",
+          "Dinner mode: on.",
+          "Let's get cooking.",
+          "Let's get dinner going.",
+          "Time to cook.",
+          "Time to make dinner.",
+          "Let's make something to eat.",
+          "Let's sort dinner.",
+          "Let's do dinner.",
+          "Let's do tea.",
+          "Kitchen time.",
+          "Food Hub, coming up.",
+          "Launching Food Hub.",
+          "Pulling up Food Hub.",
+          "Aprons on.",
+          "Let's cook something good.",
+          "Let's get dinner started.",
+          "Let's get tea started.",
+          "Let's cook tonight.",
+          "Let's make dinner tonight.",
+          "Let's make something tasty.",
+          "Let's get a meal going.",
+          "Let's get food on.",
+          "Let's put dinner on.",
+          "Let's put tea on.",
+          "Let's get the pans out.",
+          "Let's fire up the kitchen.",
+          "Let's get a recipe going.",
+          "Let's pick something to cook.",
+          "Let's make a plan for dinner.",
+          "Let's cook a meal.",
+          "Let's make a meal.",
+          "Let's whip something up.",
+          "Let's cook up dinner.",
+          "Let's make tea.",
+          "Let's make dinner.",
+          "Let's prep dinner.",
+          "Let's prep tea.",
+          "Let's get dinner rolling.",
+          "Let's get tea rolling.",
+          "Let's get cooking now.",
+          "Let's get dinner on the go.",
+          "Let's make something quick.",
+          "Let's make something easy.",
+          "Let's get into Food Hub.",
+          "Let's jump into Food Hub.",
+          "Let's head to Food Hub.",
+          "Let's open Food Hub.",
+          "Let's launch Food Hub.",
+          "Let's bring up Food Hub.",
+          "Let's pull up Food Hub.",
+          "Let's load Food Hub.",
+          "Let's start Food Hub.",
+          "Let's head to the kitchen.",
+          "Let's get the kitchen going.",
+          "Let's get the chef vibes on.",
+          "Let's get the stove going.",
+          "Let's get the oven going.",
+          "Let's get dinner sorted.",
+          "Let's get tea sorted.",
+          "Let's get supper sorted.",
+          "Let's get food sorted.",
+          "Let's sort dinner.",
+          "Let's sort tea.",
+          "Let's sort supper.",
+          "Let's start cooking.",
+          "Let's start dinner.",
+          "Let's start tea.",
+          "Let's start food.",
+          "Let's cook dinner.",
+          "Let's cook tea.",
+          "Let's cook food.",
+          "Let's make food.",
+          "Let's make something to eat.",
+          "Let's make something for dinner.",
+          "Let's make something for tea.",
+          "Let's make something for tonight.",
+          "Let's cook something for tonight.",
+          "Let's cook something for dinner.",
+          "Let's cook something for tea.",
+          "Let's get a dinner pick.",
+          "Let's get a tea pick.",
+          "Let's choose dinner.",
+          "Let's choose tea.",
+          "Let's choose something to cook.",
+          "Let's pick dinner.",
+          "Let's pick tea.",
+          "Let's pick a meal.",
+          "Let's pick a recipe.",
+          "Let's pick something tasty.",
+          "Let's go cook.",
+          "Let's go make dinner.",
+          "Let's go make tea.",
+          "Let's go to Food Hub.",
+          "Let's move to Food Hub.",
+          "Let's go to the food hub.",
+          "Let's move to the food hub.",
+          "Let's head to the food hub.",
+          "Let's get to the food hub.",
+          "Let's go get dinner started.",
+          "Let's go get tea started.",
+          "Let's get a meal on.",
+          "Let's get dinner on.",
+          "Let's get tea on.",
+          "Let's get supper on.",
+          "Let's go make something to eat.",
+          "Let's make a quick dinner.",
+          "Let's make a quick tea.",
+          "Let's make a quick meal.",
+          "Let's make an easy dinner.",
+          "Let's make an easy meal.",
+        ];
+        const ack = alreadyInHub
+          ? "You're already in Food Hub."
+          : foodHubAcks[Math.floor(Math.random() * foodHubAcks.length)];
+        setAiOutput(ack);
+        await playTts(ack);
+        return;
+      }
+
       const nextTaskTrigger = /\b(next task|what'?s the next task|show me the next task)\b/i;
       const topPriorityTrigger =
         /\b(top priority task|top priority today|highest priority task|most important task|most important thing|most important thing i need to do|what do i need to do today|what should i do today|what'?s the most important thing i need to do today|what'?s the most important task today|what'?s the top thing today|what'?s my top task today|what should i tackle first|what do i tackle first|what should i do first|what do i do first|what'?s the highest priority thing today|what'?s the most urgent task|what is the most urgent thing)\b/i;
@@ -3078,11 +3335,21 @@ export default function App() {
                                 <div className="decideOptionTime">{timeLabel}</div>
                               ) : null}
                               <div className="decideOptionTags">
-                                {recipe.tags.slice(0, 3).map((tag) => (
-                                  <span key={tag} className="decideTag">
-                                    {tag}
-                                  </span>
-                                ))}
+                                {recipe.tags.slice(0, 3).map((tag) => {
+                                  const tagKey = tag
+                                    .toLowerCase()
+                                    .replace(/[^a-z0-9]+/g, "-")
+                                    .replace(/(^-|-$)/g, "");
+                                  return (
+                                    <span
+                                      key={tag}
+                                      className="winsTag decideTag"
+                                      data-tag={tagKey}
+                                    >
+                                      {tag}
+                                    </span>
+                                  );
+                                })}
                               </div>
                               <button
                                 type="button"

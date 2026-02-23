@@ -1219,13 +1219,9 @@ h2{
 }
 
 .decideTag{
-  padding: 4px 10px;
-  border-radius: 999px;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  background: rgba(255,255,255,0.14);
-  color: rgba(255,255,255,0.92);
 }
 
 .decideChooseButton{
