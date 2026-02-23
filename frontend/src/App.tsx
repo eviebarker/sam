@@ -15,6 +15,7 @@ import {
   aiReclassifyConfirm,
   aiPriority,
   getFoodHub,
+  getFoodHubAll,
   markFoodHubAccessed,
   sttTranscribe,
 } from "./api";
@@ -135,6 +136,11 @@ type FoodHubRecipe = {
   link: string | null;
   image_url: string | null;
   image_local?: string;
+  cuisine_region?: string | null;
+  time_band?: string | null;
+  activity_level?: string | null;
+  health_vibe?: string | null;
+  weight_class?: string | null;
   last_accessed_at?: string | null;
   tags: string[];
   ingredients: string[];
@@ -145,6 +151,20 @@ type RemindersResp = {
   date: string;
   now: string;
   reminders: Reminder[];
+};
+
+type HelpDecidePrefs = {
+  time_band: string | null;
+  activity_level: string | null;
+  health_vibe: string | null;
+  weight_class: string | null;
+  cuisine_region: string | null;
+};
+
+type HelpDecideOption = {
+  key: keyof HelpDecidePrefs;
+  label: string;
+  options: { value: string | null; label: string }[];
 };
 
 const FOOD_HUB_DISHES = [
@@ -172,6 +192,67 @@ const FOOD_HUB_EXTRAS = [
   { id: 6, name: "Show-Off\nBut Easy" },
   { id: 8, name: "Freezer\nFirst" },
   { id: 7, name: "Help Me\nDecide" },
+];
+
+const HELP_DECIDE_OPTIONS: HelpDecideOption[] = [
+  {
+    key: "time_band",
+    label: "Time",
+    options: [
+      { value: null, label: "Any" },
+      { value: "15-30", label: "15–30" },
+      { value: "30-45", label: "30–45" },
+      { value: "45-60", label: "45–60" },
+      { value: "60+", label: "60+" },
+    ],
+  },
+  {
+    key: "activity_level",
+    label: "Effort",
+    options: [
+      { value: null, label: "Any" },
+      { value: "hands-off", label: "Hands-off" },
+      { value: "mixed", label: "Mixed" },
+      { value: "high-active", label: "High-active" },
+    ],
+  },
+  {
+    key: "health_vibe",
+    label: "Health vibe",
+    options: [
+      { value: null, label: "Any" },
+      { value: "light", label: "Light" },
+      { value: "balanced", label: "Balanced" },
+      { value: "indulgent", label: "Indulgent" },
+    ],
+  },
+  {
+    key: "weight_class",
+    label: "Heaviness",
+    options: [
+      { value: null, label: "Any" },
+      { value: "light", label: "Light" },
+      { value: "medium", label: "Medium" },
+      { value: "heavy", label: "Heavy" },
+    ],
+  },
+  {
+    key: "cuisine_region",
+    label: "Cuisine",
+    options: [
+      { value: null, label: "Any" },
+      { value: "Italian", label: "Italian" },
+      { value: "British", label: "British" },
+      { value: "Mediterranean", label: "Mediterranean" },
+      { value: "Mexican", label: "Mexican" },
+      { value: "Indian", label: "Indian" },
+      { value: "Chinese", label: "Chinese" },
+      { value: "Japanese", label: "Japanese" },
+      { value: "French", label: "French" },
+      { value: "American", label: "American" },
+      { value: "Middle Eastern", label: "Middle Eastern" },
+    ],
+  },
 ];
 
 const WINS_MENU = [
@@ -761,6 +842,37 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [foodHubRecipes, setFoodHubRecipes] = useState<FoodHubRecipe[]>([]);
   const [foodHubLoading, setFoodHubLoading] = useState(false);
+  const [helpDecideOpen, setHelpDecideOpen] = useState(false);
+  const [helpDecidePhase, setHelpDecidePhase] = useState<
+    "prefs" | "bracket" | "winner"
+  >("prefs");
+  const [helpDecidePrefs, setHelpDecidePrefs] = useState<HelpDecidePrefs>({
+    time_band: null,
+    activity_level: null,
+    health_vibe: null,
+    weight_class: null,
+    cuisine_region: null,
+  });
+  const [helpDecideAllRecipes, setHelpDecideAllRecipes] = useState<
+    FoodHubRecipe[]
+  >([]);
+  const [helpDecideLoading, setHelpDecideLoading] = useState(false);
+  const [helpDecideErr, setHelpDecideErr] = useState<string | null>(null);
+  const [helpDecidePair, setHelpDecidePair] = useState<
+    [FoodHubRecipe, FoodHubRecipe] | null
+  >(null);
+  const [helpDecideRound, setHelpDecideRound] = useState(1);
+  const [helpDecideCurrentRound, setHelpDecideCurrentRound] = useState<
+    FoodHubRecipe[]
+  >([]);
+  const [helpDecideNextRound, setHelpDecideNextRound] = useState<FoodHubRecipe[]>(
+    []
+  );
+  const [helpDecidePairIndex, setHelpDecidePairIndex] = useState(0);
+  const [helpDecideWinner, setHelpDecideWinner] = useState<FoodHubRecipe | null>(
+    null
+  );
+  const [recipeOrigin, setRecipeOrigin] = useState<"wins" | "decide">("wins");
   const foodHubImageByNameRef = useRef<Record<string, string>>({
     [normalizeRecipeKey("Creamy carbonara")]: creamyCarbonaraImg,
     [normalizeRecipeKey("Chilli con carne")]: chilliConCarneImg,
@@ -893,18 +1005,29 @@ export default function App() {
     audioRelaxRafRef.current = requestAnimationFrame(relaxTick);
   }
 
-  function openRecipe(recipe: FoodHubRecipe) {
+  function openRecipe(recipe: FoodHubRecipe, origin: "wins" | "decide" = "wins") {
     if (recipeOverlayClosing) return;
     if (recipeCloseTimerRef.current != null) {
       window.clearTimeout(recipeCloseTimerRef.current);
       recipeCloseTimerRef.current = null;
     }
+    setRecipeOrigin(origin);
     setSelectedRecipe(recipe);
     setRecipeOverlayOpen(true);
     setRecipeOverlayClosing(false);
+    if (origin === "decide") {
+      setHelpDecideOpen(false);
+    }
     void markFoodHubAccessed(recipe.id)
       .then((resp) => {
         setFoodHubRecipes((prev) =>
+          prev.map((item) =>
+            item.id === recipe.id
+              ? { ...item, last_accessed_at: resp.last_accessed_at }
+              : item
+          )
+        );
+        setHelpDecideAllRecipes((prev) =>
           prev.map((item) =>
             item.id === recipe.id
               ? { ...item, last_accessed_at: resp.last_accessed_at }
@@ -931,6 +1054,129 @@ export default function App() {
       recipeCloseTimerRef.current = null;
       if (afterClose) afterClose();
     }, 420);
+  }
+
+  function formatRecipeTime(recipe: FoodHubRecipe) {
+    if (recipe.time_total_min) return `${recipe.time_total_min} mins`;
+    const prep = recipe.time_prep_min ?? 0;
+    const cook = recipe.time_cook_min ?? 0;
+    const total = prep + cook;
+    return total > 0 ? `${total} mins` : null;
+  }
+
+  function scoreHelpDecideRecipe(recipe: FoodHubRecipe, prefs: HelpDecidePrefs) {
+    let score = 1;
+    if (prefs.time_band && recipe.time_band === prefs.time_band) score += 2;
+    if (prefs.activity_level && recipe.activity_level === prefs.activity_level) {
+      score += 2;
+    }
+    if (prefs.health_vibe && recipe.health_vibe === prefs.health_vibe) score += 2;
+    if (prefs.weight_class && recipe.weight_class === prefs.weight_class) {
+      score += 2;
+    }
+    if (prefs.cuisine_region && recipe.cuisine_region === prefs.cuisine_region) {
+      score += 3;
+    }
+    return score;
+  }
+
+  function buildHelpDecideBracket() {
+    const source = helpDecideAllRecipes;
+    if (source.length < 2) {
+      setHelpDecidePair(null);
+      setHelpDecideWinner(null);
+      return;
+    }
+    const rankedAll = source
+      .map((recipe) => ({
+        recipe,
+        score: scoreHelpDecideRecipe(recipe, helpDecidePrefs),
+        tiebreak: Math.random(),
+      }))
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.tiebreak - b.tiebreak;
+      })
+      .map((item) => item.recipe);
+
+    const maxSize = Math.min(16, rankedAll.length);
+    const bracketSize =
+      maxSize >= 16 ? 16 : maxSize >= 8 ? 8 : maxSize >= 4 ? 4 : 2;
+    const ranked = rankedAll.slice(0, bracketSize);
+
+    setHelpDecideRound(1);
+    setHelpDecideCurrentRound(ranked);
+    setHelpDecideNextRound([]);
+    setHelpDecidePairIndex(0);
+    setHelpDecideWinner(null);
+    if (ranked.length >= 2) {
+      setHelpDecidePair([ranked[0], ranked[1]]);
+    } else {
+      setHelpDecidePair(null);
+    }
+  }
+
+  function advanceHelpDecide(winner: FoodHubRecipe) {
+    const nextRound = [...helpDecideNextRound, winner];
+    const nextPairIndex = helpDecidePairIndex + 2;
+    if (nextPairIndex < helpDecideCurrentRound.length) {
+      setHelpDecideNextRound(nextRound);
+      setHelpDecidePairIndex(nextPairIndex);
+      setHelpDecidePair([
+        helpDecideCurrentRound[nextPairIndex],
+        helpDecideCurrentRound[nextPairIndex + 1],
+      ]);
+      return;
+    }
+    if (nextRound.length === 1) {
+      setHelpDecideWinner(nextRound[0]);
+      setHelpDecidePhase("winner");
+      setHelpDecidePair(null);
+      setHelpDecideCurrentRound([]);
+      setHelpDecideNextRound([]);
+      setHelpDecidePairIndex(0);
+      return;
+    }
+    setHelpDecideRound((prev) => prev + 1);
+    setHelpDecideCurrentRound(nextRound);
+    setHelpDecideNextRound([]);
+    setHelpDecidePairIndex(0);
+    setHelpDecidePair([nextRound[0], nextRound[1]]);
+  }
+
+  function updateHelpDecidePref(
+    key: keyof HelpDecidePrefs,
+    value: string | null
+  ) {
+    setHelpDecidePrefs((prev) => ({
+      ...prev,
+      [key]: prev[key] === value ? null : value,
+    }));
+  }
+
+  function resetHelpDecidePrefs() {
+    setHelpDecidePrefs({
+      time_band: null,
+      activity_level: null,
+      health_vibe: null,
+      weight_class: null,
+      cuisine_region: null,
+    });
+  }
+
+  function startHelpDecideBracket() {
+    setHelpDecidePhase("bracket");
+    buildHelpDecideBracket();
+  }
+
+  function closeHelpDecide() {
+    setHelpDecideOpen(false);
+    setHelpDecidePhase("prefs");
+    setHelpDecidePair(null);
+    setHelpDecideCurrentRound([]);
+    setHelpDecideNextRound([]);
+    setHelpDecidePairIndex(0);
+    setHelpDecideWinner(null);
   }
 
   function startAudioMeter(audio: HTMLAudioElement) {
@@ -1858,6 +2104,12 @@ export default function App() {
   }, [scheduleAutoCycle]);
 
   useEffect(() => {
+    if (activePage !== "food-hub" && helpDecideOpen) {
+      closeHelpDecide();
+    }
+  }, [activePage, helpDecideOpen]);
+
+  useEffect(() => {
     return () => {
       if (recipeCloseTimerRef.current != null) {
         window.clearTimeout(recipeCloseTimerRef.current);
@@ -1910,6 +2162,41 @@ export default function App() {
       isActive = false;
     };
   }, [activeFoodHubCategory, showWins]);
+
+  useEffect(() => {
+    if (!helpDecideOpen) return;
+    let isActive = true;
+    setHelpDecideLoading(true);
+    setHelpDecideErr(null);
+    getFoodHubAll()
+      .then((data) => {
+        if (!isActive) return;
+        const recipes = (data.recipes ?? []).map((recipe) => {
+          const key = normalizeRecipeKey(recipe.name);
+          const local = foodHubImageByNameRef.current[key];
+          return local ? { ...recipe, image_local: local } : recipe;
+        });
+        setHelpDecideAllRecipes(recipes);
+      })
+      .catch((e) => {
+        if (!isActive) return;
+        setHelpDecideAllRecipes([]);
+        setHelpDecideErr(e?.message ?? "Help me decide failed");
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setHelpDecideLoading(false);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [helpDecideOpen]);
+
+  useEffect(() => {
+    if (!helpDecideOpen) return;
+    if (helpDecidePhase !== "bracket") return;
+    if (!helpDecidePair) buildHelpDecideBracket();
+  }, [helpDecideOpen, helpDecidePhase, helpDecideAllRecipes, helpDecidePrefs]);
 
   function handleManualShift(delta: number) {
     shiftDish(delta);
@@ -2637,7 +2924,16 @@ export default function App() {
                       }`}
                       role="listitem"
                       onClick={() => {
-                        if (dish.id === 7) return;
+                        if (dish.id === 7) {
+                          setHelpDecideOpen(true);
+                          setHelpDecidePhase("prefs");
+                          setHelpDecidePair(null);
+                          setHelpDecideCurrentRound([]);
+                          setHelpDecideNextRound([]);
+                          setHelpDecidePairIndex(0);
+                          setHelpDecideWinner(null);
+                          return;
+                        }
                         enterWins(dish.id);
                       }}
                     >
@@ -2658,6 +2954,197 @@ export default function App() {
           </div>
         ) : null}
 
+        {helpDecideOpen ? (
+          <div className="decideOverlay decideOverlay--open">
+            <div className="decideOverlayBackdrop" onClick={closeHelpDecide} />
+            <div className="decideCard glass-tile" role="dialog" aria-modal="true">
+              <div className="decideTop">
+                <div>
+                  <div className="decideTitle">Help me decide</div>
+                  <div className="decideSubtitle">
+                    Head-to-head picks with soft matching.
+                  </div>
+                </div>
+                <div className="decideActions">
+                  <button
+                    type="button"
+                    className="glass-pill glass-pill--small"
+                    onClick={closeHelpDecide}
+                  >
+                    Back to food hub
+                  </button>
+                </div>
+              </div>
+
+              {helpDecideErr ? (
+                <div className="decideError">{helpDecideErr}</div>
+              ) : null}
+
+              {helpDecideLoading ? (
+                <div className="decideLoading">Loading recipes…</div>
+              ) : helpDecidePhase === "prefs" ? (
+                <div className="decidePrefs">
+                  {HELP_DECIDE_OPTIONS.map((group) => (
+                    <div key={group.key} className="decideRow">
+                      <div className="decideRowLabel">{group.label}</div>
+                      <div className="decidePills">
+                        {group.options.map((option) => {
+                          const isActive = helpDecidePrefs[group.key] === option.value;
+                          return (
+                            <button
+                              key={`${group.key}-${option.label}`}
+                              type="button"
+                              className={`glass-pill glass-pill--small decidePill${
+                                isActive ? " decidePill--active" : ""
+                              }`}
+                              onClick={() =>
+                                updateHelpDecidePref(group.key, option.value)
+                              }
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="decideFooter">
+                    <button
+                      type="button"
+                      className="glass-pill"
+                      onClick={startHelpDecideBracket}
+                      disabled={!helpDecideAllRecipes.length}
+                    >
+                      Start bracket
+                    </button>
+                    <button
+                      type="button"
+                      className="glass-pill glass-pill--small"
+                      onClick={resetHelpDecidePrefs}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              ) : helpDecidePhase === "bracket" ? (
+                <div className="decideBattle">
+                  <div className="decideRound">
+                    Round {helpDecideRound} · {helpDecideCurrentRound.length} recipes
+                  </div>
+                  {helpDecidePair ? (
+                    <div className="decidePair">
+                      {helpDecidePair.map((recipe) => {
+                        const timeLabel = formatRecipeTime(recipe);
+                        return (
+                          <article key={recipe.id} className="decideOption">
+                            <div className="decideOptionImage">
+                              {recipe.image_local ? (
+                                <img src={recipe.image_local} alt={recipe.name} />
+                              ) : (
+                                <div className="decideOptionPlaceholder">Image</div>
+                              )}
+                            </div>
+                            <div className="decideOptionBody">
+                              <div className="decideOptionTitle">{recipe.name}</div>
+                              {recipe.tagline ? (
+                                <div className="decideOptionTagline">
+                                  {recipe.tagline}
+                                </div>
+                              ) : null}
+                              {timeLabel ? (
+                                <div className="decideOptionTime">{timeLabel}</div>
+                              ) : null}
+                              <div className="decideOptionTags">
+                                {recipe.tags.slice(0, 3).map((tag) => (
+                                  <span key={tag} className="decideTag">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                              <button
+                                type="button"
+                                className="glass-pill"
+                                onClick={() => advanceHelpDecide(recipe)}
+                              >
+                                Choose
+                              </button>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="decideEmpty">No matches yet.</div>
+                  )}
+                  <div className="decideFooter decideFooter--battle">
+                    <button
+                      type="button"
+                      className="glass-pill"
+                      onClick={startHelpDecideBracket}
+                      disabled={!helpDecideAllRecipes.length}
+                    >
+                      Restart bracket
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="decideWinner">
+                  <div className="decideWinnerLabel">Winner</div>
+                  {helpDecideWinner ? (
+                    <div className="decideWinnerCard">
+                      <div className="decideOptionImage">
+                        {helpDecideWinner.image_local ? (
+                          <img
+                            src={helpDecideWinner.image_local}
+                            alt={helpDecideWinner.name}
+                          />
+                        ) : (
+                          <div className="decideOptionPlaceholder">Image</div>
+                        )}
+                      </div>
+                      <div className="decideOptionBody">
+                        <div className="decideOptionTitle">
+                          {helpDecideWinner.name}
+                        </div>
+                        {helpDecideWinner.tagline ? (
+                          <div className="decideOptionTagline">
+                            {helpDecideWinner.tagline}
+                          </div>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="glass-pill"
+                          onClick={() => openRecipe(helpDecideWinner, "decide")}
+                        >
+                          Open recipe
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="decideEmpty">No winner yet.</div>
+                  )}
+                  <div className="decideFooter decideFooter--battle">
+                    <button
+                      type="button"
+                      className="glass-pill glass-pill--small"
+                      onClick={() => setHelpDecidePhase("prefs")}
+                    >
+                      Back to filters
+                    </button>
+                    <button
+                      type="button"
+                      className="glass-pill"
+                      onClick={startHelpDecideBracket}
+                    >
+                      Restart bracket
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
         {recipeOverlayOpen ? (
           <div
             className={`recipeOverlay${
@@ -2675,27 +3162,58 @@ export default function App() {
                   {selectedRecipe?.name ?? "Recipe"}
                 </div>
                 <div className="recipeOverlayActions">
-                  <button
-                    type="button"
-                    className="glass-pill glass-pill--small"
-                    onClick={() => closeRecipe()}
-                  >
-                    Back to {activeFoodHubMeta.eyebrow}
-                  </button>
-                  <button
-                    type="button"
-                    className="glass-pill glass-pill--small"
-                    onClick={() => closeRecipe(exitWins)}
-                  >
-                    Back to food hub
-                  </button>
-                  <button
-                    type="button"
-                    className="glass-pill glass-pill--small"
-                    onClick={() => closeRecipe(exitWinsToDashboard)}
-                  >
-                    Back to dashboard
-                  </button>
+                  {recipeOrigin === "decide" ? (
+                    <button
+                      type="button"
+                      className="glass-pill glass-pill--small"
+                      onClick={() => closeRecipe(() => setHelpDecideOpen(true))}
+                    >
+                      Back to help me decide
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="glass-pill glass-pill--small"
+                      onClick={() => closeRecipe()}
+                    >
+                      Back to {activeFoodHubMeta.eyebrow}
+                    </button>
+                  )}
+                  {recipeOrigin === "decide" ? (
+                    <>
+                      <button
+                        type="button"
+                        className="glass-pill glass-pill--small"
+                        onClick={() => closeRecipe()}
+                      >
+                        Back to food hub
+                      </button>
+                      <button
+                        type="button"
+                        className="glass-pill glass-pill--small"
+                        onClick={() => closeRecipe(() => switchPage("dashboard"))}
+                      >
+                        Back to dashboard
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="glass-pill glass-pill--small"
+                        onClick={() => closeRecipe(exitWins)}
+                      >
+                        Back to food hub
+                      </button>
+                      <button
+                        type="button"
+                        className="glass-pill glass-pill--small"
+                        onClick={() => closeRecipe(exitWinsToDashboard)}
+                      >
+                        Back to dashboard
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 

@@ -208,6 +208,40 @@ export async function getFoodHub(categoryId: number) {
       time_total_min: number | null;
       link: string | null;
       image_url: string | null;
+      cuisine_region: string | null;
+      time_band: string | null;
+      activity_level: string | null;
+      health_vibe: string | null;
+      weight_class: string | null;
+      rating: number | null;
+      last_accessed_at: string | null;
+      tags: string[];
+      ingredients: string[];
+      steps: string[];
+    }[];
+  }>;
+}
+
+export async function getFoodHubAll() {
+  const r = await fetch("/api/foodhub/all");
+  if (!r.ok) throw new Error(`foodhub all failed: ${r.status}`);
+  return r.json() as Promise<{
+    recipes: {
+      id: number;
+      category_id: number;
+      sort_order: number;
+      name: string;
+      tagline: string | null;
+      time_prep_min: number | null;
+      time_cook_min: number | null;
+      time_total_min: number | null;
+      link: string | null;
+      image_url: string | null;
+      cuisine_region: string | null;
+      time_band: string | null;
+      activity_level: string | null;
+      health_vibe: string | null;
+      weight_class: string | null;
       rating: number | null;
       last_accessed_at: string | null;
       tags: string[];

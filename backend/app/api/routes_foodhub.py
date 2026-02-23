@@ -7,6 +7,7 @@ from urllib.request import urlopen, Request
 from backend.app.db.conn import get_conn
 from backend.app.db.foodhub_queries import (
     list_foodhub_by_category,
+    list_foodhub_all,
     set_foodhub_rating,
     set_foodhub_accessed,
 )
@@ -24,6 +25,12 @@ class FoodHubAccessReq(BaseModel):
 def get_foodhub(category_id: int = Query(..., ge=1)):
     with get_conn() as conn:
         recipes = list_foodhub_by_category(conn, category_id)
+    return {"recipes": recipes}
+
+@router.get("/all")
+def get_foodhub_all():
+    with get_conn() as conn:
+        recipes = list_foodhub_all(conn)
     return {"recipes": recipes}
 
 @router.post("/rate")
