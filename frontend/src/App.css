@@ -597,6 +597,35 @@ h2{
   appearance: none;
 }
 
+.foodHubExtraTile--decide{
+  grid-column: 4;
+  grid-row: 2;
+  position: relative;
+  overflow: hidden;
+}
+
+.foodHubExtraTile--decide::after{
+  content: "";
+  position: absolute;
+  inset: -25%;
+  background: radial-gradient(
+    circle at 30% 20%,
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0.12) 45%,
+    transparent 70%
+  );
+  opacity: 0.35;
+  filter: blur(18px);
+  z-index: 0;
+  animation: decideGlow 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.foodHubExtraTile--decide > *{
+  position: relative;
+  z-index: 1;
+}
+
 .foodHubExtraTile .foodHubTileImage{
   width: 100%;
   height: auto;
@@ -611,6 +640,21 @@ h2{
   text-align: center;
   padding: 0 6px;
   line-height: 1.2;
+}
+
+@keyframes decideGlow{
+  0%{
+    opacity: 0.2;
+    transform: scale(0.96);
+  }
+  50%{
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+  100%{
+    opacity: 0.25;
+    transform: scale(0.98);
+  }
 }
 
 
@@ -793,6 +837,7 @@ h2{
     linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
   --extra-x: 0;
   --extra-y: 0;
+  cursor: pointer;
 }
 
 .winsCardTop{
@@ -827,6 +872,198 @@ h2{
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 4px;
+}
+
+.recipeOverlay{
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms ease;
+  padding: 18px;
+}
+
+.recipeOverlay--open{
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.recipeOverlayBackdrop{
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 6, 12, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.recipeOverlayCard{
+  position: relative;
+  width: calc(100vw - 36px);
+  height: calc(100vh - 36px);
+  overflow: hidden;
+  padding: 24px 28px 28px;
+  display: grid;
+  gap: 16px;
+  transform: scale(0.96);
+  opacity: 0;
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 320ms ease;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(12, 16, 26, 0.78);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  grid-template-rows: auto auto auto auto;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  grid-template-areas:
+    "title title"
+    "image steps"
+    "meta steps"
+    "ingredients steps";
+  align-items: start;
+}
+
+.recipeOverlay--open .recipeOverlayCard{
+  transform: scale(1);
+  opacity: 1;
+}
+
+.recipeOverlay--closing .recipeOverlayCard{
+  transform: scale(0.96);
+  opacity: 0;
+}
+
+.recipeOverlayTop{
+  display: grid;
+  gap: 12px;
+  grid-area: title;
+  align-self: start;
+}
+
+.recipeOverlayTitle{
+  font-size: clamp(28px, 2.9vw, 36px);
+  letter-spacing: -0.02em;
+}
+
+.recipeOverlayActions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.recipeOverlayImage{
+  width: min(420px, 45vw);
+  border-radius: 22px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.25);
+  aspect-ratio: 16 / 9;
+  height: auto;
+  grid-area: image;
+  align-self: start;
+}
+
+.recipeOverlayImage img{
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.recipeOverlayImage--placeholder{
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,0.6);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+}
+
+.recipeOverlayImageText{
+  padding: 18px;
+}
+
+.recipeOverlayMeta{
+  grid-area: meta;
+  display: grid;
+  gap: 6px;
+  align-self: start;
+}
+
+.recipeOverlayTagline{
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(16px, 1.4vw, 18px);
+}
+
+.recipeOverlayTime{
+  font-size: clamp(13px, 1.1vw, 15px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+}
+
+.recipeOverlaySection{
+  display: grid;
+  gap: 10px;
+  align-self: start;
+}
+
+.recipeOverlaySection--steps{
+  grid-area: steps;
+}
+
+.recipeOverlaySection--ingredients{
+  grid-area: ingredients;
+}
+
+.recipeOverlayLabel{
+  font-size: clamp(12px, 1.05vw, 14px);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+}
+
+.recipeOverlayList{
+  margin: 0;
+  padding-left: 18px;
+  column-gap: 28px;
+  column-count: 2;
+  display: block;
+  color: rgba(255,255,255,0.85);
+  font-size: clamp(14px, 1.1vw, 16px);
+  line-height: 1.6;
+  list-style: disc;
+  list-style-position: outside;
+}
+
+.recipeOverlayList--steps{
+  padding-left: 22px;
+  column-count: 1;
+  list-style: decimal;
+  font-size: clamp(14px, 1.05vw, 16px);
+  line-height: 1.5;
+}
+
+@media (max-height: 820px){
+  .recipeOverlayCard{
+    gap: 12px;
+  }
+  .recipeOverlayTitle{
+    font-size: clamp(24px, 2.6vw, 32px);
+  }
+  .recipeOverlayTagline{
+    font-size: clamp(14px, 1.2vw, 16px);
+  }
+  .recipeOverlayList{
+    font-size: clamp(13px, 1vw, 15px);
+  }
+  .recipeOverlayList--steps{
+    font-size: clamp(13px, 1vw, 15px);
+  }
 }
 
 .winsCard[data-win-id="2"] .winsTags{
@@ -1081,17 +1318,17 @@ h2{
   color: rgba(255,245,210,0.95);
 }
 
-.winsTag[data-tag="High-fibre"]{
+.winsTag[data-tag="high-fibre"]{
   background: rgba(170,200,255,0.2);
   color: rgba(220,235,255,0.95);
 }
 
-.winsTag[data-tag="Low calorie"]{
+.winsTag[data-tag="low-calorie"]{
   background: rgba(255,210,140,0.2);
   color: rgba(255,235,210,0.95);
 }
 
-.winsTag[data-tag="Vegetarian"]{
+.winsTag[data-tag="vegetarian"]{
   background: rgba(140,255,200,0.18);
   color: rgba(220,255,235,0.95);
 }

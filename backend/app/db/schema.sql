@@ -90,3 +90,23 @@ CREATE TABLE IF NOT EXISTS pronunciations (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+-- Food hub recipes
+CREATE TABLE IF NOT EXISTS foodhub (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category_id INTEGER NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  name TEXT NOT NULL,
+  tagline TEXT,
+  time_prep_min INTEGER,
+  time_cook_min INTEGER,
+  time_total_min INTEGER,
+  link TEXT,
+  image_url TEXT,
+  rating INTEGER,
+  last_accessed_at TEXT,
+  tags TEXT,
+  ingredients TEXT,
+  steps TEXT,
+  created_at TEXT NOT NULL
+);

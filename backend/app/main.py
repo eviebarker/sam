@@ -10,6 +10,7 @@ from backend.app.api.routes_events import router as events_router
 from backend.app.api.routes_tts import router as tts_router
 from backend.app.api.routes_stt import router as stt_router
 from backend.app.api.routes_ai import router as ai_router
+from backend.app.api.routes_foodhub import router as foodhub_router
 
 load_dotenv()
 app = FastAPI(title="Sam Kitchen PA")
@@ -31,3 +32,4 @@ app.include_router(events_router)
 app.include_router(tts_router)
 app.include_router(stt_router)
 app.include_router(ai_router)
+app.include_router(foodhub_router)

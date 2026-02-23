@@ -1,6 +1,7 @@
 import sqlite3
 from pathlib import Path
 from backend.app.core.config import settings
+from backend.app.db.foodhub_seed import seed_foodhub
 
 def get_conn() -> sqlite3.Connection:
     Path(settings.db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -58,4 +59,15 @@ def init_db() -> None:
         if pronunciation_columns:
             if "updated_at" not in pronunciation_columns:
                 conn.execute("ALTER TABLE pronunciations ADD COLUMN updated_at TEXT;")
+        foodhub_columns = [
+            r["name"] for r in conn.execute("PRAGMA table_info(foodhub);")
+        ]
+        if foodhub_columns:
+            if "image_url" not in foodhub_columns:
+                conn.execute("ALTER TABLE foodhub ADD COLUMN image_url TEXT;")
+            if "rating" not in foodhub_columns:
+                conn.execute("ALTER TABLE foodhub ADD COLUMN rating INTEGER;")
+            if "last_accessed_at" not in foodhub_columns:
+                conn.execute("ALTER TABLE foodhub ADD COLUMN last_accessed_at TEXT;")
+        seed_foodhub(conn)
         conn.commit()

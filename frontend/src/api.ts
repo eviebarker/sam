@@ -193,6 +193,50 @@ export async function aiPriority(text: string) {
   }>;
 }
 
+export async function getFoodHub(categoryId: number) {
+  const r = await fetch(`/api/foodhub?category_id=${categoryId}`);
+  if (!r.ok) throw new Error(`foodhub failed: ${r.status}`);
+  return r.json() as Promise<{
+    recipes: {
+      id: number;
+      category_id: number;
+      sort_order: number;
+      name: string;
+      tagline: string | null;
+      time_prep_min: number | null;
+      time_cook_min: number | null;
+      time_total_min: number | null;
+      link: string | null;
+      image_url: string | null;
+      rating: number | null;
+      last_accessed_at: string | null;
+      tags: string[];
+      ingredients: string[];
+      steps: string[];
+    }[];
+  }>;
+}
+
+export async function rateFoodHub(recipe_id: number, rating: number) {
+  const r = await fetch("/api/foodhub/rate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ recipe_id, rating }),
+  });
+  if (!r.ok) throw new Error(`foodhub rate failed: ${r.status}`);
+  return r.json() as Promise<{ ok: boolean }>;
+}
+
+export async function markFoodHubAccessed(recipe_id: number) {
+  const r = await fetch("/api/foodhub/accessed", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ recipe_id }),
+  });
+  if (!r.ok) throw new Error(`foodhub accessed failed: ${r.status}`);
+  return r.json() as Promise<{ ok: boolean; last_accessed_at: string }>;
+}
+
 export async function aiReclassifyConfirm(
   target: "task" | "reminder" | "event",
   item_type: "task" | "reminder" | "event",

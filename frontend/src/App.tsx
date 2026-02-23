@@ -14,6 +14,8 @@ import {
   aiReclassify,
   aiReclassifyConfirm,
   aiPriority,
+  getFoodHub,
+  markFoodHubAccessed,
   sttTranscribe,
 } from "./api";
 import burgersImg from "./assets/burgers.jpeg";
@@ -28,6 +30,51 @@ import risottoImg from "./assets/risotto.jpg";
 import roastImg from "./assets/roast.avif";
 import sausageMashImg from "./assets/sausage_mash_beans.jpg";
 import tomatoCasseroleImg from "./assets/tomato_and_sausage_casserole.jpg";
+import chickenFriedRiceImg from "./assets/foodhub/chicken-fried-rice-1c502f1.webp";
+import chilliConCarneImg from "./assets/foodhub/chilli.png";
+import creamyCarbonaraImg from "./assets/foodhub/recipe-image-legacy-id-338497_12-05fada5.webp";
+import gnocchiCreamyTomatoImg from "./assets/foodhub/recipe-image-legacy-id-338653_11-d3975ea.webp";
+import lemonSalmonImg from "./assets/foodhub/lemon-dressed-salmon-with-leek-and-broad-bean-puree-440-400-ba91990.webp";
+import sausageKaleGnocchiImg from "./assets/foodhub/sausage-kale-gnocchi-one-pot-e890b33.webp";
+import tunaPastaImg from "./assets/foodhub/recipe-image-legacy-id-1234451_8-536a6f2.webp";
+import veggieFajitasImg from "./assets/foodhub/fajitas.png";
+import fishTacosImg from "./assets/foodhub/Fish-Tacos-1337495.webp";
+import chickpeaCurryImg from "./assets/foodhub/chickpea curry.png";
+import eggFriedRiceImg from "./assets/foodhub/egg rice.png";
+import macAndCheeseImg from "./assets/foodhub/mac and cheese.webp";
+import pestoPastaImg from "./assets/foodhub/pestopasta.webp";
+import sausagePastaImg from "./assets/foodhub/sausage pasta.png";
+import shakshukaImg from "./assets/foodhub/shaksuka.png";
+import tomatoSoupImg from "./assets/foodhub/tomato-soup-with-cheese-marmite-toast-879c026.webp";
+import roastSeaBassImg from "./assets/foodhub/roast sea bass.webp";
+import roastSweetPotatoImg from "./assets/foodhub/roast sweet pot feta butter bean.avif";
+import roastChickenTraybakeImg from "./assets/foodhub/roast-chicken-tray-bake-440-400-6bb8cf6.webp";
+import spicedSalmonTomatoImg from "./assets/foodhub/spiced-salmon-tomato-traybake-e6664f7.webp";
+import sausageTraybakeImg from "./assets/foodhub/summer-sausage-traybake-b2f648e.webp";
+import puttanescaHakeImg from "./assets/foodhub/Puttanesca-hake-traybake-686fcb1.webp";
+import halloumiTraybakeImg from "./assets/foodhub/halloumi tray bake.webp";
+import honeyMustardSalmonImg from "./assets/foodhub/honey mustard salmon broc tray bake.webp";
+import lasagneImg from "./assets/foodhub/Lasagne-d4cb438.jpg";
+import cottagePieImg from "./assets/foodhub/cottage pie.jpg";
+import chickenBaconPieImg from "./assets/foodhub/Chicken-and-bacon-pie-f26cc35.webp";
+import roastChickenVegImg from "./assets/foodhub/roast-chicken-tray-bake-440-400-6bb8cf6.webp";
+import cauliflowerChickenCurryImg from "./assets/foodhub/Roasted-cauliflower-and-chicken-curry-6e24c52.webp";
+import butternutRisottoImg from "./assets/foodhub/butternut squash and sage risotto.jpg";
+import luxeFishPieImg from "./assets/foodhub/luxe-fish-pie-f016e12.webp";
+import miniWellingtonImg from "./assets/foodhub/AirFryerMiniBeefWellington-c256b41.webp";
+import roastHakeButterImg from "./assets/foodhub/roast hake with caper anchovy butter.avif";
+import spicedLambPieImg from "./assets/foodhub/spiced-lamb-pie-68e5198.webp";
+import coqAuVinImg from "./assets/foodhub/Slow-cooker-coq-au-vin-28c6490.webp";
+import panFriedSalmonImg from "./assets/foodhub/panfriedsalmon.jpg";
+import shreddedLambImg from "./assets/foodhub/slow-cooked shredded lamb shoulder.avif";
+import fishFingersImg from "./assets/foodhub/fishfingers mushy peas.webp";
+import veggieBurgerSlawImg from "./assets/foodhub/Recipe_veggie-burger.jpg";
+import salmonTraybakeImg from "./assets/foodhub/salmon-traybake_800x600.jpg";
+import cowboyPieImg from "./assets/foodhub/Cowboy-pie-cef67be.webp";
+import gyozaStirFryImg from "./assets/foodhub/teriyaki_gyoza_stir_fry_a661c60b80.png";
+import halloumiCouscousImg from "./assets/foodhub/Halloumi-Couscous-Salad-Walder-Wellness-4-1365x2048.jpg";
+import cheatsPizzaImg from "./assets/foodhub/22063_EP5_CheatsPizza_full.jpg";
+import chickenGoujonsImg from "./assets/foodhub/chicken-katsu-dippers-faff4ff.webp";
 import DarkVeil from "./components/DarkVeil";
 import GradientText from "./components/GradientText";
 import Orb from "./components/Orb";
@@ -73,6 +120,24 @@ type Reminder = {
   due_now: boolean;
 };
 
+type FoodHubRecipe = {
+  id: number;
+  category_id: number;
+  sort_order: number;
+  name: string;
+  tagline: string | null;
+  time_prep_min: number | null;
+  time_cook_min: number | null;
+  time_total_min: number | null;
+  link: string | null;
+  image_url: string | null;
+  image_local?: string;
+  last_accessed_at?: string | null;
+  tags: string[];
+  ingredients: string[];
+  steps: string[];
+};
+
 type RemindersResp = {
   date: string;
   now: string;
@@ -102,8 +167,8 @@ const FOOD_HUB_EXTRAS = [
   { id: 4, name: "One-Pan, No\nPlan" },
   { id: 5, name: "Project\nMeals" },
   { id: 6, name: "Show-Off\nBut Easy" },
-  { id: 7, name: "No Dishes\nMode" },
   { id: 8, name: "Freezer\nFirst" },
+  { id: 7, name: "Help Me\nDecide" },
 ];
 
 const WINS_MENU = [
@@ -150,19 +215,389 @@ const WINS_MENU = [
     tags: ["Vegetarian", "saucy"],
   },
   {
+    id: 7,
+    title: "Pan-seared sea bass",
+    time: "15 min",
+    note: "Crisp skin, lemon butter, quick sauteed greens.",
+    tags: ["seafood", "bright"],
+  },
+  {
     id: 8,
     title: "Halloumi honey pita",
     time: "12 min",
     note: "Sear halloumi, add honey and a quick salad.",
     tags: ["sweet-salty", "Vegetarian"],
   },
+];
+
+const STAPLES_MENU = [
+  {
+    id: 1,
+    title: "Creamy carbonara",
+    time: "25 min",
+    note: "Creamy, fast, and reliable.",
+    tags: ["PROTEIN", "SAUCY"],
+  },
+  {
+    id: 2,
+    title: "Chilli con carne",
+    time: "1 hr 10 min",
+    note: "Big flavour, always good.",
+    tags: ["PROTEIN", "SAUCY"],
+  },
+  {
+    id: 3,
+    title: "Gnocchi with creamy tomato & spinach sauce",
+    time: "20 min",
+    note: "Silky, simple, and calm.",
+    tags: ["VEGETARIAN", "SAUCY"],
+  },
+  {
+    id: 4,
+    title: "Chicken fried rice",
+    time: "15 min",
+    note: "A staple that clears the fridge.",
+    tags: ["PROTEIN", "PANTRY"],
+  },
+  {
+    id: 5,
+    title: "Tuna pasta",
+    time: "25 min",
+    note: "Zesty, light, and pantry-friendly.",
+    tags: ["SEAFOOD", "SAUCY"],
+  },
+  {
+    id: 6,
+    title: "Sausage, kale & gnocchi one-pot",
+    time: "20 min",
+    note: "Hearty, comforting, and all in one pan.",
+    tags: ["PROTEIN", "SAUCY"],
+  },
   {
     id: 7,
-    title: "Pan-seared sea bass",
-    time: "15 min",
-    note: "Crisp skin, lemon butter, quick sautéed greens.",
-    tags: ["seafood", "bright"],
+    title: "Lemon dressed salmon with leek & broad bean puree",
+    time: "30 min",
+    note: "Bright salmon with a soft green base.",
+    tags: ["SEAFOOD", "BRIGHT", "GREENS"],
   },
+  {
+    id: 8,
+    title: "Vegetarian fajitas",
+    time: "15 min",
+    note: "Sizzling, bright, and easy to share.",
+    tags: ["VEGETARIAN", "WRAP"],
+  },
+];
+
+const STAPLES_STEPS = [
+  { id: 1, title: "Go-to base", desc: "pasta, rice, or gnocchi first" },
+  { id: 2, title: "Fast protein or veg", desc: "chicken, tuna, beans, or veg" },
+  { id: 3, title: "Finish saucy", desc: "tomato, cream, or pan sauce" },
+];
+
+const ZERO_BRAIN_MENU = [
+  {
+    id: 1,
+    title: "Sausage pasta",
+    time: "30 min",
+    note: "Saucy, hearty, and low-fuss.",
+    tags: ["PROTEIN", "SAUCY"],
+  },
+  {
+    id: 2,
+    title: "Easy mac and cheese",
+    time: "45 min",
+    note: "Baked, golden, and classic.",
+    tags: ["VEGETARIAN", "SAUCY"],
+  },
+  {
+    id: 3,
+    title: "Easy egg-fried rice",
+    time: "20 min",
+    note: "Fast and pantry-friendly.",
+    tags: ["VEGETARIAN", "PANTRY"],
+  },
+  {
+    id: 4,
+    title: "Tomato soup with cheese & Marmite toast",
+    time: "25 min",
+    note: "Cosy soup with a crunchy top.",
+    tags: ["VEGETARIAN", "PANTRY"],
+  },
+  {
+    id: 5,
+    title: "Pesto pasta",
+    time: "5 min",
+    note: "The fastest option in the drawer.",
+    tags: ["VEGETARIAN", "PANTRY"],
+  },
+  {
+    id: 6,
+    title: "Fish tacos",
+    time: "30 min",
+    note: "Bright, fresh, and satisfying.",
+    tags: ["SEAFOOD", "WRAP", "BRIGHT"],
+  },
+  {
+    id: 7,
+    title: "Shakshuka",
+    time: "25 min",
+    note: "Warm, spiced, and simple.",
+    tags: ["VEGETARIAN", "PANTRY"],
+  },
+  {
+    id: 8,
+    title: "Chickpea curry",
+    time: "40 min",
+    note: "Low effort, big payoff.",
+    tags: ["VEGETARIAN", "PANTRY", "SAUCY"],
+  },
+];
+
+const ZERO_BRAIN_STEPS = [
+  { id: 1, title: "Minimal steps", desc: "keep the prep to a few moves" },
+  { id: 2, title: "Pantry first", desc: "pasta, rice, tinned, or jarred" },
+  { id: 3, title: "Bright or cheesy", desc: "finish with citrus or cheese" },
+];
+
+const ONE_PAN_MENU = [
+  {
+    id: 1,
+    title: "Roast sea bass & vegetable traybake",
+    time: "40 min",
+    note: "Bright, crisp, and herb-lifted.",
+    tags: ["SEAFOOD", "BRIGHT", "GREENS"],
+  },
+  {
+    id: 2,
+    title: "Roast chicken traybake",
+    time: "1 hr 15 min",
+    note: "Juicy chicken, roasted veg, minimal effort.",
+    tags: ["PROTEIN", "GREENS"],
+  },
+  {
+    id: 3,
+    title: "Sausage traybake",
+    time: "1 hr",
+    note: "Pesto, beans, and golden edges.",
+    tags: ["PROTEIN", "GREENS"],
+  },
+  {
+    id: 4,
+    title: "Halloumi traybake",
+    time: "1 hr 15 min",
+    note: "Big tray, sizzling halloumi, soft veg.",
+    tags: ["VEGETARIAN", "GREENS"],
+  },
+  {
+    id: 5,
+    title: "Honey mustard salmon traybake",
+    time: "45 min",
+    note: "Sweet-savoury glaze, tender salmon.",
+    tags: ["SEAFOOD", "GREENS", "BRIGHT"],
+  },
+  {
+    id: 6,
+    title: "Spiced salmon & tomato traybake",
+    time: "30 min",
+    note: "Warm spice, saucy tomatoes.",
+    tags: ["SEAFOOD", "SAUCY"],
+  },
+  {
+    id: 7,
+    title: "Puttanesca hake traybake",
+    time: "55 min",
+    note: "Briny, bold, and weeknight-friendly.",
+    tags: ["SEAFOOD", "SAUCY"],
+  },
+  {
+    id: 8,
+    title: "Sweet potato, feta & butter bean traybake",
+    time: "45 min",
+    note: "Smoky, herby, and satisfying.",
+    tags: ["VEGETARIAN", "HIGH FIBRE", "GREENS"],
+  },
+];
+
+const ONE_PAN_STEPS = [
+  { id: 1, title: "Line a tray", desc: "veg base + protein together" },
+  { id: 2, title: "Season boldly", desc: "oil, salt, spices, herbs" },
+  { id: 3, title: "Roast & rest", desc: "let it caramelise, serve hot" },
+];
+
+const PROJECT_MENU = [
+  {
+    id: 1,
+    title: "Classic lasagne",
+    time: "1 hr 40 min",
+    note: "Layered, rich, and worth the effort.",
+    tags: ["PROTEIN", "SAUCY"],
+  },
+  {
+    id: 2,
+    title: "Cottage pie",
+    time: "1 hr 50 min",
+    note: "Big batch comfort.",
+    tags: ["PROTEIN", "PANTRY"],
+  },
+  {
+    id: 3,
+    title: "Chicken & bacon pie",
+    time: "1 hr",
+    note: "Flaky puff pastry, creamy filling.",
+    tags: ["PROTEIN"],
+  },
+  {
+    id: 4,
+    title: "All-in-one roast chicken & veg",
+    time: "1 hr",
+    note: "Tray roast, minimal fuss.",
+    tags: ["PROTEIN", "GREENS"],
+  },
+  {
+    id: 5,
+    title: "Roasted cauliflower & chicken curry",
+    time: "1 hr",
+    note: "Roasted veg, rich curry sauce.",
+    tags: ["PROTEIN", "SAUCY"],
+  },
+  {
+    id: 6,
+    title: "Butternut squash & sage risotto",
+    time: "50 min",
+    note: "Creamy rice, sweet squash, crisp sage.",
+    tags: ["SAUCY", "PANTRY"],
+  },
+];
+
+const PROJECT_STEPS = [
+  { id: 1, title: "Plan the build", desc: "sauce, filling, or slow base" },
+  { id: 2, title: "Cook in stages", desc: "brown, simmer, then assemble" },
+  { id: 3, title: "Make it stretch", desc: "cook once, eat twice" },
+];
+
+const SHOW_OFF_MENU = [
+  {
+    id: 1,
+    title: "Luxe fish pie",
+    time: "1 hr 55 min",
+    note: "Rich, glossy, and special.",
+    tags: ["SEAFOOD", "SAUCY"],
+  },
+  {
+    id: 2,
+    title: "Easy mini beef wellingtons",
+    time: "45 min",
+    note: "Looks fancy, feels easy.",
+    tags: ["PROTEIN"],
+  },
+  {
+    id: 3,
+    title: "Roast hake with caper-anchovy butter",
+    time: "40 min",
+    note: "Bright and bold.",
+    tags: ["SEAFOOD", "BRIGHT"],
+  },
+  {
+    id: 4,
+    title: "Spiced lamb pie",
+    time: "4 hr 50 min",
+    note: "Deeply spiced and celebratory.",
+    tags: ["PROTEIN", "SWEET SALTY"],
+  },
+  {
+    id: 5,
+    title: "Slow cooker coq au vin",
+    time: "4 hr 30 min",
+    note: "Slow-cooked, rich, and glossy.",
+    tags: ["PROTEIN", "SAUCY"],
+  },
+  {
+    id: 6,
+    title: "Pan-fried salmon",
+    time: "6 min",
+    note: "Crisp skin, quick finish.",
+    tags: ["SEAFOOD", "BRIGHT"],
+  },
+  {
+    id: 7,
+    title: "Slow-cooked shredded lamb shoulder",
+    time: "8 hr+",
+    note: "Big-feast energy, worth the wait.",
+    tags: ["PROTEIN", "SWEET SALTY"],
+  },
+];
+
+
+const SHOW_OFF_STEPS = [
+  { id: 1, title: "Pick a hero", desc: "fish, pie, or a standout sauce" },
+  { id: 2, title: "Add one flourish", desc: "butter, herbs, or glaze" },
+  { id: 3, title: "Plate with contrast", desc: "something bright or crunchy" },
+];
+
+const FREEZER_MENU = [
+  {
+    id: 1,
+    title: "Fish fingers & mushy peas",
+    time: "25 min",
+    note: "Crisp fish, minty peas.",
+    tags: ["SEAFOOD", "GREENS"],
+  },
+  {
+    id: 2,
+    title: "Chicken goujons",
+    time: "30 min",
+    note: "Crispy strips with easy sides.",
+    tags: ["PROTEIN", "PANTRY"],
+  },
+  {
+    id: 3,
+    title: "Veggie burgers + slaw",
+    time: "20 min",
+    note: "Zero‑brain burgers and slaw.",
+    tags: ["VEGETARIAN"],
+  },
+  {
+    id: 4,
+    title: "Salmon traybake",
+    time: "50 min",
+    note: "Roast salmon with greens.",
+    tags: ["SEAFOOD", "GREENS", "BRIGHT"],
+  },
+  {
+    id: 5,
+    title: "Cowboy pie",
+    time: "1 hr",
+    note: "Sausage, beans, mash top.",
+    tags: ["PROTEIN", "PANTRY"],
+  },
+  {
+    id: 6,
+    title: "Teriyaki gyoza stir-fry",
+    time: "25 min",
+    note: "Fast veg + gyoza.",
+    tags: ["PROTEIN", "GREENS", "SAUCY"],
+  },
+  {
+    id: 7,
+    title: "Halloumi salad with couscous",
+    time: "25 min",
+    note: "Quick halloumi, fresh salad.",
+    tags: ["VEGETARIAN", "GREENS"],
+  },
+  {
+    id: 8,
+    title: "Cheats pizza + rocket salad",
+    time: "30 min",
+    note: "Flatbread pizza + balsamic rocket.",
+    tags: ["VEGETARIAN", "GREENS"],
+  },
+];
+
+const FREEZER_STEPS = [
+  { id: 1, title: "Check the freezer", desc: "choose a protein or ready item" },
+  { id: 2, title: "Add a simple side", desc: "rice, potatoes, or salad" },
+  { id: 3, title: "Lift it up", desc: "greens, lemon, or a quick sauce" },
 ];
 
 const WINS_BUILD_STEPS = [
@@ -171,11 +606,105 @@ const WINS_BUILD_STEPS = [
   { id: 3, title: "Finish bright", desc: "lemon, herbs, hot sauce" },
 ];
 
+const FOOD_HUB_CATEGORY_META = [
+  {
+    id: 1,
+    eyebrow: "10-15 minute wins",
+    title: "Fast, hot, done.",
+    subtitle:
+      "Pick one, add a side, and get back to life. Built for weeknights, low effort, high reward.",
+    menu: WINS_MENU,
+    steps: WINS_BUILD_STEPS,
+  },
+  {
+    id: 2,
+    eyebrow: "30-minute staples",
+    title: "Reliable, repeatable, calm.",
+    subtitle:
+      "Comforting mains that stay consistent. The kind you can cook half-asleep.",
+    menu: STAPLES_MENU,
+    steps: STAPLES_STEPS,
+  },
+  {
+    id: 3,
+    eyebrow: "Zero-brain dinners",
+    title: "Autopilot dinners, sorted.",
+    subtitle:
+      "Minimal decisions, maximum payoff. Built for tired evenings and low bandwidth.",
+    menu: ZERO_BRAIN_MENU,
+    steps: ZERO_BRAIN_STEPS,
+  },
+  {
+    id: 4,
+    eyebrow: "One-pan, no plan",
+    title: "One tray. Done.",
+    subtitle:
+      "Easy clean-up, easy wins. Throw it in, walk away, and come back to dinner.",
+    menu: ONE_PAN_MENU,
+    steps: ONE_PAN_STEPS,
+  },
+  {
+    id: 5,
+    eyebrow: "Project meals",
+    title: "Worth the simmer.",
+    subtitle:
+      "Slow, cozy, and a little more involved. Sunday energy, weekday payoff.",
+    menu: PROJECT_MENU,
+    steps: PROJECT_STEPS,
+  },
+  {
+    id: 6,
+    eyebrow: "Show-off but easy",
+    title: "Looks fancy, feels simple.",
+    subtitle:
+      "The plates that feel like a flex without the stress. Guest-ready in a pinch.",
+    menu: SHOW_OFF_MENU,
+    steps: SHOW_OFF_STEPS,
+  },
+  {
+    id: 8,
+    eyebrow: "Freezer first",
+    title: "Rescue what's already there.",
+    subtitle:
+      "Use up the freezer before it uses you. Smart, tidy, and surprisingly good.",
+    menu: FREEZER_MENU,
+    steps: FREEZER_STEPS,
+  },
+];
+
 function ymdLocal(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function formatRecipeTime(recipe: FoodHubRecipe | null) {
+  if (!recipe) return "";
+  const parts: string[] = [];
+  if (recipe.time_prep_min != null && recipe.time_prep_min > 0) {
+    parts.push(`Prep ${recipe.time_prep_min} mins`);
+  }
+  if (recipe.time_cook_min != null && recipe.time_cook_min > 0) {
+    parts.push(`Cook ${recipe.time_cook_min} mins`);
+  }
+  if (recipe.time_total_min != null && recipe.time_total_min > 0) {
+    parts.push(`Total ${recipe.time_total_min} mins`);
+  }
+  if (!parts.length) return "";
+  if (parts.length === 3) {
+    return `${parts[0]} • ${parts[1]} (${parts[2]})`;
+  }
+  return parts.join(" • ");
+}
+
+function normalizeRecipeKey(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 export default function App() {
@@ -190,6 +719,7 @@ export default function App() {
   const [hubExiting, setHubExiting] = useState(false);
   const [dashboardIntro, setDashboardIntro] = useState(false);
   const [titleMode, setTitleMode] = useState<"hub" | "wins">("hub");
+  const [activeFoodHubCategory, setActiveFoodHubCategory] = useState(1);
   const [titlePhase, setTitlePhase] = useState<"out" | "in" | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionDir, setTransitionDir] = useState<
@@ -212,6 +742,67 @@ export default function App() {
   const [aiInput, setAiInput] = useState("");
   const [aiOutput, setAiOutput] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [foodHubRecipes, setFoodHubRecipes] = useState<FoodHubRecipe[]>([]);
+  const [foodHubLoading, setFoodHubLoading] = useState(false);
+  const foodHubImageByNameRef = useRef<Record<string, string>>({
+    [normalizeRecipeKey("Creamy carbonara")]: creamyCarbonaraImg,
+    [normalizeRecipeKey("Chilli con carne")]: chilliConCarneImg,
+    [normalizeRecipeKey("Gnocchi with creamy tomato & spinach sauce")]:
+      gnocchiCreamyTomatoImg,
+    [normalizeRecipeKey("Chicken fried rice")]: chickenFriedRiceImg,
+    [normalizeRecipeKey("Tuna pasta")]: tunaPastaImg,
+    [normalizeRecipeKey("Sausage, kale & gnocchi one-pot")]:
+      sausageKaleGnocchiImg,
+    [normalizeRecipeKey("Lemon dressed salmon with leek & broad bean puree")]:
+      lemonSalmonImg,
+    [normalizeRecipeKey("Vegetarian fajitas")]: veggieFajitasImg,
+    [normalizeRecipeKey("Sausage pasta")]: sausagePastaImg,
+    [normalizeRecipeKey("Easy mac and cheese")]: macAndCheeseImg,
+    [normalizeRecipeKey("Easy egg-fried rice")]: eggFriedRiceImg,
+    [normalizeRecipeKey("Tomato soup with cheese & Marmite toast")]:
+      tomatoSoupImg,
+    [normalizeRecipeKey("Pesto pasta")]: pestoPastaImg,
+    [normalizeRecipeKey("Fish tacos")]: fishTacosImg,
+    [normalizeRecipeKey("Shakshuka")]: shakshukaImg,
+    [normalizeRecipeKey("Chickpea curry")]: chickpeaCurryImg,
+    [normalizeRecipeKey("Roast sea bass & vegetable traybake")]: roastSeaBassImg,
+    [normalizeRecipeKey("Roast chicken traybake")]: roastChickenTraybakeImg,
+    [normalizeRecipeKey("Sausage traybake")]: sausageTraybakeImg,
+    [normalizeRecipeKey("Halloumi traybake")]: halloumiTraybakeImg,
+    [normalizeRecipeKey("Honey mustard salmon traybake")]: honeyMustardSalmonImg,
+    [normalizeRecipeKey("Spiced salmon & tomato traybake")]: spicedSalmonTomatoImg,
+    [normalizeRecipeKey("Puttanesca hake traybake")]: puttanescaHakeImg,
+    [normalizeRecipeKey("Sweet potato, feta & butter bean traybake")]:
+      roastSweetPotatoImg,
+    [normalizeRecipeKey("Classic lasagne")]: lasagneImg,
+    [normalizeRecipeKey("Cottage pie")]: cottagePieImg,
+    [normalizeRecipeKey("Chicken & bacon pie")]: chickenBaconPieImg,
+    [normalizeRecipeKey("All-in-one roast chicken & veg")]: roastChickenVegImg,
+    [normalizeRecipeKey("Roasted cauliflower & chicken curry")]:
+      cauliflowerChickenCurryImg,
+    [normalizeRecipeKey("Butternut squash & sage risotto")]: butternutRisottoImg,
+    [normalizeRecipeKey("Luxe fish pie")]: luxeFishPieImg,
+    [normalizeRecipeKey("Easy mini beef wellingtons")]: miniWellingtonImg,
+    [normalizeRecipeKey("Roast hake with caper-anchovy butter")]:
+      roastHakeButterImg,
+    [normalizeRecipeKey("Spiced lamb pie")]: spicedLambPieImg,
+    [normalizeRecipeKey("Slow cooker coq au vin")]: coqAuVinImg,
+    [normalizeRecipeKey("Pan-fried salmon")]: panFriedSalmonImg,
+    [normalizeRecipeKey("Slow-cooked shredded lamb shoulder")]: shreddedLambImg,
+    [normalizeRecipeKey("Fish fingers & mushy peas")]: fishFingersImg,
+    [normalizeRecipeKey("Chicken goujons")]: chickenGoujonsImg,
+    [normalizeRecipeKey("Veggie burgers + slaw")]: veggieBurgerSlawImg,
+    [normalizeRecipeKey("Salmon traybake")]: salmonTraybakeImg,
+    [normalizeRecipeKey("Cowboy pie")]: cowboyPieImg,
+    [normalizeRecipeKey("Teriyaki gyoza stir-fry")]: gyozaStirFryImg,
+    [normalizeRecipeKey("Halloumi salad with couscous")]: halloumiCouscousImg,
+    [normalizeRecipeKey("Cheats pizza + rocket salad")]: cheatsPizzaImg,
+  });
+  const [selectedRecipe, setSelectedRecipe] = useState<FoodHubRecipe | null>(
+    null
+  );
+  const [recipeOverlayOpen, setRecipeOverlayOpen] = useState(false);
+  const [recipeOverlayClosing, setRecipeOverlayClosing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const speakingCountRef = useRef(0);
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -232,6 +823,7 @@ export default function App() {
   const dashboardIntroTimerRef = useRef<number | null>(null);
   const titleSwapTimerRef = useRef<number | null>(null);
   const titleClearTimerRef = useRef<number | null>(null);
+  const recipeCloseTimerRef = useRef<number | null>(null);
 
   const gate = Math.min(1, Math.max(0, (audioLevel - 0.015) / 0.12));
   const pulseLevel = audioLevel * gate * gate;
@@ -277,6 +869,46 @@ export default function App() {
       setAudioLevel(env);
     };
     audioRelaxRafRef.current = requestAnimationFrame(relaxTick);
+  }
+
+  function openRecipe(recipe: FoodHubRecipe) {
+    if (recipeOverlayClosing) return;
+    if (recipeCloseTimerRef.current != null) {
+      window.clearTimeout(recipeCloseTimerRef.current);
+      recipeCloseTimerRef.current = null;
+    }
+    setSelectedRecipe(recipe);
+    setRecipeOverlayOpen(true);
+    setRecipeOverlayClosing(false);
+    void markFoodHubAccessed(recipe.id)
+      .then((resp) => {
+        setFoodHubRecipes((prev) =>
+          prev.map((item) =>
+            item.id === recipe.id
+              ? { ...item, last_accessed_at: resp.last_accessed_at }
+              : item
+          )
+        );
+      })
+      .catch(() => {});
+  }
+
+  function closeRecipe(afterClose?: () => void) {
+    if (!recipeOverlayOpen || recipeOverlayClosing) {
+      if (afterClose) afterClose();
+      return;
+    }
+    setRecipeOverlayClosing(true);
+    if (recipeCloseTimerRef.current != null) {
+      window.clearTimeout(recipeCloseTimerRef.current);
+    }
+    recipeCloseTimerRef.current = window.setTimeout(() => {
+      setRecipeOverlayOpen(false);
+      setRecipeOverlayClosing(false);
+      setSelectedRecipe(null);
+      recipeCloseTimerRef.current = null;
+      if (afterClose) afterClose();
+    }, 420);
   }
 
   function startAudioMeter(audio: HTMLAudioElement) {
@@ -1172,6 +1804,17 @@ export default function App() {
 
   const isFoodHub = activePage === "food-hub";
 
+  const showDashboardLayer =
+    !isFoodHub ||
+    dashboardIntro ||
+    (foodHubMode === "hub" && !hubTransitioning && !winsExiting);
+  const showHubIntroCards = isFoodHub && hubTransitioning;
+  const showWins =
+    (isFoodHub || isTransitioning) && (foodHubMode === "wins" || winsExiting);
+  const showHub =
+    (isFoodHub || isTransitioning) &&
+    (foodHubMode === "hub" || hubTransitioning || hubExiting);
+
   const scheduleAutoCycle = useCallback(() => {
     if (autoCycleRef.current != null) {
       window.clearTimeout(autoCycleRef.current);
@@ -1191,6 +1834,60 @@ export default function App() {
       }
     };
   }, [scheduleAutoCycle]);
+
+  useEffect(() => {
+    return () => {
+      if (recipeCloseTimerRef.current != null) {
+        window.clearTimeout(recipeCloseTimerRef.current);
+        recipeCloseTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isFoodHub) return;
+    if (!showHub) return;
+    if (trackIndex !== trackStart && trackIndex !== trackEnd) return;
+    pendingSnapRef.current = null;
+    setIsTrackSnapping(true);
+    setTrackIndex(trackOffset);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsTrackSnapping(false);
+      });
+    });
+  }, [isFoodHub, showHub, trackEnd, trackIndex, trackOffset, trackStart]);
+
+  useEffect(() => {
+    if (!showWins) {
+      setFoodHubRecipes([]);
+      return;
+    }
+    let isActive = true;
+    setFoodHubLoading(true);
+    getFoodHub(activeFoodHubCategory)
+      .then((data) => {
+        if (!isActive) return;
+        const recipes = (data.recipes ?? []).map((recipe) => {
+          const key = normalizeRecipeKey(recipe.name);
+          const local = foodHubImageByNameRef.current[key];
+          return local ? { ...recipe, image_local: local } : recipe;
+        });
+        setFoodHubRecipes(recipes);
+      })
+      .catch((e) => {
+        if (!isActive) return;
+        setFoodHubRecipes([]);
+        setErr(e?.message ?? "Food hub recipes failed");
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setFoodHubLoading(false);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [activeFoodHubCategory, showWins]);
 
   function handleManualShift(delta: number) {
     shiftDish(delta);
@@ -1239,7 +1936,8 @@ export default function App() {
     }, transitionDurationMs);
   }
 
-  function enterWins() {
+  function enterWins(categoryId: number) {
+    setActiveFoodHubCategory(categoryId);
     setFoodHubMode("wins");
     setHubExiting(true);
     setWinsExiting(false);
@@ -1618,16 +2316,9 @@ export default function App() {
     </section>
   );
 
-  const showDashboardLayer =
-    !isFoodHub ||
-    dashboardIntro ||
-    (foodHubMode === "hub" && !hubTransitioning && !winsExiting);
-  const showHubIntroCards = isFoodHub && hubTransitioning;
-  const showWins =
-    (isFoodHub || isTransitioning) && (foodHubMode === "wins" || winsExiting);
-  const showHub =
-    (isFoodHub || isTransitioning) &&
-    (foodHubMode === "hub" || hubTransitioning || hubExiting);
+  const activeFoodHubMeta =
+    FOOD_HUB_CATEGORY_META.find((item) => item.id === activeFoodHubCategory) ??
+    FOOD_HUB_CATEGORY_META[0];
 
   return (
     <div
@@ -1707,7 +2398,7 @@ export default function App() {
                 titlePhase ? ` foodHubTitle--${titlePhase}` : ""
               }`}
             >
-              {titleMode === "wins" ? "10-15 minute wins" : "foodhub"}
+              {titleMode === "wins" ? activeFoodHubMeta.eyebrow : "foodhub"}
             </div>
           </div>
         ) : null}
@@ -1812,10 +2503,13 @@ export default function App() {
         ) : null}
 
         {showWins ? (
-          <section className="winsPage" aria-label="Ten to fifteen minute wins">
+          <section
+            className="winsPage"
+            aria-label={`${activeFoodHubMeta.eyebrow} recipes`}
+          >
               <div className="winsHero glass-tile">
                 <div className="winsHeroTop">
-                  <div className="winsEyebrow">10-15 minute wins</div>
+                  <div className="winsEyebrow">{activeFoodHubMeta.eyebrow}</div>
                   <button
                     type="button"
                     className="glass-pill glass-pill--small winsBack"
@@ -1824,13 +2518,10 @@ export default function App() {
                     Back to hub
                   </button>
                 </div>
-                <h2 className="winsTitle">Fast, hot, done.</h2>
-                <p className="winsSubtitle">
-                  Pick one, add a side, and get back to life. Built for weeknights,
-                  low effort, high reward.
-                </p>
+                <h2 className="winsTitle">{activeFoodHubMeta.title}</h2>
+                <p className="winsSubtitle">{activeFoodHubMeta.subtitle}</p>
                 <div className="winsSteps" role="list">
-                  {WINS_BUILD_STEPS.map((step) => (
+                  {activeFoodHubMeta.steps.map((step) => (
                     <div key={step.id} className="winsStep" role="listitem">
                       <div className="winsStepTitle">{step.title}</div>
                       <div className="winsStepDesc">{step.desc}</div>
@@ -1840,12 +2531,20 @@ export default function App() {
               </div>
 
               <div className="winsGrid" role="list">
-                {WINS_MENU.map((item) => (
+                {activeFoodHubMeta.menu.map((item) => (
                   <article
                     key={item.id}
                     className="winsCard glass-tile"
                     role="listitem"
                     data-win-id={item.id}
+                    onClick={() => {
+                      const match = foodHubRecipes.find(
+                        (recipe) =>
+                          normalizeRecipeKey(recipe.name) ===
+                          normalizeRecipeKey(item.title)
+                      );
+                      if (match) openRecipe(match);
+                    }}
                   >
                     <div className="winsCardTop">
                       <span className="winsTime">{item.time}</span>
@@ -1855,8 +2554,12 @@ export default function App() {
                     <div className="winsTags">
                       {item.tags.map((tag) => {
                         const words = tag.replace(/-/g, " ");
+                        const tagKey = tag
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/(^-|-$)/g, "");
                         return (
-                          <span key={tag} className="winsTag" data-tag={tag}>
+                          <span key={tag} className="winsTag" data-tag={tagKey}>
                             {words}
                           </span>
                         );
@@ -1907,10 +2610,13 @@ export default function App() {
                     <button
                       key={dish.id}
                       type="button"
-                      className="foodHubExtraTile glass-tile"
+                      className={`foodHubExtraTile glass-tile${
+                        dish.id === 7 ? " foodHubExtraTile--decide" : ""
+                      }`}
                       role="listitem"
                       onClick={() => {
-                        if (dish.id === 1) enterWins();
+                        if (dish.id === 7) return;
+                        enterWins(dish.id);
                       }}
                     >
                       <div className="foodHubTileImage">
@@ -1927,6 +2633,101 @@ export default function App() {
                   ))}
                 </div>
               </section>
+          </div>
+        ) : null}
+
+        {recipeOverlayOpen ? (
+          <div
+            className={`recipeOverlay${
+              recipeOverlayClosing ? " recipeOverlay--closing" : " recipeOverlay--open"
+            }`}
+          >
+            <div
+              className="recipeOverlayBackdrop"
+              onClick={() => closeRecipe()}
+              aria-hidden="true"
+            />
+            <div className="recipeOverlayCard glass-tile" role="dialog" aria-modal="true">
+              <div className="recipeOverlayTop">
+                <div className="recipeOverlayTitle">
+                  {selectedRecipe?.name ?? "Recipe"}
+                </div>
+                <div className="recipeOverlayActions">
+                  <button
+                    type="button"
+                    className="glass-pill glass-pill--small"
+                    onClick={() => closeRecipe()}
+                  >
+                    Back to {activeFoodHubMeta.eyebrow}
+                  </button>
+                  <button
+                    type="button"
+                    className="glass-pill glass-pill--small"
+                    onClick={() => closeRecipe(exitWins)}
+                  >
+                    Back to food hub
+                  </button>
+                  <button
+                    type="button"
+                    className="glass-pill glass-pill--small"
+                    onClick={() => closeRecipe(exitWinsToDashboard)}
+                  >
+                    Back to dashboard
+                  </button>
+                </div>
+              </div>
+
+              {selectedRecipe?.image_local || selectedRecipe?.image_url ? (
+                <div className="recipeOverlayImage">
+                  <img
+                    src={
+                      selectedRecipe.image_local ??
+                      `/api/foodhub/image?url=${encodeURIComponent(
+                        selectedRecipe.image_url ?? ""
+                      )}`
+                    }
+                    alt={selectedRecipe.name}
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                <div className="recipeOverlayImage recipeOverlayImage--placeholder">
+                  <div className="recipeOverlayImageText">Recipe image</div>
+                </div>
+              )}
+
+              <div className="recipeOverlayMeta">
+                {selectedRecipe?.tagline ? (
+                  <p className="recipeOverlayTagline">{selectedRecipe.tagline}</p>
+                ) : null}
+                {formatRecipeTime(selectedRecipe) ? (
+                  <div className="recipeOverlayTime">
+                    {formatRecipeTime(selectedRecipe)}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="recipeOverlaySection recipeOverlaySection--ingredients">
+                <div className="recipeOverlayLabel">Ingredients</div>
+                <ul className="recipeOverlayList">
+                  {(selectedRecipe?.ingredients ?? []).map((ingredient) => (
+                    <li key={ingredient}>{ingredient}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="recipeOverlaySection recipeOverlaySection--steps">
+                <div className="recipeOverlayLabel">Steps</div>
+                <ol className="recipeOverlayList recipeOverlayList--steps">
+                  {(selectedRecipe?.steps ?? []).map((step, index) => (
+                    <li key={`${selectedRecipe?.id ?? "recipe"}-step-${index}`}>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+            </div>
           </div>
         ) : null}
       </main>
