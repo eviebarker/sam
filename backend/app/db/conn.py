@@ -65,6 +65,16 @@ def init_db() -> None:
         if foodhub_columns:
             if "image_url" not in foodhub_columns:
                 conn.execute("ALTER TABLE foodhub ADD COLUMN image_url TEXT;")
+            if "cuisine_region" not in foodhub_columns:
+                conn.execute("ALTER TABLE foodhub ADD COLUMN cuisine_region TEXT;")
+            if "time_band" not in foodhub_columns:
+                conn.execute("ALTER TABLE foodhub ADD COLUMN time_band TEXT;")
+            if "activity_level" not in foodhub_columns:
+                conn.execute("ALTER TABLE foodhub ADD COLUMN activity_level TEXT;")
+            if "health_vibe" not in foodhub_columns:
+                conn.execute("ALTER TABLE foodhub ADD COLUMN health_vibe TEXT;")
+            if "weight_class" not in foodhub_columns:
+                conn.execute("ALTER TABLE foodhub ADD COLUMN weight_class TEXT;")
             if "rating" not in foodhub_columns:
                 conn.execute("ALTER TABLE foodhub ADD COLUMN rating INTEGER;")
             if "last_accessed_at" not in foodhub_columns:

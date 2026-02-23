@@ -3,6 +3,67 @@ from datetime import datetime
 from typing import Iterable
 import sqlite3
 
+def _norm_name(name: str) -> str:
+    return (
+        name.lower()
+        .replace("&", "and")
+        .replace("–", "-")
+        .replace("—", "-")
+        .replace("  ", " ")
+    )
+
+def _time_band(total_min: int | None) -> str:
+    if total_min is None:
+        return "30-45"
+    if total_min <= 30:
+        return "15-30"
+    if total_min <= 45:
+        return "30-45"
+    if total_min <= 60:
+        return "45-60"
+    return "60+"
+
+def _activity_level(name: str) -> str:
+    n = _norm_name(name)
+    high = ["stir-fry", "fried", "pan-fried", "fajitas", "tacos", "burger", "goujons", "fish fingers"]
+    if any(k in n for k in high):
+        return "high-active"
+    hands = ["slow cooker", "slow-cooked", "traybake", "roast", "bake", "pie", "tart"]
+    if any(k in n for k in hands):
+        return "hands-off"
+    if "risotto" in n:
+        return "high-active"
+    return "mixed"
+
+def _health_vibe(name: str) -> str:
+    n = _norm_name(name)
+    indulgent = ["pie", "lasagne", "mac and cheese", "stroganoff", "coq au vin", "wellington", "cowboy", "tart", "risotto"]
+    if any(k in n for k in indulgent):
+        return "indulgent"
+    light = ["salad", "traybake", "fish tacos", "fajitas", "lemon dressed salmon", "salmon traybake"]
+    if any(k in n for k in light):
+        return "light"
+    return "balanced"
+
+def _weight_class(name: str) -> str:
+    n = _norm_name(name)
+    heavy = ["pie", "lasagne", "mac and cheese", "burger", "cowboy", "shredded lamb", "coq au vin", "wellington", "risotto"]
+    if any(k in n for k in heavy):
+        return "heavy"
+    light = ["salad", "traybake", "fish tacos", "fajitas", "lemon dressed salmon", "salmon traybake", "shakshuka"]
+    if any(k in n for k in light):
+        return "light"
+    return "medium"
+
+def _with_meta(row: dict) -> dict:
+    total = row.get("time_total_min")
+    name = row.get("name", "")
+    row.setdefault("time_band", _time_band(total))
+    row.setdefault("activity_level", _activity_level(name))
+    row.setdefault("health_vibe", _health_vibe(name))
+    row.setdefault("weight_class", _weight_class(name))
+    return row
+
 FOODHUB_SEED = [
     {
         "category_id": 2,
@@ -13,6 +74,7 @@ FOODHUB_SEED = [
         "time_cook_min": 20,
         "time_total_min": 25,
         "link": "https://www.bbcgoodfood.com/recipes/learn-to-make-spaghetti-carbonara",
+        "cuisine_region": "Italian",
         "image_url": "https://images.immediate.co.uk/production/volatile/sites/30/2020/04/Carbonara-79ea3d8.jpg",
         "tags": ["PROTEIN", "SAUCY"],
         "ingredients": [
@@ -41,6 +103,7 @@ FOODHUB_SEED = [
         "time_cook_min": 60,
         "time_total_min": 70,
         "link": "https://www.bbcgoodfood.com/recipes/chilli-con-carne-recipe",
+        "cuisine_region": "Mexican",
         "image_url": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/chilli-con-carne-a53a7ef.jpg",
         "tags": ["PROTEIN", "SAUCY"],
         "ingredients": [
@@ -80,6 +143,7 @@ FOODHUB_SEED = [
         "time_cook_min": 10,
         "time_total_min": 20,
         "link": "https://www.bbcgoodfood.com/recipes/gnocchi-creamy-tomato-spinach-sauce",
+        "cuisine_region": "Italian",
         "image_url": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/gnocchi-with-creamy-tomato-spinach-sauce-983b9a2.jpg",
         "tags": ["VEGETARIAN", "SAUCY"],
         "ingredients": [
@@ -108,6 +172,7 @@ FOODHUB_SEED = [
         "time_cook_min": 10,
         "time_total_min": 15,
         "link": "https://www.bbcgoodfood.com/recipes/chicken-sweetcorn-egg-fried-rice",
+        "cuisine_region": "Chinese",
         "image_url": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/chicken-sweetcorn-egg-fried-rice-9992c81.jpg",
         "tags": ["PROTEIN", "PANTRY"],
         "ingredients": [
@@ -138,6 +203,7 @@ FOODHUB_SEED = [
         "time_cook_min": 25,
         "time_total_min": 25,
         "link": "https://www.bbcgoodfood.com/recipes/tuna-lemon-pasta",
+        "cuisine_region": "Italian",
         "image_url": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/tuna-lemon-pasta-0e6c602.jpg",
         "tags": ["SEAFOOD", "SAUCY"],
         "ingredients": [
@@ -164,6 +230,7 @@ FOODHUB_SEED = [
         "time_cook_min": 15,
         "time_total_min": 20,
         "link": "https://www.bbcgoodfood.com/recipes/sausage-kale-gnocchi-one-pot",
+        "cuisine_region": "Italian",
         "image_url": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/sausage-kale-gnocchi-one-pot-6ce457e.jpg",
         "tags": ["PROTEIN", "SAUCY"],
         "ingredients": [
@@ -192,6 +259,7 @@ FOODHUB_SEED = [
         "time_cook_min": 20,
         "time_total_min": 30,
         "link": "https://www.bbcgoodfood.com/recipes/lemon-dressed-salmon-leek-broad-bean-puree",
+        "cuisine_region": "British",
         "image_url": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/lemon-dressed-salmon-leek-broad-bean-puree-3f6b720.jpg",
         "tags": ["SEAFOOD", "BRIGHT", "GREENS"],
         "ingredients": [
@@ -222,6 +290,7 @@ FOODHUB_SEED = [
         "time_cook_min": 10,
         "time_total_min": 15,
         "link": "https://www.bbcgoodfood.com/recipes/veggie-fajitas",
+        "cuisine_region": "Mexican",
         "image_url": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/veggie-fajitas-8bfe3b2.jpg",
         "tags": ["VEGETARIAN", "WRAP"],
         "ingredients": [
@@ -255,6 +324,7 @@ FOODHUB_SEED = [
         "time_cook_min": 25,
         "time_total_min": 30,
         "link": "https://www.bbcgoodfood.com/recipes/saucy-sausage-pasta-0",
+        "cuisine_region": "Italian",
         "tags": ["PROTEIN", "SAUCY"],
         "ingredients": [
             "1 tbsp olive oil",
@@ -283,6 +353,7 @@ FOODHUB_SEED = [
         "time_cook_min": 30,
         "time_total_min": 45,
         "link": "https://www.bbcgoodfood.com/recipes/macaroni-cheese-4-easy-steps",
+        "cuisine_region": "American",
         "tags": ["VEGETARIAN", "SAUCY"],
         "ingredients": [
             "700ml full-fat milk",
@@ -315,6 +386,7 @@ FOODHUB_SEED = [
         "time_cook_min": 10,
         "time_total_min": 20,
         "link": "https://www.bbcgoodfood.com/recipes/egg-fried-rice",
+        "cuisine_region": "Chinese",
         "tags": ["VEGETARIAN", "PANTRY"],
         "ingredients": [
             "250g long grain rice",
@@ -340,6 +412,7 @@ FOODHUB_SEED = [
         "time_cook_min": 15,
         "time_total_min": 25,
         "link": "https://www.bbcgoodfood.com/recipes/tomato-soup-cheese-marmite-toast",
+        "cuisine_region": "British",
         "tags": ["VEGETARIAN", "PANTRY"],
         "ingredients": [
             "1 tbsp olive oil",
@@ -368,6 +441,7 @@ FOODHUB_SEED = [
         "time_cook_min": 5,
         "time_total_min": 5,
         "link": "https://www.bbcgoodfood.com/recipes/easy-pesto-pasta",
+        "cuisine_region": "Italian",
         "tags": ["VEGETARIAN", "PANTRY"],
         "ingredients": [
             "500g pack spaghetti (fresh or dried)",
@@ -388,6 +462,7 @@ FOODHUB_SEED = [
         "time_cook_min": 10,
         "time_total_min": 30,
         "link": "https://www.bbcgoodfood.com/recipes/fish-tacos-2",
+        "cuisine_region": "Mexican",
         "tags": ["SEAFOOD", "WRAP", "BRIGHT"],
         "ingredients": [
             "1 tsp ground cumin",
@@ -421,6 +496,7 @@ FOODHUB_SEED = [
         "time_cook_min": 20,
         "time_total_min": 25,
         "link": "https://www.bbcgoodfood.com/recipes/shakshuka",
+        "cuisine_region": "Middle Eastern",
         "tags": ["VEGETARIAN", "PANTRY"],
         "ingredients": [
             "1 tbsp olive oil",
@@ -448,6 +524,7 @@ FOODHUB_SEED = [
         "time_cook_min": 25,
         "time_total_min": 40,
         "link": "https://www.bbcgoodfood.com/recipes/kadala-curry",
+        "cuisine_region": "Indian",
         "tags": ["VEGETARIAN", "PANTRY", "SAUCY"],
         "ingredients": [
             "2 tbsp oil",
@@ -484,6 +561,7 @@ FOODHUB_SEED = [
         "time_cook_min": 30,
         "time_total_min": 40,
         "link": "https://www.bbcgoodfood.com/recipes/roast-sea-bass-vegetable-traybake",
+        "cuisine_region": "Mediterranean",
         "tags": ["SEAFOOD", "BRIGHT", "GREENS"],
         "ingredients": [
             "300g red-skinned potatoes (thin rounds)",
@@ -511,6 +589,7 @@ FOODHUB_SEED = [
         "time_cook_min": 65,
         "time_total_min": 75,
         "link": "https://www.bbcgoodfood.com/recipes/roast-chicken-tray-bake",
+        "cuisine_region": "British",
         "tags": ["PROTEIN", "GREENS"],
         "ingredients": [
             "2 red onions (320g), sliced into rings",
@@ -541,6 +620,7 @@ FOODHUB_SEED = [
         "time_cook_min": 50,
         "time_total_min": 60,
         "link": "https://www.bbcgoodfood.com/recipes/pesto-sausage-traybake",
+        "cuisine_region": "British",
         "tags": ["PROTEIN", "GREENS"],
         "ingredients": [
             "1 red onion (wedges)",
@@ -573,6 +653,7 @@ FOODHUB_SEED = [
         "time_cook_min": 60,
         "time_total_min": 75,
         "link": "https://www.bbcgoodfood.com/recipes/halloumi-traybake",
+        "cuisine_region": "Mediterranean",
         "tags": ["VEGETARIAN", "GREENS"],
         "ingredients": [
             "750g baby new potatoes (halved)",
@@ -601,6 +682,7 @@ FOODHUB_SEED = [
         "time_cook_min": 30,
         "time_total_min": 45,
         "link": "https://www.bbcgoodfood.com/recipes/honey-mustard-salmon-potato-and-tenderstem-traybake",
+        "cuisine_region": "British",
         "tags": ["SEAFOOD", "GREENS", "BRIGHT"],
         "ingredients": [
             "600g new potatoes (halved if large)",
@@ -626,6 +708,7 @@ FOODHUB_SEED = [
         "time_cook_min": 25,
         "time_total_min": 30,
         "link": "https://www.bbcgoodfood.com/recipes/spiced-salmon-tomato-traybake",
+        "cuisine_region": "Mediterranean",
         "tags": ["SEAFOOD", "SAUCY"],
         "ingredients": [
             "1 red onion (sliced)",
@@ -651,6 +734,7 @@ FOODHUB_SEED = [
         "time_cook_min": 45,
         "time_total_min": 55,
         "link": "https://www.bbcgoodfood.com/recipes/puttanesca-hake-traybake",
+        "cuisine_region": "Italian",
         "tags": ["SEAFOOD", "SAUCY"],
         "ingredients": [
             "1 onion (sliced)",
@@ -681,6 +765,7 @@ FOODHUB_SEED = [
         "time_cook_min": 30,
         "time_total_min": 45,
         "link": "https://www.theguardian.com/food/2026/jan/05/quick-easy-roast-sweet-potato-recipe-feta-butter-bean-traybake-spring-onion-pesto-rukmini-iyer",
+        "cuisine_region": "Mediterranean",
         "tags": ["VEGETARIAN", "HIGH FIBRE", "GREENS"],
         "ingredients": [
             "2 large sweet potatoes (1.5cm chunks)",
@@ -710,6 +795,7 @@ FOODHUB_SEED = [
         "time_cook_min": 110,
         "time_total_min": 145,
         "link": "https://www.bbcgoodfood.com/recipes/cottage-pie",
+        "cuisine_region": "British",
         "tags": ["PROTEIN", "PANTRY"],
         "ingredients": [
             "3 tbsp olive oil",
@@ -751,6 +837,7 @@ FOODHUB_SEED = [
         "time_cook_min": 60,
         "time_total_min": 60,
         "link": "https://www.bbcgoodfood.com/recipes/chicken-bacon-pie",
+        "cuisine_region": "British",
         "tags": ["PROTEIN"],
         "ingredients": [
             "1 tbsp flavourless oil",
@@ -788,6 +875,7 @@ FOODHUB_SEED = [
         "time_cook_min": 50,
         "time_total_min": 60,
         "link": "https://www.bbcgoodfood.com/recipes/all-one-roast-chicken-veg",
+        "cuisine_region": "British",
         "tags": ["PROTEIN", "GREENS"],
         "ingredients": [
             "8 baby new potatoes (halved)",
@@ -814,6 +902,7 @@ FOODHUB_SEED = [
         "time_cook_min": 40,
         "time_total_min": 60,
         "link": "https://www.bbcgoodfood.com/recipes/roasted-cauliflower-chicken-curry",
+        "cuisine_region": "Indian",
         "tags": ["PROTEIN", "SAUCY"],
         "ingredients": [
             "2 tbsp veg oil",
@@ -854,6 +943,7 @@ FOODHUB_SEED = [
         "time_cook_min": 40,
         "time_total_min": 50,
         "link": "https://www.bbcgoodfood.com/recipes/butternut-squash-sage-risotto",
+        "cuisine_region": "Italian",
         "tags": ["SAUCY", "PANTRY"],
         "ingredients": [
             "1kg butternut squash (peeled, bite-size chunks)",
@@ -885,6 +975,7 @@ FOODHUB_SEED = [
         "time_cook_min": 45,
         "time_total_min": 70,
         "link": "https://www.bbcgoodfood.com/recipes/leek-ricotta-gruyere-tart",
+        "cuisine_region": "French",
         "tags": ["VEGETARIAN", "PANTRY"],
         "ingredients": [
             "500g pack all-butter shortcrust pastry",
@@ -914,6 +1005,7 @@ FOODHUB_SEED = [
         "time_cook_min": 25,
         "time_total_min": 35,
         "link": "https://www.bbcgoodfood.com/recipes/creamy-mustard-tarragon-chicken",
+        "cuisine_region": "French",
         "tags": ["PROTEIN", "SAUCY"],
         "ingredients": [
             "1 tbsp sunflower oil",
@@ -939,6 +1031,7 @@ FOODHUB_SEED = [
         "time_cook_min": 80,
         "time_total_min": 110,
         "link": "https://www.bbcgoodfood.com/recipes/roasted-cauliflower-cheese-filo-pie",
+        "cuisine_region": "Mediterranean",
         "tags": ["VEGETARIAN", "SAUCY"],
         "ingredients": [
             "1 head of cauliflower (leaves + stalk chopped small, then cut into florets)",
@@ -971,6 +1064,7 @@ FOODHUB_SEED = [
         "time_cook_min": 70,
         "time_total_min": 115,
         "link": "https://www.bbcgoodfood.com/recipes/luxe-fish-pie",
+        "cuisine_region": "British",
         "tags": ["SEAFOOD", "SAUCY"],
         "ingredients": [
             "500g thick white fish fillets (e.g. cod/haddock), unskinned",
@@ -1006,6 +1100,7 @@ FOODHUB_SEED = [
         "time_cook_min": 35,
         "time_total_min": 50,
         "link": "https://www.bbcgoodfood.com/recipes/easy-mini-beef-wellingtons",
+        "cuisine_region": "British",
         "tags": ["PROTEIN"],
         "ingredients": [
             "2 x 175g beef fillet steaks",
@@ -1031,6 +1126,7 @@ FOODHUB_SEED = [
         "time_cook_min": 30,
         "time_total_min": 40,
         "link": "https://www.theguardian.com/food/2025/nov/17/quick-easy-roast-hake-recipe-caper-anchovy-butter-georgina-hayden",
+        "cuisine_region": "Mediterranean",
         "tags": ["SEAFOOD", "BRIGHT"],
         "ingredients": [
             "2 garlic cloves",
@@ -1060,6 +1156,7 @@ FOODHUB_SEED = [
         "time_cook_min": 260,
         "time_total_min": 290,
         "link": "https://www.bbcgoodfood.com/recipes/spiced-lamb-pie",
+        "cuisine_region": "British",
         "tags": ["PROTEIN", "SWEET SALTY"],
         "ingredients": [
             "3 tbsp vegetable oil",
@@ -1098,6 +1195,7 @@ FOODHUB_SEED = [
         "time_cook_min": 240,
         "time_total_min": 270,
         "link": "https://www.bbcgoodfood.com/recipes/slow-cooker-coq-au-vin",
+        "cuisine_region": "French",
         "tags": ["PROTEIN", "SAUCY"],
         "ingredients": [
             "8 skin-on, bone-in chicken thighs",
@@ -1133,6 +1231,7 @@ FOODHUB_SEED = [
         "time_cook_min": 5,
         "time_total_min": 6,
         "link": "https://www.bbcgoodfood.com/recipes/pan-fried-salmon",
+        "cuisine_region": "British",
         "tags": ["SEAFOOD", "BRIGHT"],
         "ingredients": [
             "2 x 150g smoked salmon fillets (about 4cm thick), skin on",
@@ -1155,6 +1254,7 @@ FOODHUB_SEED = [
         "time_cook_min": 240,
         "time_total_min": 480,
         "link": "https://www.theguardian.com/food/2024/dec/28/slow-cooked-shredded-lamb-shoulder-recipe-honey-and-co",
+        "cuisine_region": "Mediterranean",
         "tags": ["PROTEIN", "SWEET SALTY"],
         "ingredients": [
             "1 whole lamb shoulder on the bone (~3kg)",
@@ -1198,6 +1298,7 @@ FOODHUB_SEED = [
         "time_cook_min": 10,
         "time_total_min": 25,
         "link": "https://www.bbcgoodfood.com/recipes/fish-fingers-mushy-peas",
+        "cuisine_region": "British",
         "tags": ["SEAFOOD", "GREENS"],
         "ingredients": [
             "600g firm skinless white fish (pollock/hake)",
@@ -1227,6 +1328,7 @@ FOODHUB_SEED = [
         "time_cook_min": 15,
         "time_total_min": 30,
         "link": "https://www.bbcgoodfood.com/recipes/crispy-chicken-strips",
+        "cuisine_region": "American",
         "tags": ["PROTEIN", "PANTRY"],
         "ingredients": [
             "150ml buttermilk (or skimmed milk + 2 tsp lemon juice, stand 5 mins)",
@@ -1258,6 +1360,7 @@ FOODHUB_SEED = [
         "time_cook_min": 10,
         "time_total_min": 20,
         "link": "https://groceries.morrisons.com/recipes/veggie-burger-and-slaw/94609",
+        "cuisine_region": "American",
         "tags": ["VEGETARIAN"],
         "ingredients": [
             "190g cabbage (shredded)",
@@ -1286,6 +1389,7 @@ FOODHUB_SEED = [
         "time_cook_min": 40,
         "time_total_min": 50,
         "link": "https://www.bhf.org.uk/informationsupport/support/healthy-living/healthy-eating/recipe-finder/salmon-traybake",
+        "cuisine_region": "British",
         "tags": ["SEAFOOD", "GREENS", "BRIGHT"],
         "ingredients": [
             "new potatoes",
@@ -1315,6 +1419,7 @@ FOODHUB_SEED = [
         "time_cook_min": 60,
         "time_total_min": 80,
         "link": "https://www.bbcgoodfood.com/recipes/cowboy-pie",
+        "cuisine_region": "American",
         "tags": ["PROTEIN", "PANTRY"],
         "ingredients": [
             "2 tsp sunflower oil",
@@ -1341,6 +1446,7 @@ FOODHUB_SEED = [
         "time_cook_min": 20,
         "time_total_min": 25,
         "link": "https://www.itsu.com/grocery/recipes/teriyaki-gyoza-stir-fry/",
+        "cuisine_region": "Japanese",
         "tags": ["PROTEIN", "GREENS", "SAUCY"],
         "ingredients": [
             "6 itsu teriyaki chick'n vegan gyoza",
@@ -1370,6 +1476,7 @@ FOODHUB_SEED = [
         "time_cook_min": 15,
         "time_total_min": 25,
         "link": "https://www.walderwellness.com/easy-halloumi-salad-with-couscous/",
+        "cuisine_region": "Mediterranean",
         "tags": ["VEGETARIAN", "GREENS"],
         "ingredients": [
             "1/3 cup pearl/Israeli couscous (dry) (or 1 cup cooked)",
@@ -1405,6 +1512,7 @@ FOODHUB_SEED = [
         "time_cook_min": 15,
         "time_total_min": 30,
         "link": "https://www.vegkit.com/recipes/vegan-main-meals/freshly-picked-vegan-cheese-cheats-pizza-rocket-salad/",
+        "cuisine_region": "Italian",
         "tags": ["VEGETARIAN", "GREENS"],
         "ingredients": [
             "1 pack flatbreads",
@@ -1439,6 +1547,7 @@ def _rows_to_insert(rows: Iterable[dict]) -> list[tuple]:
     now = datetime.utcnow().isoformat()
     items: list[tuple] = []
     for row in rows:
+        row = _with_meta(row)
         items.append(
             (
                 row["category_id"],
@@ -1450,6 +1559,11 @@ def _rows_to_insert(rows: Iterable[dict]) -> list[tuple]:
                 row.get("time_total_min"),
                 row.get("link"),
                 row.get("image_url"),
+                row.get("cuisine_region"),
+                row.get("time_band"),
+                row.get("activity_level"),
+                row.get("health_vibe"),
+                row.get("weight_class"),
                 json.dumps(row.get("tags") or []),
                 json.dumps(row.get("ingredients") or []),
                 json.dumps(row.get("steps") or []),
@@ -1472,6 +1586,7 @@ def seed_foodhub(conn: sqlite3.Connection) -> None:
             """
         )
         for row in FOODHUB_SEED:
+            row = _with_meta(row)
             found = conn.execute(
                 "SELECT id FROM foodhub WHERE name = ? AND category_id = ?;",
                 (row["name"], row["category_id"]),
@@ -1484,6 +1599,11 @@ def seed_foodhub(conn: sqlite3.Connection) -> None:
                 row.get("time_total_min"),
                 row.get("link"),
                 row.get("image_url"),
+                row.get("cuisine_region"),
+                row.get("time_band"),
+                row.get("activity_level"),
+                row.get("health_vibe"),
+                row.get("weight_class"),
                 json.dumps(row.get("tags") or []),
                 json.dumps(row.get("ingredients") or []),
                 json.dumps(row.get("steps") or []),
@@ -1502,6 +1622,11 @@ def seed_foodhub(conn: sqlite3.Connection) -> None:
                       time_total_min = ?,
                       link = ?,
                       image_url = ?,
+                      cuisine_region = ?,
+                      time_band = ?,
+                      activity_level = ?,
+                      health_vibe = ?,
+                      weight_class = ?,
                       tags = ?,
                       ingredients = ?,
                       steps = ?
@@ -1511,6 +1636,7 @@ def seed_foodhub(conn: sqlite3.Connection) -> None:
                 )
             else:
                 now = datetime.utcnow().isoformat()
+                row = _with_meta(row)
                 conn.execute(
                     """
                     INSERT INTO foodhub (
@@ -1523,12 +1649,17 @@ def seed_foodhub(conn: sqlite3.Connection) -> None:
                       time_total_min,
                       link,
                       image_url,
+                      cuisine_region,
+                      time_band,
+                      activity_level,
+                      health_vibe,
+                      weight_class,
                       tags,
                       ingredients,
                       steps,
                       created_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                     """,
                     (
                         row["category_id"],
@@ -1540,6 +1671,11 @@ def seed_foodhub(conn: sqlite3.Connection) -> None:
                         row.get("time_total_min"),
                         row.get("link"),
                         row.get("image_url"),
+                        row.get("cuisine_region"),
+                        row.get("time_band"),
+                        row.get("activity_level"),
+                        row.get("health_vibe"),
+                        row.get("weight_class"),
                         json.dumps(row.get("tags") or []),
                         json.dumps(row.get("ingredients") or []),
                         json.dumps(row.get("steps") or []),
@@ -1560,12 +1696,17 @@ def seed_foodhub(conn: sqlite3.Connection) -> None:
           time_total_min,
           link,
           image_url,
+          cuisine_region,
+          time_band,
+          activity_level,
+          health_vibe,
+          weight_class,
           tags,
           ingredients,
           steps,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """,
         rows,
     )
