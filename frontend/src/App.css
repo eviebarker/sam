@@ -1187,9 +1187,9 @@ h2{
   z-index: 3;
   background: linear-gradient(
     to top,
-    rgba(5,8,18,0.95) 0%,
-    rgba(5,8,18,0.78) 48%,
-    rgba(5,8,18,0.12) 100%
+    rgba(5,8,18,0.98) 0%,
+    rgba(5,8,18,0.9) 45%,
+    rgba(5,8,18,0.32) 100%
   );
 }
 
