@@ -60,6 +60,9 @@ import chickenBaconPieImg from "./assets/foodhub/Chicken-and-bacon-pie-f26cc35.w
 import roastChickenVegImg from "./assets/foodhub/roast-chicken-tray-bake-440-400-6bb8cf6.webp";
 import cauliflowerChickenCurryImg from "./assets/foodhub/Roasted-cauliflower-and-chicken-curry-6e24c52.webp";
 import butternutRisottoImg from "./assets/foodhub/butternut squash and sage risotto.jpg";
+import leekTartImg from "./assets/foodhub/leek tart.webp";
+import mustardTarragonChickenImg from "./assets/foodhub/mustard taragon chick.webp";
+import cauliflowerCheeseFiloImg from "./assets/foodhub/Roasted-cauliflower-cheese-filo-pie-b28df09.webp";
 import luxeFishPieImg from "./assets/foodhub/luxe-fish-pie-f016e12.webp";
 import miniWellingtonImg from "./assets/foodhub/AirFryerMiniBeefWellington-c256b41.webp";
 import roastHakeButterImg from "./assets/foodhub/roast hake with caper anchovy butter.avif";
@@ -153,7 +156,7 @@ const FOOD_HUB_DISHES = [
   { id: 6, name: "Roast Dinner", image: roastImg },
   { id: 7, name: "Burgers", image: burgersImg },
   { id: 8, name: "Fajitas", image: fajitasImg },
-  { id: 9, name: "Chilli con carne", image: chilliJacketImg },
+  { id: 9, name: "Chilli jacket", image: chilliJacketImg },
   { id: 10, name: "Chicken casserole", image: chickenCasseroleImg },
   { id: 11, name: "Lasagna", image: lasagnaImg },
   { id: 12, name: "Sausage mash & beans", image: sausageMashImg },
@@ -428,45 +431,59 @@ const ONE_PAN_STEPS = [
 const PROJECT_MENU = [
   {
     id: 1,
-    title: "Classic lasagne",
-    time: "1 hr 40 min",
-    note: "Layered, rich, and worth the effort.",
-    tags: ["PROTEIN", "SAUCY"],
-  },
-  {
-    id: 2,
     title: "Cottage pie",
     time: "1 hr 50 min",
     note: "Big batch comfort.",
     tags: ["PROTEIN", "PANTRY"],
   },
   {
-    id: 3,
+    id: 2,
     title: "Chicken & bacon pie",
     time: "1 hr",
     note: "Flaky puff pastry, creamy filling.",
     tags: ["PROTEIN"],
   },
   {
-    id: 4,
+    id: 3,
     title: "All-in-one roast chicken & veg",
     time: "1 hr",
     note: "Tray roast, minimal fuss.",
     tags: ["PROTEIN", "GREENS"],
   },
   {
-    id: 5,
+    id: 4,
     title: "Roasted cauliflower & chicken curry",
     time: "1 hr",
     note: "Roasted veg, rich curry sauce.",
     tags: ["PROTEIN", "SAUCY"],
   },
   {
-    id: 6,
+    id: 5,
     title: "Butternut squash & sage risotto",
     time: "50 min",
     note: "Creamy rice, sweet squash, crisp sage.",
     tags: ["SAUCY", "PANTRY"],
+  },
+  {
+    id: 6,
+    title: "Leek, ricotta & gruyere tart",
+    time: "1 hr 10 min",
+    note: "Buttery tart, sweet leeks, proper dinner-party energy.",
+    tags: ["VEGETARIAN", "PANTRY"],
+  },
+  {
+    id: 7,
+    title: "Creamy mustard & tarragon chicken",
+    time: "35 min",
+    note: "Quick, creamy, and herby.",
+    tags: ["PROTEIN", "SAUCY"],
+  },
+  {
+    id: 8,
+    title: "Roasted cauliflower cheese filo pie",
+    time: "1 hr 50 min",
+    note: "Golden filo, rich cheese sauce.",
+    tags: ["VEGETARIAN", "SAUCY"],
   },
 ];
 
@@ -781,6 +798,11 @@ export default function App() {
     [normalizeRecipeKey("Roasted cauliflower & chicken curry")]:
       cauliflowerChickenCurryImg,
     [normalizeRecipeKey("Butternut squash & sage risotto")]: butternutRisottoImg,
+    [normalizeRecipeKey("Leek, ricotta & gruyere tart")]: leekTartImg,
+    [normalizeRecipeKey("Creamy mustard & tarragon chicken")]:
+      mustardTarragonChickenImg,
+    [normalizeRecipeKey("Roasted cauliflower cheese filo pie")]:
+      cauliflowerCheeseFiloImg,
     [normalizeRecipeKey("Luxe fish pie")]: luxeFishPieImg,
     [normalizeRecipeKey("Easy mini beef wellingtons")]: miniWellingtonImg,
     [normalizeRecipeKey("Roast hake with caper-anchovy butter")]:
