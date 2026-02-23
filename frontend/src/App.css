@@ -916,11 +916,55 @@ h2{
   -webkit-backdrop-filter: blur(18px);
 }
 
+.decideCard--arena{
+  gap: 8px;
+  padding: 12px 16px 14px;
+}
+
+.decideCard--winner{
+  grid-template-rows: 1fr;
+  gap: 0;
+}
+
 .decideTop{
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+.decideTop--navOnly{
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+}
+
+.decideTop--navOnly .decideActions{
+  position: absolute;
+  right: 0;
+}
+
+.decideRoundTop{
+  font-size: clamp(20px, 1.9vw, 28px);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.92);
+  text-align: center;
+}
+
+.decideTopLabel{
+  font-size: clamp(20px, 1.9vw, 28px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.92);
+  text-align: center;
+}
+
+.decideRoundTopCount{
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(255,255,255,0.74);
 }
 
 .decideTitle{
@@ -1008,13 +1052,15 @@ h2{
 }
 
 .decideFooter--battle{
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .decideBattle{
   display: grid;
-  gap: 16px;
-  align-content: start;
+  gap: 14px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  height: 100%;
 }
 
 .decideRound{
@@ -1027,24 +1073,92 @@ h2{
 .decidePair{
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 0;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  height: 100%;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: radial-gradient(120% 140% at 50% 10%, rgba(45,78,128,0.22), rgba(5,8,18,0.92));
+}
+
+.decidePair--arena::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(170,220,255,0.16), transparent 34%, rgba(170,220,255,0.12));
+  opacity: 0.55;
+  pointer-events: none;
+  mix-blend-mode: plus-lighter;
+  z-index: 2;
+}
+
+.decidePair--arena .decideOption{
+  opacity: 0;
+  min-height: 0;
+  height: 100%;
+  animation: arenaLeftIn 540ms cubic-bezier(0.12, 0.9, 0.22, 1) forwards;
+  position: relative;
+  z-index: 1;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.decidePair--arena .decideOption:nth-of-type(2){
+  animation-name: arenaRightIn;
+}
+
+.decidePair--arena .decideOption:first-of-type{
+  margin-right: -5.4%;
+  z-index: 2;
+  clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
+}
+
+.decidePair--arena .decideOption:last-of-type{
+  margin-left: -5.4%;
+  z-index: 2;
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.decidePair--arena .decideOption:first-of-type .decideOptionImage{
+  clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
+}
+
+.decidePair--arena .decideOption:last-of-type .decideOptionImage{
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.decidePair--arena .decideOption:last-of-type .decideOptionBody{
+  text-align: right;
+  justify-items: end;
+  padding-right: 22px;
+  padding-left: 34px;
+}
+
+.decidePair--arena .decideOption:last-of-type .decideOptionTags{
+  justify-content: flex-end;
 }
 
 .decideOption{
-  display: grid;
-  gap: 14px;
-  padding: 16px;
-  border-radius: 22px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(9, 13, 22, 0.55);
+  position: relative;
+  display: block;
+  padding: 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
 }
 
 .decideOptionImage{
+  position: absolute;
+  inset: 0;
   width: 100%;
-  border-radius: 18px;
+  height: 100%;
+  border-radius: 0;
   overflow: hidden;
-  aspect-ratio: 16 / 9;
-  background: rgba(0,0,0,0.25);
+  background: rgba(0,0,0,0.4);
+  backface-visibility: hidden;
 }
 
 .decideOptionImage img{
@@ -1065,22 +1179,36 @@ h2{
 }
 
 .decideOptionBody{
+  position: absolute;
+  inset: auto 0 0 0;
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  padding: 18px 18px 16px;
+  z-index: 3;
+  background: linear-gradient(
+    to top,
+    rgba(5,8,18,0.95) 0%,
+    rgba(5,8,18,0.78) 48%,
+    rgba(5,8,18,0.12) 100%
+  );
 }
 
 .decideOptionTitle{
-  font-size: clamp(18px, 2vw, 22px);
+  font-size: clamp(24px, 2.2vw, 34px);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  max-width: 22ch;
 }
 
 .decideOptionTagline{
-  color: var(--muted);
+  color: rgba(255,255,255,0.86);
+  font-size: clamp(15px, 1.1vw, 18px);
 }
 
 .decideOptionTime{
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  font-size: 12px;
+  letter-spacing: 0.18em;
+  font-size: 13px;
   color: rgba(255,255,255,0.7);
 }
 
@@ -1093,17 +1221,32 @@ h2{
 .decideTag{
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.75);
+  background: rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.92);
+}
+
+.decideChooseButton{
+  justify-self: start;
+  padding: 12px 18px;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.decidePair--arena .decideOption:last-of-type .decideChooseButton{
+  justify-self: end;
 }
 
 .decideWinner{
   display: grid;
   gap: 16px;
   align-content: start;
+  justify-items: center;
+  height: 100%;
+  place-content: center;
 }
 
 .decideWinnerLabel{
@@ -1115,13 +1258,51 @@ h2{
 
 .decideWinnerCard{
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
-  gap: 16px;
-  padding: 16px;
+  grid-template-columns: minmax(240px, 25vw) minmax(0, 1fr);
+  gap: 20px;
+  padding: 18px;
   border-radius: 22px;
   border: 1px solid rgba(255,255,255,0.08);
   background: rgba(9, 13, 22, 0.55);
-  align-items: start;
+  align-items: center;
+  width: min(980px, 88vw);
+  max-width: 980px;
+}
+
+.decideWinnerImage{
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.25);
+}
+
+.decideWinnerImage img{
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.decideWinnerBody{
+  display: grid;
+  gap: 12px;
+}
+
+.decideWinnerTitle{
+  font-size: clamp(26px, 2.2vw, 36px);
+  line-height: 1.08;
+}
+
+.decideWinnerTagline{
+  color: rgba(255,255,255,0.84);
+  font-size: clamp(16px, 1.1vw, 18px);
+}
+
+.decideWinnerActions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .decideLoading,
@@ -1138,11 +1319,52 @@ h2{
   }
   .decideWinnerCard{
     grid-template-columns: 1fr;
+    width: 100%;
   }
   .decidePair{
     grid-template-columns: 1fr;
+    min-height: 72vh;
+  }
+  .decidePair--arena .decideOption:first-of-type,
+  .decidePair--arena .decideOption:last-of-type{
+    margin: 0;
+    clip-path: none;
+  }
+  .decidePair--arena .decideOption{
+    min-height: 36vh;
   }
 }
+
+@keyframes arenaLeftIn{
+  0%{
+    opacity: 0;
+    transform: translateX(-120%) scale(1.04);
+  }
+  68%{
+    opacity: 1;
+    transform: translateX(8%) scale(1.01);
+  }
+  100%{
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes arenaRightIn{
+  0%{
+    opacity: 0;
+    transform: translateX(120%) scale(1.04);
+  }
+  68%{
+    opacity: 1;
+    transform: translateX(-8%) scale(1.01);
+  }
+  100%{
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
 
 .recipeOverlay{
   position: fixed;

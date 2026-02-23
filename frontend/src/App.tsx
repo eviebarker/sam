@@ -1057,14 +1057,6 @@ export default function App() {
     }, 420);
   }
 
-  function formatRecipeTime(recipe: FoodHubRecipe) {
-    if (recipe.time_total_min) return `${recipe.time_total_min} mins`;
-    const prep = recipe.time_prep_min ?? 0;
-    const cook = recipe.time_cook_min ?? 0;
-    const total = prep + cook;
-    return total > 0 ? `${total} mins` : null;
-  }
-
   function scoreHelpDecideRecipe(recipe: FoodHubRecipe, prefs: HelpDecidePrefs) {
     let score = 1;
     if (prefs.time_band && recipe.time_band === prefs.time_band) score += 2;
@@ -2958,24 +2950,49 @@ export default function App() {
         {helpDecideOpen ? (
           <div className="decideOverlay decideOverlay--open">
             <div className="decideOverlayBackdrop" onClick={closeHelpDecide} />
-            <div className="decideCard glass-tile" role="dialog" aria-modal="true">
-              <div className="decideTop">
-                <div>
-                  <div className="decideTitle">Help me decide</div>
-                  <div className="decideSubtitle">
-                    Head-to-head picks with soft matching.
+            <div
+              className={`decideCard glass-tile${
+                helpDecidePhase === "bracket"
+                  ? " decideCard--arena"
+                  : helpDecidePhase === "winner"
+                    ? " decideCard--winner"
+                    : ""
+              }`}
+              role="dialog"
+              aria-modal="true"
+            >
+              {helpDecidePhase !== "winner" ? (
+                <div
+                  className={`decideTop${
+                    helpDecidePhase === "bracket" ? " decideTop--navOnly" : ""
+                  }`}
+                >
+                  {helpDecidePhase === "bracket" ? (
+                    <div className="decideRoundTop">
+                      Round {helpDecideRound} ·{" "}
+                      <span className="decideRoundTopCount">
+                        {helpDecideCurrentRound.length} recipes
+                      </span>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="decideTitle">Help me decide</div>
+                      <div className="decideSubtitle">
+                        Head-to-head picks with soft matching.
+                      </div>
+                    </div>
+                  )}
+                  <div className="decideActions">
+                    <button
+                      type="button"
+                      className="glass-pill glass-pill--small"
+                      onClick={closeHelpDecide}
+                    >
+                      Back to food hub
+                    </button>
                   </div>
                 </div>
-                <div className="decideActions">
-                  <button
-                    type="button"
-                    className="glass-pill glass-pill--small"
-                    onClick={closeHelpDecide}
-                  >
-                    Back to food hub
-                  </button>
-                </div>
-              </div>
+              ) : null}
 
               {helpDecideErr ? (
                 <div className="decideError">{helpDecideErr}</div>
@@ -3037,11 +3054,8 @@ export default function App() {
                 </div>
               ) : helpDecidePhase === "bracket" ? (
                 <div className="decideBattle">
-                  <div className="decideRound">
-                    Round {helpDecideRound} · {helpDecideCurrentRound.length} recipes
-                  </div>
                   {helpDecidePair ? (
-                    <div className="decidePair">
+                    <div className="decidePair decidePair--arena">
                       {helpDecidePair.map((recipe) => {
                         const timeLabel = formatRecipeTime(recipe);
                         return (
@@ -3072,7 +3086,7 @@ export default function App() {
                               </div>
                               <button
                                 type="button"
-                                className="glass-pill"
+                                className="glass-pill decideChooseButton"
                                 onClick={() => advanceHelpDecide(recipe)}
                               >
                                 Choose
@@ -3101,7 +3115,7 @@ export default function App() {
                   <div className="decideWinnerLabel">Winner</div>
                   {helpDecideWinner ? (
                     <div className="decideWinnerCard">
-                      <div className="decideOptionImage">
+                      <div className="decideWinnerImage">
                         {helpDecideWinner.image_local ? (
                           <img
                             src={helpDecideWinner.image_local}
@@ -3111,43 +3125,50 @@ export default function App() {
                           <div className="decideOptionPlaceholder">Image</div>
                         )}
                       </div>
-                      <div className="decideOptionBody">
-                        <div className="decideOptionTitle">
+                      <div className="decideWinnerBody">
+                        <div className="decideWinnerTitle">
                           {helpDecideWinner.name}
                         </div>
                         {helpDecideWinner.tagline ? (
-                          <div className="decideOptionTagline">
+                          <div className="decideWinnerTagline">
                             {helpDecideWinner.tagline}
                           </div>
                         ) : null}
-                        <button
-                          type="button"
-                          className="glass-pill"
-                          onClick={() => openRecipe(helpDecideWinner, "decide")}
-                        >
-                          Open recipe
-                        </button>
+                        <div className="decideWinnerActions">
+                          <button
+                            type="button"
+                            className="glass-pill glass-pill--small"
+                            onClick={() => setHelpDecidePhase("prefs")}
+                          >
+                            Back to filters
+                          </button>
+                          <button
+                            type="button"
+                            className="glass-pill glass-pill--small"
+                            onClick={() => switchPage("dashboard")}
+                          >
+                            Back to dashboard
+                          </button>
+                          <button
+                            type="button"
+                            className="glass-pill glass-pill--small"
+                            onClick={closeHelpDecide}
+                          >
+                            Back to food hub
+                          </button>
+                          <button
+                            type="button"
+                            className="glass-pill"
+                            onClick={() => openRecipe(helpDecideWinner, "decide")}
+                          >
+                            Open recipe
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <div className="decideEmpty">No winner yet.</div>
                   )}
-                  <div className="decideFooter decideFooter--battle">
-                    <button
-                      type="button"
-                      className="glass-pill glass-pill--small"
-                      onClick={() => setHelpDecidePhase("prefs")}
-                    >
-                      Back to filters
-                    </button>
-                    <button
-                      type="button"
-                      className="glass-pill"
-                      onClick={startHelpDecideBracket}
-                    >
-                      Restart bracket
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
