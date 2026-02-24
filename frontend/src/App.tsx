@@ -483,6 +483,291 @@ const FOOD_HUB_SEARCH_ACKS = [
   "Here’s a few that should work.",
 ];
 
+const SEARCH_ACK_OPENERS = [
+  "Here are",
+  "Here’s",
+  "I’ve pulled up",
+  "I found",
+  "I dug up",
+  "I queued up",
+  "I rounded up",
+  "I lined up",
+  "I’ve got",
+  "I’ve gathered",
+  "I’ve picked out",
+];
+
+const SEARCH_ACK_DESCRIPTORS = [
+  "options",
+  "choices",
+  "ideas",
+  "picks",
+  "recipes",
+  "dishes",
+  "meals",
+  "results",
+  "matches",
+  "contenders",
+  "shortlist",
+  "lineup",
+  "hits",
+  "good fits",
+];
+
+const SEARCH_ACK_TAILS = [
+  "for you",
+  "to try",
+  "to choose from",
+  "that fit",
+  "that should work",
+  "that match",
+  "that hit the brief",
+  "that make sense",
+  "that line up",
+  "that should hit the spot",
+];
+
+const SEARCH_ACK_SPEEDY_WORDS = [
+  "speedy",
+  "quick",
+  "fast",
+  "rapid",
+  "zippy",
+  "express",
+  "swift",
+  "snappy",
+  "blink-and-done",
+];
+
+const FOOD_HUB_TIME_ACK_TEMPLATES = [
+  "Here are some {speed} recipes.",
+  "Here are some {speed} picks.",
+  "Here are some {speed} options.",
+  "Here are some {speed} meals.",
+  "Here are some {speed} dishes.",
+  "Fast lane cooking: here’s what I found.",
+  "Speed mode on. Here are your options.",
+  "Here’s a {speed} lineup.",
+  "Here’s a {speed} shortlist.",
+  "Here’s what you can make {speed}.",
+  "Here’s a set of {speed} recipes.",
+  "Here’s a set of {speed} ideas.",
+];
+
+const TAG_ACK_OPENERS = [
+  "Here are",
+  "Here’s",
+  "I’ve pulled up",
+  "I found",
+  "I lined up",
+  "I rounded up",
+  "I queued up",
+  "I’ve got",
+  "I’ve gathered",
+  "I’ve picked out",
+];
+
+const TAG_ACK_NOUNS = [
+  "options",
+  "choices",
+  "ideas",
+  "picks",
+  "recipes",
+  "dishes",
+  "meals",
+  "results",
+  "matches",
+  "contenders",
+  "shortlist",
+  "lineup",
+];
+
+const TAG_ACK_TAILS = [
+  "for you",
+  "to try",
+  "to choose from",
+  "that fit",
+  "that should work",
+  "that match",
+  "that hit the brief",
+  "that make sense",
+  "that line up",
+  "that should hit the spot",
+];
+
+const TAG_ACK_ADJECTIVES: Record<string, string[]> = {
+  vegetarian: [
+    "veg-based",
+    "vegetarian",
+    "meat-free",
+    "plant-forward",
+    "veggie",
+    "green",
+  ],
+  vegan: ["vegan", "plant-based", "dairy-free", "egg-free", "plant-powered"],
+  pescatarian: ["pescatarian", "fish-forward", "seafood-friendly"],
+  "gluten free": ["gluten-free", "wheat-free"],
+  "gluten-free": ["gluten-free", "wheat-free"],
+  "dairy free": ["dairy-free", "no-dairy"],
+  "dairy-free": ["dairy-free", "no-dairy"],
+  "low carb": ["low-carb", "carb-light"],
+  "low-carb": ["low-carb", "carb-light"],
+  "high protein": ["high-protein", "protein-forward"],
+  "high-protein": ["high-protein", "protein-forward"],
+  healthy: ["healthy", "fresh", "wholesome"],
+  light: ["light", "lighter", "easygoing"],
+  balanced: ["balanced", "well-rounded", "steady"],
+  indulgent: ["indulgent", "rich", "treat-yourself"],
+  italian: ["Italian", "trattoria-style", "pasta-forward"],
+  french: ["French", "bistro-style", "Parisian"],
+  mexican: ["Mexican", "taco-shop", "spicy"],
+  indian: ["Indian", "curry-friendly", "spiced"],
+  chinese: ["Chinese", "wok-friendly", "stir-fry"],
+  japanese: ["Japanese", "rice-forward", "umami-rich"],
+  british: ["British", "classic", "pub-style"],
+  mediterranean: ["Mediterranean", "olive-oil", "sunny"],
+  american: ["American", "classic", "comfort"],
+  "middle eastern": ["Middle Eastern", "herby", "spiced"],
+  korean: ["Korean", "gochujang-ready", "bold"],
+  thai: ["Thai", "sweet-sour-spicy", "aromatic"],
+  greek: ["Greek", "lemony", "taverna-style"],
+  spanish: ["Spanish", "tapas-friendly", "bold"],
+  turkish: ["Turkish", "warm-spice", "hearty"],
+  caribbean: ["Caribbean", "island", "bright"],
+  moroccan: ["Moroccan", "tagine-style", "warm-spice"],
+  lebanese: ["Lebanese", "bright", "herby"],
+  vietnamese: ["Vietnamese", "fresh", "punchy"],
+  asian: ["Asian-inspired", "flavor-packed", "pan-Asian"],
+};
+
+const TAG_ACK_JOKES: Record<string, string[]> = {
+  italian: [
+    "Get the pasta water on.",
+    "Nonna would approve.",
+    "Mangia time.",
+  ],
+  french: [
+    "Get your baguettes out.",
+    "Bonjour. Bistro vibes ahead.",
+  ],
+  mexican: ["Taco time.", "Spice it up."],
+  japanese: ["Get the rice on.", "Umami incoming."],
+  british: ["Kettle on.", "Proper comfort incoming."],
+  greek: ["Opa.", "Feta energy."],
+  spanish: ["Paella vibes.", "Tapas energy."],
+  korean: ["Get the gochujang ready."],
+  thai: ["Sweet, sour, spicy."],
+  mediterranean: ["Olive oil energy."],
+  caribbean: ["Island flavors ahead."],
+  moroccan: ["Tagine energy."],
+  indian: ["Curry night?"],
+  asian: ["Big flavor, quick wins."],
+  vegetarian: ["Veggie vibes only."],
+  vegan: ["Plant power mode."],
+};
+
+function buildTagAckPool(tag: string) {
+  const pool: string[] = [];
+  const adjectives = TAG_ACK_ADJECTIVES[tag] ?? [tag];
+  for (const adjective of adjectives) {
+    for (const opener of TAG_ACK_OPENERS) {
+      for (const noun of TAG_ACK_NOUNS) {
+        pool.push(`${opener} ${adjective} ${noun}.`);
+        for (const tail of TAG_ACK_TAILS) {
+          pool.push(`${opener} ${adjective} ${noun} ${tail}.`);
+        }
+      }
+    }
+  }
+  const jokes = TAG_ACK_JOKES[tag] ?? [];
+  for (const joke of jokes) {
+    for (const noun of TAG_ACK_NOUNS) {
+      pool.push(`${joke} Here are your ${noun}.`);
+      pool.push(`${joke} Here’s the ${noun}.`);
+    }
+  }
+  return pool;
+}
+
+const FOOD_HUB_TAG_ACKS = FOOD_HUB_SEARCH_LABEL_TAGS.reduce<Record<string, string[]>>(
+  (acc, tag) => {
+    acc[tag] = buildTagAckPool(tag);
+    return acc;
+  },
+  {}
+);
+
+function getTagAckPool(rawQuery: string, normalizedQuery: string) {
+  const pool: string[] = [];
+  const normalized = normalizeTriggerText(rawQuery || normalizedQuery);
+  for (const tag of FOOD_HUB_SEARCH_LABEL_TAGS) {
+    const normTag = normalizeTriggerText(tag);
+    if (normTag && normalized.includes(normTag)) {
+      const tagPool = FOOD_HUB_TAG_ACKS[tag];
+      if (tagPool?.length) pool.push(...tagPool);
+    }
+  }
+  return pool;
+}
+
+function buildSearchAckPool(
+  rawQuery: string,
+  normalizedQuery: string,
+  time: { min: number; max: number } | null
+) {
+  const pool: string[] = [];
+  pool.push(...FOOD_HUB_SEARCH_ACKS);
+  for (const opener of SEARCH_ACK_OPENERS) {
+    for (const desc of SEARCH_ACK_DESCRIPTORS) {
+      pool.push(`${opener} ${desc}.`);
+      for (const tail of SEARCH_ACK_TAILS) {
+        pool.push(`${opener} ${desc} ${tail}.`);
+      }
+    }
+  }
+  if (time) {
+    for (const word of SEARCH_ACK_SPEEDY_WORDS) {
+      for (const template of FOOD_HUB_TIME_ACK_TEMPLATES) {
+        pool.push(template.replace("{speed}", word));
+      }
+    }
+    if (Number.isFinite(time.max ?? Infinity)) {
+      pool.push(`Under ${Math.round(time.max)} minutes? Say less.`);
+      pool.push(`Keeping it under ${Math.round(time.max)}. Here you go.`);
+      pool.push(`Under ${Math.round(time.max)} minutes, sorted.`);
+      pool.push(`Quick clock: ${Math.round(time.max)} minutes max. Here’s what fits.`);
+    }
+  }
+  pool.push(...getTagAckPool(rawQuery, normalizedQuery));
+  if (pool.length === 0) {
+    pool.push("Here are your options.");
+  }
+  return pool;
+}
+
+function pickSearchAck(
+  rawQuery: string,
+  normalizedQuery: string,
+  time: { min: number; max: number } | null
+) {
+  const tagPool = getTagAckPool(rawQuery, normalizedQuery);
+  if (tagPool.length) {
+    return tagPool[Math.floor(Math.random() * tagPool.length)];
+  }
+  if (time) {
+    const timePool = buildSearchAckPool("", "", time).filter((item) =>
+      /speedy|quick|fast|rapid|zippy|express|swift|snappy|blink-and-done|Under \d+ minutes|Keeping it under|Quick clock/i.test(
+        item
+      )
+    );
+    if (timePool.length) {
+      return timePool[Math.floor(Math.random() * timePool.length)];
+    }
+  }
+  const pool = buildSearchAckPool(rawQuery, normalizedQuery, time);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 const FOOD_HUB_SEARCH_LABEL_TAGS = [
   "vegetarian",
   "vegan",
@@ -556,14 +841,10 @@ function buildFoodHubAliases(base: string[], extras: string[] = []) {
 const FOOD_HUB_CATEGORY_COMMANDS: FoodHubCategoryCommand[] = [
   {
     id: 1,
-    label: "10-15 minute wins",
+    label: "Quick wins",
     aliases: buildFoodHubAliases(
       [
-        "10-15 minute wins",
-        "10 to 15 minute wins",
-        "ten to fifteen minute wins",
-        "15 minute wins",
-        "10 minute wins",
+        "quick wins",
         "quick wins",
         "fast wins",
         "quick dinners",
@@ -581,32 +862,33 @@ const FOOD_HUB_CATEGORY_COMMANDS: FoodHubCategoryCommand[] = [
         "weeknight meals",
         "fast meals",
         "quick meals",
+        "quick weeknights",
+        "fast weeknights",
       ]
     ),
   },
   {
     id: 2,
-    label: "30-minute staples",
+    label: "Reliable mains",
     aliases: buildFoodHubAliases(
       [
-        "30-minute staples",
-        "30 minute staples",
-        "thirty minute staples",
-        "30 min staples",
-        "30 minute meals",
-        "half hour staples",
-        "half-hour staples",
+        "reliable mains",
+        "reliable main dishes",
+        "reliable dinners",
+        "reliable meals",
+        "main dishes",
+        "go to mains",
+        "go-to mains",
       ],
       [
-        "half hour meals",
-        "half-hour meals",
-        "thirty minute meals",
-        "30 minute dinners",
-        "thirty minute dinners",
         "reliable staples",
         "regular staples",
         "weekday staples",
         "midweek staples",
+        "weekday mains",
+        "midweek mains",
+        "family mains",
+        "everyday mains",
       ]
     ),
   },
@@ -762,8 +1044,8 @@ function matchFoodHubCategoryCommand(prompt: string) {
 }
 
 const FOOD_HUB_EXTRAS = [
-  { id: 1, name: "10–15 Minute\nWins" },
-  { id: 2, name: "30-Minute Staples" },
+  { id: 1, name: "Quick\nWins" },
+  { id: 2, name: "Reliable\nMains" },
   { id: 3, name: "Zero-Brain Dinners" },
   { id: 4, name: "One-Pan, No\nPlan" },
   { id: 5, name: "Project\nMeals" },
@@ -1285,7 +1567,7 @@ const WINS_BUILD_STEPS = [
 const FOOD_HUB_CATEGORY_META = [
   {
     id: 1,
-    eyebrow: "10-15 minute wins",
+    eyebrow: "Quick wins",
     title: "Fast, hot, done.",
     subtitle:
       "Pick one, add a side, and get back to life. Built for weeknights, low effort, high reward.",
@@ -1294,7 +1576,7 @@ const FOOD_HUB_CATEGORY_META = [
   },
   {
     id: 2,
-    eyebrow: "30-minute staples",
+    eyebrow: "Reliable mains",
     title: "Reliable, repeatable, calm.",
     subtitle:
       "Comforting mains that stay consistent. The kind you can cook half-asleep.",
@@ -1470,7 +1752,173 @@ const SEARCH_STOP_WORDS = new Set([
   "options",
   "ideas",
   "in the mood",
+  "minute",
+  "minutes",
+  "mins",
+  "min",
+  "under",
+  "below",
+  "within",
+  "over",
+  "more",
+  "less",
+  "than",
+  "at",
+  "most",
+  "least",
+  "around",
+  "about",
+  "roughly",
+  "approx",
+  "approximately",
+  "takes",
+  "taking",
+  "into",
+  "up",
 ]);
+
+const TIME_SEARCH_NUMBERS = [
+  5, 10, 12, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100,
+  110, 120,
+];
+
+const TIME_SEARCH_TEMPLATES = [
+  "what can i make in {n} minutes",
+  "what can we make in {n} minutes",
+  "what can i cook in {n} minutes",
+  "what can we cook in {n} minutes",
+  "what can i make in under {n} minutes",
+  "what can we make in under {n} minutes",
+  "what can i cook in under {n} minutes",
+  "what can we cook in under {n} minutes",
+  "what can i make in less than {n} minutes",
+  "what can we make in less than {n} minutes",
+  "what can i cook in less than {n} minutes",
+  "what can we cook in less than {n} minutes",
+  "what can i make within {n} minutes",
+  "what can we make within {n} minutes",
+  "what can i cook within {n} minutes",
+  "what can we cook within {n} minutes",
+  "show me recipes under {n} minutes",
+  "show me meals under {n} minutes",
+  "show me dishes under {n} minutes",
+  "show me recipes in {n} minutes",
+  "show me meals in {n} minutes",
+  "show me dishes in {n} minutes",
+  "find recipes under {n} minutes",
+  "find meals under {n} minutes",
+  "find dishes under {n} minutes",
+  "find recipes in {n} minutes",
+  "find meals in {n} minutes",
+  "find dishes in {n} minutes",
+  "list recipes under {n} minutes",
+  "list meals under {n} minutes",
+  "list dishes under {n} minutes",
+  "give me recipes under {n} minutes",
+  "give me meals under {n} minutes",
+  "give me dishes under {n} minutes",
+  "anything under {n} minutes",
+  "something under {n} minutes",
+  "anything in {n} minutes",
+  "something in {n} minutes",
+  "meals under {n} minutes",
+  "dishes under {n} minutes",
+  "recipes under {n} minutes",
+  "meals in {n} minutes",
+  "dishes in {n} minutes",
+  "recipes in {n} minutes",
+  "what can i make in {n} mins",
+  "what can we make in {n} mins",
+  "what can i cook in {n} mins",
+  "what can we cook in {n} mins",
+  "what can i make in under {n} mins",
+  "what can we make in under {n} mins",
+  "what can i cook in under {n} mins",
+  "what can we cook in under {n} mins",
+  "what can i make in less than {n} mins",
+  "what can we make in less than {n} mins",
+  "what can i cook in less than {n} mins",
+  "what can we cook in less than {n} mins",
+  "what can i make within {n} mins",
+  "what can we make within {n} mins",
+  "what can i cook within {n} mins",
+  "what can we cook within {n} mins",
+  "show me recipes under {n} mins",
+  "show me meals under {n} mins",
+  "show me dishes under {n} mins",
+  "show me recipes in {n} mins",
+  "show me meals in {n} mins",
+  "show me dishes in {n} mins",
+  "find recipes under {n} mins",
+  "find meals under {n} mins",
+  "find dishes under {n} mins",
+  "find recipes in {n} mins",
+  "find meals in {n} mins",
+  "find dishes in {n} mins",
+  "list recipes under {n} mins",
+  "list meals under {n} mins",
+  "list dishes under {n} mins",
+  "give me recipes under {n} mins",
+  "give me meals under {n} mins",
+  "give me dishes under {n} mins",
+  "anything under {n} mins",
+  "something under {n} mins",
+  "anything in {n} mins",
+  "something in {n} mins",
+  "meals under {n} mins",
+  "dishes under {n} mins",
+  "recipes under {n} mins",
+  "meals in {n} mins",
+  "dishes in {n} mins",
+  "recipes in {n} mins",
+];
+
+function buildTimeSearchPhrases() {
+  const out: string[] = [];
+  for (const n of TIME_SEARCH_NUMBERS) {
+    for (const template of TIME_SEARCH_TEMPLATES) {
+      out.push(template.replace("{n}", String(n)));
+    }
+  }
+  const named = [
+    ["half an hour", "30"],
+    ["half hour", "30"],
+    ["half-hour", "30"],
+    ["a half hour", "30"],
+    ["around half an hour", "30"],
+    ["about half an hour", "30"],
+    ["within half an hour", "30"],
+    ["under half an hour", "30"],
+    ["less than half an hour", "30"],
+    ["under half hour", "30"],
+    ["less than half hour", "30"],
+    ["in half an hour", "30"],
+    ["in half hour", "30"],
+    ["in a half hour", "30"],
+    ["twenty minutes", "20"],
+    ["fifteen minutes", "15"],
+    ["ten minutes", "10"],
+    ["five minutes", "5"],
+  ] as const;
+  for (const [phrase, num] of named) {
+    for (const template of TIME_SEARCH_TEMPLATES) {
+      out.push(template.replace("{n}", num).replace(/\b\d+\b minutes\b/g, phrase));
+    }
+    out.push(`recipes in ${phrase}`);
+    out.push(`recipes under ${phrase}`);
+    out.push(`meals in ${phrase}`);
+    out.push(`meals under ${phrase}`);
+    out.push(`dishes in ${phrase}`);
+    out.push(`dishes under ${phrase}`);
+    out.push(`anything in ${phrase}`);
+    out.push(`anything under ${phrase}`);
+    out.push(`something in ${phrase}`);
+    out.push(`something under ${phrase}`);
+  }
+  return out;
+}
+
+const FOOD_HUB_SEARCH_TIME_PHRASES = buildTimeSearchPhrases();
 
 const FOOD_HUB_SEARCH_PHRASES = [
   "show me",
@@ -1521,6 +1969,19 @@ const FOOD_HUB_SEARCH_PHRASES = [
   "what can i cook with",
   "what can we cook with",
   "what recipes use",
+  "what can i make in",
+  "what can we make in",
+  "what can i cook in",
+  "what can we cook in",
+  "what can i make under",
+  "what can we make under",
+  "what can i cook under",
+  "what can we cook under",
+  "what can i make in under",
+  "what can we make in under",
+  "what can i cook in under",
+  "what can we cook in under",
+  ...FOOD_HUB_SEARCH_TIME_PHRASES,
 ];
 
 const FOOD_HUB_SEARCH_TAG_WORDS = [
@@ -1632,6 +2093,14 @@ function normalizeSearchQuery(text: string) {
 function isFoodHubSearchIntent(prompt: string) {
   const normalized = normalizeTriggerText(prompt);
   if (!normalized) return false;
+  const timeConstraint = parseSearchTimeConstraint(prompt);
+  if (timeConstraint) {
+    const categorySignal =
+      /\b(staples|wins|mains|zero brain|zero-brain|one pan|one-pan|project meals|show off|freezer)\b/i.test(
+        normalized
+      );
+    if (!categorySignal) return true;
+  }
   if (
     /\b(show me|show us|find|search|look for|look up|list|give me|bring up|pull up)\b.*\b(recipes|meals|dishes)\b/i.test(
       prompt
@@ -1674,6 +2143,19 @@ function extractSearchQuery(prompt: string) {
     .replace(/\b(recipes?|meals?|dishes?)\b/gi, " ")
     .replace(/\b(something|anything)\b/gi, " ")
     .replace(/\b(with|using|made with|containing|like)\b/gi, " ")
+    .replace(
+      /\b(in\s+)?(under|less than|below|within|at most|max|no more than)\s+\d{1,3}\s*(mins?|minutes?)\b/gi,
+      " "
+    )
+    .replace(
+      /\b(in\s+)?\d{1,3}\s*(mins?|minutes?)\s+or\s+less\b/gi,
+      " "
+    )
+    .replace(/\b(in\s+)?\d{1,3}\s*(mins?|minutes?)\b/gi, " ")
+    .replace(
+      /\b(takes|taking|take)\s+\d{1,3}\s*(mins?|minutes?)\b/gi,
+      " "
+    )
     .replace(/\s+/g, " ")
     .trim();
   return query;
@@ -1705,6 +2187,13 @@ function parseSearchTimeConstraint(prompt: string) {
   if (overMatch) {
     const min = Number(overMatch[2]);
     if (Number.isFinite(min)) return { min, max: Infinity };
+  }
+  const inMatch = normalized.match(
+    /\b(in|within|around|about|roughly|approx|approximately)\s+(\d{1,3})\s*(?:mins?|minutes?)\b/
+  );
+  if (inMatch) {
+    const max = Number(inMatch[2]);
+    if (Number.isFinite(max)) return { min: 0, max };
   }
   const withinMatch = normalized.match(
     /\b(\d{1,3})\s*(?:mins?|minutes?)\s+or\s+less\b/
@@ -2757,10 +3246,11 @@ export default function App() {
                 formatSearchLabel(rawQuery, normalizedQuery, timeConstraint)
               );
               setFoodHubSearchOpen(true);
-              const ack =
-                FOOD_HUB_SEARCH_ACKS[
-                  Math.floor(Math.random() * FOOD_HUB_SEARCH_ACKS.length)
-                ];
+              const ack = pickSearchAck(
+                rawQuery,
+                normalizedQuery,
+                timeConstraint
+              );
               setAiOutput(ack);
               await playTts(ack);
               return;
