@@ -306,6 +306,286 @@ function isFoodHubTrigger(prompt: string) {
   });
 }
 
+type FoodHubCategoryCommand = {
+  id: number;
+  label: string;
+  aliases: string[];
+  action?: "help-decide";
+};
+
+const FOOD_HUB_NAV_TEMPLATES = [
+  "take me to {label}",
+  "go to {label}",
+  "open {label}",
+  "show me {label}",
+  "switch to {label}",
+  "navigate to {label}",
+  "bring me to {label}",
+  "jump to {label}",
+  "load {label}",
+  "start {label}",
+  "launch {label}",
+  "pull up {label}",
+  "enter {label}",
+  "head to {label}",
+  "let's go to {label}",
+  "let's open {label}",
+  "let's head to {label}",
+  "let's do {label}",
+  "let's make {label}",
+  "let's cook {label}",
+  "show {label}",
+  "show {label} recipes",
+  "open the {label} category",
+  "go to the {label} section",
+  "show the {label} menu",
+];
+
+const FOOD_HUB_DECIDE_TEMPLATES = [
+  "help me decide",
+  "decide for me",
+  "pick for me",
+  "choose for me",
+  "you decide",
+  "i can't decide",
+  "make the choice",
+  "pick a recipe",
+  "choose a recipe",
+  "pick dinner",
+  "choose dinner",
+  "decide dinner",
+  "decide dinner for me",
+  "decide what to cook",
+  "decide what we eat",
+  "what should we cook",
+  "surprise me",
+  "make the call",
+  "choose something for me",
+  "pick something for me",
+];
+
+function buildFoodHubAliases(base: string[], extras: string[] = []) {
+  const out = new Set<string>();
+  for (const phrase of [...base, ...extras]) {
+    if (phrase.trim()) out.add(phrase);
+  }
+  for (const label of base) {
+    for (const template of FOOD_HUB_NAV_TEMPLATES) {
+      const phrase = template.replace("{label}", label).trim();
+      if (phrase) out.add(phrase);
+    }
+  }
+  return Array.from(out);
+}
+
+const FOOD_HUB_CATEGORY_COMMANDS: FoodHubCategoryCommand[] = [
+  {
+    id: 1,
+    label: "10-15 minute wins",
+    aliases: buildFoodHubAliases(
+      [
+        "10-15 minute wins",
+        "10 to 15 minute wins",
+        "ten to fifteen minute wins",
+        "15 minute wins",
+        "10 minute wins",
+        "quick wins",
+        "fast wins",
+        "quick dinners",
+        "fast dinners",
+        "weeknight wins",
+      ],
+      [
+        "speedy wins",
+        "rapid wins",
+        "quick tea",
+        "fast tea",
+        "quick supper",
+        "fast supper",
+        "weeknight dinners",
+        "weeknight meals",
+        "fast meals",
+        "quick meals",
+      ]
+    ),
+  },
+  {
+    id: 2,
+    label: "30-minute staples",
+    aliases: buildFoodHubAliases(
+      [
+        "30-minute staples",
+        "30 minute staples",
+        "thirty minute staples",
+        "30 min staples",
+        "30 minute meals",
+        "half hour staples",
+        "half-hour staples",
+      ],
+      [
+        "half hour meals",
+        "half-hour meals",
+        "thirty minute meals",
+        "30 minute dinners",
+        "thirty minute dinners",
+        "reliable staples",
+        "regular staples",
+        "weekday staples",
+        "midweek staples",
+      ]
+    ),
+  },
+  {
+    id: 3,
+    label: "Zero-brain dinners",
+    aliases: buildFoodHubAliases(
+      [
+        "zero-brain dinners",
+        "zero brain dinners",
+        "no-brain dinners",
+        "no brain dinners",
+        "autopilot dinners",
+        "low effort dinners",
+      ],
+      [
+        "low brain dinners",
+        "minimal effort dinners",
+        "easy dinners",
+        "easy meals",
+        "tired night dinners",
+        "tired night meals",
+        "autopilot meals",
+        "no-think dinners",
+      ]
+    ),
+  },
+  {
+    id: 4,
+    label: "One-pan, no plan",
+    aliases: buildFoodHubAliases(
+      [
+        "one-pan no plan",
+        "one pan no plan",
+        "one-pan dinners",
+        "one pan dinners",
+        "tray bake",
+        "traybake",
+        "sheet pan",
+        "one pan meals",
+      ],
+      [
+        "sheet-pan dinners",
+        "sheet pan dinners",
+        "traybake dinners",
+        "tray bake dinners",
+        "one tray meals",
+        "single pan meals",
+        "one pot meals",
+        "one-pot meals",
+        "no plan dinners",
+      ]
+    ),
+  },
+  {
+    id: 5,
+    label: "Project meals",
+    aliases: buildFoodHubAliases(
+      [
+        "project meals",
+        "project meal",
+        "slow meals",
+        "weekend meals",
+        "sunday meals",
+        "long cook",
+      ],
+      [
+        "slow cook",
+        "slow cooked meals",
+        "weekend cooking",
+        "sunday cooking",
+        "big cook",
+        "long meals",
+        "low and slow",
+        "simmer meals",
+        "comfort projects",
+      ]
+    ),
+  },
+  {
+    id: 6,
+    label: "Show-off but easy",
+    aliases: buildFoodHubAliases(
+      [
+        "show-off but easy",
+        "show off but easy",
+        "show-off",
+        "show off",
+        "impress me",
+        "fancy but easy",
+        "guest ready",
+      ],
+      [
+        "impress dinner",
+        "impressing meals",
+        "date night meals",
+        "company dinners",
+        "guest dinners",
+        "fancy dinners",
+        "fancy meals",
+        "elevated meals",
+        "special meals",
+      ]
+    ),
+  },
+  {
+    id: 8,
+    label: "Freezer first",
+    aliases: buildFoodHubAliases(
+      [
+        "freezer first",
+        "from the freezer",
+        "freezer meals",
+        "use the freezer",
+        "freezer friendly",
+      ],
+      [
+        "freezer stash",
+        "freezer raid",
+        "use up the freezer",
+        "cook from the freezer",
+        "freezer cooking",
+        "freezer dinners",
+        "freezer suppers",
+        "freezer picks",
+        "freezer rescue",
+      ]
+    ),
+  },
+  {
+    id: 7,
+    label: "Help me decide",
+    aliases: buildFoodHubAliases(
+      ["help me decide", "decide for me", "pick for me", "choose for me"],
+      FOOD_HUB_DECIDE_TEMPLATES
+    ),
+    action: "help-decide",
+  },
+];
+
+function matchFoodHubCategoryCommand(prompt: string) {
+  const normalizedPrompt = normalizeTriggerText(prompt);
+  if (!normalizedPrompt) return null;
+  for (const command of FOOD_HUB_CATEGORY_COMMANDS) {
+    for (const alias of command.aliases) {
+      const normalizedAlias = normalizeTriggerText(alias);
+      if (normalizedAlias && normalizedPrompt.includes(normalizedAlias)) {
+        return command;
+      }
+    }
+  }
+  return null;
+}
+
 const FOOD_HUB_EXTRAS = [
   { id: 1, name: "10–15 Minute\nWins" },
   { id: 2, name: "30-Minute Staples" },
@@ -928,6 +1208,127 @@ function normalizeRecipeKey(name: string) {
     .replace(/\s+/g, " ");
 }
 
+const RECIPE_STOP_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "the",
+  "with",
+  "of",
+  "for",
+  "to",
+  "in",
+  "on",
+  "style",
+  "recipe",
+  "recipes",
+  "dinner",
+  "tea",
+  "supper",
+  "meal",
+  "meals",
+  "one",
+]);
+
+const RECIPE_INTENT_PREFIXES = [
+  "open",
+  "show",
+  "show me",
+  "show me the",
+  "show the",
+  "go to",
+  "take me to",
+  "bring me to",
+  "navigate to",
+  "switch to",
+  "jump to",
+  "load",
+  "start",
+  "launch",
+  "pull up",
+  "enter",
+  "head to",
+  "let s go to",
+  "let s open",
+  "let s head to",
+  "let s do",
+  "let s make",
+  "let s cook",
+  "make",
+  "cook",
+  "recipe for",
+  "how to make",
+  "how do i make",
+  "i want to make",
+  "i want to cook",
+  "i want",
+  "i need",
+  "give me",
+  "show me a",
+  "show me some",
+  "open the",
+  "go to the",
+];
+
+function stripStopWords(text: string) {
+  return text
+    .split(" ")
+    .filter((word) => word && !RECIPE_STOP_WORDS.has(word))
+    .join(" ");
+}
+
+function extractRecipeQuery(prompt: string) {
+  let query = normalizeTriggerText(prompt);
+  for (const prefix of RECIPE_INTENT_PREFIXES) {
+    const prefixNorm = normalizeTriggerText(prefix);
+    if (query.startsWith(`${prefixNorm} `)) {
+      query = query.slice(prefixNorm.length).trim();
+      break;
+    }
+  }
+  if (query.startsWith("the ")) query = query.slice(4);
+  return query.trim();
+}
+
+type RecipeIndexEntry = {
+  recipe: FoodHubRecipe;
+  full: string;
+  simple: string;
+  tokens: Set<string>;
+};
+
+function buildRecipeIndex(recipes: FoodHubRecipe[]) {
+  return recipes.map((recipe) => {
+    const full = normalizeRecipeKey(recipe.name);
+    const simple = stripStopWords(full);
+    const tokens = new Set(simple.split(" ").filter(Boolean));
+    return { recipe, full, simple, tokens };
+  });
+}
+
+function scoreRecipeMatch(query: string, entry: RecipeIndexEntry) {
+  const normalized = normalizeRecipeKey(query);
+  const simpleQuery = stripStopWords(normalized);
+  if (!simpleQuery) return 0;
+  if (normalized === entry.full || simpleQuery === entry.simple) return 1;
+  if (
+    entry.full.includes(normalized) ||
+    normalized.includes(entry.full) ||
+    entry.simple.includes(simpleQuery) ||
+    simpleQuery.includes(entry.simple)
+  ) {
+    return 0.85;
+  }
+  const queryTokens = new Set(simpleQuery.split(" ").filter(Boolean));
+  if (!queryTokens.size || !entry.tokens.size) return 0;
+  let overlap = 0;
+  queryTokens.forEach((token) => {
+    if (entry.tokens.has(token)) overlap += 1;
+  });
+  const denom = Math.max(queryTokens.size, entry.tokens.size);
+  return (overlap / denom) * 0.7;
+}
+
 export default function App() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [activePage, setActivePage] = useState<"dashboard" | "food-hub">(
@@ -979,6 +1380,7 @@ export default function App() {
   const [helpDecideAllRecipes, setHelpDecideAllRecipes] = useState<
     FoodHubRecipe[]
   >([]);
+  const recipeIndexRef = useRef<RecipeIndexEntry[]>([]);
   const [helpDecideLoading, setHelpDecideLoading] = useState(false);
   const [helpDecideErr, setHelpDecideErr] = useState<string | null>(null);
   const [helpDecidePair, setHelpDecidePair] = useState<
@@ -1344,6 +1746,9 @@ export default function App() {
   const [reclassifyOptions, setReclassifyOptions] = useState<
     { item_type: "task" | "reminder" | "event"; item_id: number; label: string; target: "task" | "reminder" | "event" }[]
   >([]);
+  const [recipePickOptions, setRecipePickOptions] = useState<FoodHubRecipe[]>(
+    []
+  );
   const [isRecording, setIsRecording] = useState(false);
   const [sttTranscript, setSttTranscript] = useState<string | null>(null);
   const [sttStatus, setSttStatus] = useState<string | null>(null);
@@ -1586,6 +1991,201 @@ export default function App() {
         }
         setAiOutput("Please reply with a valid option number.");
         return;
+      }
+
+      if (recipePickOptions.length) {
+        if (/\b(cancel|nevermind|never mind|stop)\b/i.test(prompt)) {
+          setRecipePickOptions([]);
+          const ack = "Okay, cancelled.";
+          setAiOutput(ack);
+          await playTts(ack);
+          return;
+        }
+        if (
+          recipePickOptions.length === 1 &&
+          /\b(yes|yep|yeah|ok|okay|sure)\b/i.test(prompt)
+        ) {
+          const option = recipePickOptions[0];
+          if (activePage !== "food-hub") {
+            switchPage("food-hub");
+          }
+          if (foodHubMode !== "wins" || activeFoodHubCategory !== option.category_id) {
+            enterWins(option.category_id);
+          }
+          openRecipe(option);
+          const ack = `Opening ${option.name}.`;
+          setAiOutput(ack);
+          await playTts(ack);
+          setRecipePickOptions([]);
+          return;
+        }
+        const promptKey = stripStopWords(normalizeRecipeKey(prompt));
+        if (promptKey) {
+          const pickIndex = recipePickOptions
+            .map((option, index) => {
+              const optionKey = stripStopWords(normalizeRecipeKey(option.name));
+              if (optionKey === promptKey) return { index, score: 1 };
+              if (optionKey.includes(promptKey) || promptKey.includes(optionKey)) {
+                return { index, score: 0.9 };
+              }
+              const optionTokens = new Set(optionKey.split(" ").filter(Boolean));
+              const promptTokens = new Set(promptKey.split(" ").filter(Boolean));
+              let overlap = 0;
+              promptTokens.forEach((token) => {
+                if (optionTokens.has(token)) overlap += 1;
+              });
+              const denom = Math.max(promptTokens.size, 1);
+              return { index, score: overlap / denom };
+            })
+            .sort((a, b) => b.score - a.score);
+          const best = pickIndex[0];
+          const second = pickIndex[1];
+          if (
+            best &&
+            best.score >= 0.55 &&
+            (!second || best.score - second.score >= 0.15)
+          ) {
+            const option = recipePickOptions[best.index];
+            if (activePage !== "food-hub") {
+              switchPage("food-hub");
+            }
+            if (foodHubMode !== "wins" || activeFoodHubCategory !== option.category_id) {
+              enterWins(option.category_id);
+            }
+            openRecipe(option);
+            const ack = `Opening ${option.name}.`;
+            setAiOutput(ack);
+            await playTts(ack);
+            setRecipePickOptions([]);
+            return;
+          }
+        }
+        const selected = Number(prompt);
+        const option = recipePickOptions[selected - 1];
+        if (option) {
+          if (activePage !== "food-hub") {
+            switchPage("food-hub");
+          }
+          if (foodHubMode !== "wins" || activeFoodHubCategory !== option.category_id) {
+            enterWins(option.category_id);
+          }
+          openRecipe(option);
+          const ack = `Opening ${option.name}.`;
+          setAiOutput(ack);
+          await playTts(ack);
+          setRecipePickOptions([]);
+          return;
+        }
+        const optionsText = recipePickOptions
+          .map((item, i) => `${i + 1}) ${item.name}`)
+          .join("\n");
+        setAiOutput(`Please reply with a valid option number.\n${optionsText}`);
+        return;
+      }
+
+      const categoryCommand = matchFoodHubCategoryCommand(prompt);
+      if (categoryCommand) {
+        const alreadyInFoodHub = activePage === "food-hub";
+        if (!alreadyInFoodHub) {
+          switchPage("food-hub");
+        }
+
+        if (categoryCommand.action === "help-decide") {
+          const alreadyOpen = helpDecideOpen && alreadyInFoodHub;
+          openHelpDecide();
+          const ack = alreadyOpen
+            ? "Help me decide is already open."
+            : "Opening help me decide.";
+          setAiOutput(ack);
+          await playTts(ack);
+          return;
+        }
+
+        const metaLabel =
+          FOOD_HUB_CATEGORY_META.find((item) => item.id === categoryCommand.id)
+            ?.eyebrow ?? categoryCommand.label;
+        const alreadyInCategory =
+          alreadyInFoodHub &&
+          foodHubMode === "wins" &&
+          activeFoodHubCategory === categoryCommand.id;
+        if (!alreadyInCategory) {
+          enterWins(categoryCommand.id);
+        }
+        const ack = alreadyInCategory
+          ? `You're already in ${metaLabel}.`
+          : `Opening ${metaLabel}.`;
+        setAiOutput(ack);
+        await playTts(ack);
+        return;
+      }
+
+      const recipeIntentTrigger =
+        activePage === "food-hub" ||
+        /\b(recipe|recipes|cook|cooking|make|making|dinner|tea|supper|meal|meals)\b/i.test(
+          prompt
+        );
+      if (recipeIntentTrigger) {
+        const query = extractRecipeQuery(prompt);
+        if (query.length >= 3) {
+          let recipes = helpDecideAllRecipes;
+          if (!recipes.length) {
+            try {
+              const data = await getFoodHubAll();
+              recipes = (data.recipes ?? []).map((recipe) => {
+                const key = normalizeRecipeKey(recipe.name);
+                const local = foodHubImageByNameRef.current[key];
+                return local ? { ...recipe, image_local: local } : recipe;
+              });
+              setHelpDecideAllRecipes(recipes);
+            } catch (e: any) {
+              setErr(e?.message ?? "Food hub lookup failed");
+            }
+          }
+          if (recipes.length) {
+            if (!recipeIndexRef.current.length) {
+              recipeIndexRef.current = buildRecipeIndex(recipes);
+            }
+            const scored = recipeIndexRef.current
+              .map((entry) => ({
+                entry,
+                score: scoreRecipeMatch(query, entry),
+              }))
+              .filter((item) => item.score > 0)
+              .sort((a, b) => b.score - a.score);
+            if (scored.length) {
+              const best = scored[0];
+              const second = scored[1];
+              const confident =
+                best.score >= 0.6 &&
+                (!second || best.score - second.score >= 0.12 || best.score >= 0.75);
+              if (confident) {
+                const recipe = best.entry.recipe;
+                if (activePage !== "food-hub") {
+                  switchPage("food-hub");
+                }
+                if (foodHubMode !== "wins" || activeFoodHubCategory !== recipe.category_id) {
+                  enterWins(recipe.category_id);
+                }
+                openRecipe(recipe);
+                const ack = `Opening ${recipe.name}.`;
+                setAiOutput(ack);
+                await playTts(ack);
+                return;
+              }
+              const topOptions = scored.slice(0, 3).map((item) => item.entry.recipe);
+              if (topOptions.length) {
+                setRecipePickOptions(topOptions);
+                const optionsText = topOptions
+                  .map((item, i) => `${i + 1}) ${item.name}`)
+                  .join("\n");
+                const promptText = `Which recipe did you mean?\n${optionsText}`;
+                setAiOutput(promptText);
+                await playTts("Which recipe did you mean?");
+                return;
+              }
+            }
+          }
+        }
       }
 
       if (isFoodHubTrigger(prompt)) {
@@ -2443,6 +3043,10 @@ export default function App() {
   }, [helpDecideOpen]);
 
   useEffect(() => {
+    recipeIndexRef.current = buildRecipeIndex(helpDecideAllRecipes);
+  }, [helpDecideAllRecipes]);
+
+  useEffect(() => {
     if (!helpDecideOpen) return;
     if (helpDecidePhase !== "bracket") return;
     if (!helpDecidePair) buildHelpDecideBracket();
@@ -2525,6 +3129,16 @@ export default function App() {
       setWinsTransitioning(false);
       winsTransitionTimerRef.current = null;
     }, 2200);
+  }
+
+  function openHelpDecide() {
+    setHelpDecideOpen(true);
+    setHelpDecidePhase("prefs");
+    setHelpDecidePair(null);
+    setHelpDecideCurrentRound([]);
+    setHelpDecideNextRound([]);
+    setHelpDecidePairIndex(0);
+    setHelpDecideWinner(null);
   }
 
   function exitWins() {
@@ -2875,6 +3489,30 @@ export default function App() {
     </section>
   );
 
+  const renderTempTextInput = (className: string) => (
+    <section className={`glass-tile ${className}`}>
+      <div className="aiBlock">
+        <div className="aiLabel">Ask Sam (temp)</div>
+        <textarea
+          className="aiInput"
+          rows={3}
+          placeholder="Type a prompt..."
+          value={aiInput}
+          onChange={(e) => setAiInput(e.target.value)}
+        />
+        <div className="aiActions">
+          <button
+            className="glass-pill glass-pill--small"
+            onClick={handleAiSubmit}
+            disabled={aiLoading}
+          >
+            {aiLoading ? "Thinking..." : "Ask"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+
   const activeFoodHubMeta =
     FOOD_HUB_CATEGORY_META.find((item) => item.id === activeFoodHubCategory) ??
     FOOD_HUB_CATEGORY_META[0];
@@ -3128,6 +3766,7 @@ export default function App() {
                 ))}
               </div>
 
+              {renderTempTextInput("winsTempInput")}
             </section>
         ) : null}
 
@@ -3175,13 +3814,7 @@ export default function App() {
                       role="listitem"
                       onClick={() => {
                         if (dish.id === 7) {
-                          setHelpDecideOpen(true);
-                          setHelpDecidePhase("prefs");
-                          setHelpDecidePair(null);
-                          setHelpDecideCurrentRound([]);
-                          setHelpDecideNextRound([]);
-                          setHelpDecidePairIndex(0);
-                          setHelpDecideWinner(null);
+                          openHelpDecide();
                           return;
                         }
                         enterWins(dish.id);
@@ -3201,6 +3834,7 @@ export default function App() {
                   ))}
                 </div>
               </section>
+              {renderTempTextInput("foodHubTempInput")}
           </div>
         ) : null}
 
