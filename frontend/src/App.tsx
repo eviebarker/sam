@@ -483,6 +483,66 @@ const FOOD_HUB_SEARCH_ACKS = [
   "Here’s a few that should work.",
 ];
 
+const FOOD_HUB_SEARCH_LABEL_TAGS = [
+  "vegetarian",
+  "vegan",
+  "pescatarian",
+  "gluten free",
+  "gluten-free",
+  "dairy free",
+  "dairy-free",
+  "low carb",
+  "low-carb",
+  "high protein",
+  "high-protein",
+  "healthy",
+  "light",
+  "balanced",
+  "indulgent",
+  "italian",
+  "mexican",
+  "indian",
+  "chinese",
+  "japanese",
+  "french",
+  "british",
+  "mediterranean",
+  "american",
+  "middle eastern",
+  "korean",
+  "thai",
+  "greek",
+  "spanish",
+  "turkish",
+  "caribbean",
+  "moroccan",
+  "lebanese",
+  "vietnamese",
+  "asian",
+  "italy",
+  "india",
+];
+
+const FOOD_HUB_SEARCH_LABEL_PREFIXES = new Set([
+  "vegetarian",
+  "vegan",
+  "pescatarian",
+  "gluten free",
+  "gluten-free",
+  "dairy free",
+  "dairy-free",
+  "low carb",
+  "low-carb",
+  "high protein",
+  "high-protein",
+  "healthy",
+  "light",
+  "balanced",
+  "indulgent",
+]);
+
+
+
 const SEARCH_ACK_OPENERS = [
   "Here are",
   "Here’s",
@@ -767,62 +827,6 @@ function pickSearchAck(
   const pool = buildSearchAckPool(rawQuery, normalizedQuery, time);
   return pool[Math.floor(Math.random() * pool.length)];
 }
-
-const FOOD_HUB_SEARCH_LABEL_TAGS = [
-  "vegetarian",
-  "vegan",
-  "pescatarian",
-  "gluten free",
-  "gluten-free",
-  "dairy free",
-  "dairy-free",
-  "low carb",
-  "low-carb",
-  "high protein",
-  "high-protein",
-  "healthy",
-  "light",
-  "balanced",
-  "indulgent",
-  "italian",
-  "mexican",
-  "indian",
-  "chinese",
-  "japanese",
-  "french",
-  "british",
-  "mediterranean",
-  "american",
-  "middle eastern",
-  "korean",
-  "thai",
-  "greek",
-  "spanish",
-  "turkish",
-  "caribbean",
-  "moroccan",
-  "lebanese",
-  "vietnamese",
-  "asian",
-];
-
-const FOOD_HUB_SEARCH_LABEL_PREFIXES = new Set([
-  "vegetarian",
-  "vegan",
-  "pescatarian",
-  "gluten free",
-  "gluten-free",
-  "dairy free",
-  "dairy-free",
-  "low carb",
-  "low-carb",
-  "high protein",
-  "high-protein",
-  "healthy",
-  "light",
-  "balanced",
-  "indulgent",
-]);
 
 function buildFoodHubAliases(base: string[], extras: string[] = []) {
   const out = new Set<string>();
@@ -1938,6 +1942,12 @@ const FOOD_HUB_SEARCH_PHRASES = [
   "just",
   "i want",
   "i need",
+  "let s have",
+  "lets have",
+  "let us have",
+  "we want",
+  "we need",
+  "we fancy",
   "i feel like",
   "i am in the mood for",
   "i'm in the mood for",
@@ -2033,6 +2043,7 @@ const FOOD_HUB_SEARCH_TAG_WORDS = [
   "noodles",
   "salad",
   "soup",
+  "curry",
 ];
 
 const RECIPE_INTENT_PREFIXES = [
@@ -2057,8 +2068,14 @@ const RECIPE_INTENT_PREFIXES = [
   "let s open",
   "let s head to",
   "let s do",
+  "lets do",
   "let s make",
+  "lets make",
   "let s cook",
+  "lets cook",
+  "let s have",
+  "lets have",
+  "have",
   "make",
   "cook",
   "recipe for",
@@ -2093,6 +2110,16 @@ function normalizeSearchQuery(text: string) {
 function isFoodHubSearchIntent(prompt: string) {
   const normalized = normalizeTriggerText(prompt);
   if (!normalized) return false;
+  if (/\b(let s|lets|let us|we)\s+have\b/i.test(prompt)) {
+    for (const tag of FOOD_HUB_SEARCH_TAG_WORDS) {
+      if (normalized.includes(normalizeTriggerText(tag))) return true;
+    }
+  }
+  if (/\b(let s|lets|let us|we)\s+do\b/i.test(prompt)) {
+    for (const tag of FOOD_HUB_SEARCH_TAG_WORDS) {
+      if (normalized.includes(normalizeTriggerText(tag))) return true;
+    }
+  }
   const timeConstraint = parseSearchTimeConstraint(prompt);
   if (timeConstraint) {
     const categorySignal =
@@ -2354,6 +2381,98 @@ function scoreRecipeMatch(query: string, entry: RecipeIndexEntry) {
   return (overlap / denom) * 0.7;
 }
 
+function pickRecipeFromList(
+  options: FoodHubRecipe[],
+  prompt: string
+): { recipe: FoodHubRecipe | null; ambiguous: boolean } {
+  if (!options.length) return { recipe: null, ambiguous: false };
+  const refinedPrompt = extractRecipeQuery(prompt) || prompt;
+  const promptKey = stripStopWords(normalizeRecipeKey(refinedPrompt));
+  if (!promptKey) return { recipe: null, ambiguous: false };
+  const directMatches = options.filter((option) => {
+    const optionKey = stripStopWords(normalizeRecipeKey(option.name));
+    return (
+      optionKey === promptKey ||
+      optionKey.includes(promptKey) ||
+      promptKey.includes(optionKey)
+    );
+  });
+  if (directMatches.length === 1) {
+    return { recipe: directMatches[0], ambiguous: false };
+  }
+  const scored = options
+    .map((option, index) => {
+      const optionKey = stripStopWords(normalizeRecipeKey(option.name));
+      if (optionKey === promptKey) return { index, score: 1 };
+      if (optionKey.includes(promptKey) || promptKey.includes(optionKey)) {
+        return { index, score: 0.9 };
+      }
+      const optionTokens = new Set(optionKey.split(" ").filter(Boolean));
+      const promptTokens = new Set(promptKey.split(" ").filter(Boolean));
+      let overlap = 0;
+      promptTokens.forEach((token) => {
+        if (optionTokens.has(token)) overlap += 1;
+      });
+      const denom = Math.max(promptTokens.size, 1);
+      return { index, score: overlap / denom };
+    })
+    .sort((a, b) => b.score - a.score);
+  const best = scored[0];
+  const second = scored[1];
+  if (best && best.score >= 0.55 && (!second || best.score - second.score >= 0.15)) {
+    return { recipe: options[best.index], ambiguous: false };
+  }
+  if (directMatches.length > 1 || best?.score) {
+    return { recipe: null, ambiguous: true };
+  }
+  return { recipe: null, ambiguous: false };
+}
+
+type FoodHubMenuItem = {
+  id: number;
+  title: string;
+  time: string;
+  note: string;
+  tags: string[];
+};
+
+function parseMenuTimeToMinutes(time: string) {
+  const normalized = time.toLowerCase();
+  const hourMatch = normalized.match(/(\d+)\s*hr/);
+  const minMatch = normalized.match(/(\d+)\s*min/);
+  const hours = hourMatch ? Number(hourMatch[1]) : 0;
+  const mins = minMatch ? Number(minMatch[1]) : 0;
+  const total = hours * 60 + mins;
+  return total > 0 ? total : null;
+}
+
+function buildStubRecipeFromMenu(
+  item: FoodHubMenuItem,
+  categoryId: number
+): FoodHubRecipe {
+  return {
+    id: -1 * (categoryId * 1000 + item.id),
+    category_id: categoryId,
+    sort_order: item.id,
+    name: item.title,
+    tagline: item.note ?? null,
+    time_prep_min: null,
+    time_cook_min: null,
+    time_total_min: parseMenuTimeToMinutes(item.time),
+    link: null,
+    image_url: null,
+    cuisine_region: null,
+    time_band: null,
+    activity_level: null,
+    health_vibe: null,
+    weight_class: null,
+    last_accessed_at: null,
+    tags: item.tags ?? [],
+    ingredients: [],
+    steps: [],
+  };
+}
+
 export default function App() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [activePage, setActivePage] = useState<"dashboard" | "food-hub">(
@@ -2577,24 +2696,26 @@ export default function App() {
     if (origin === "decide") {
       setHelpDecideOpen(false);
     }
-    void markFoodHubAccessed(recipe.id)
-      .then((resp) => {
-        setFoodHubRecipes((prev) =>
-          prev.map((item) =>
-            item.id === recipe.id
-              ? { ...item, last_accessed_at: resp.last_accessed_at }
-              : item
-          )
-        );
-        setHelpDecideAllRecipes((prev) =>
-          prev.map((item) =>
-            item.id === recipe.id
-              ? { ...item, last_accessed_at: resp.last_accessed_at }
-              : item
-          )
-        );
-      })
-      .catch(() => {});
+    if (recipe.id > 0) {
+      void markFoodHubAccessed(recipe.id)
+        .then((resp) => {
+          setFoodHubRecipes((prev) =>
+            prev.map((item) =>
+              item.id === recipe.id
+                ? { ...item, last_accessed_at: resp.last_accessed_at }
+                : item
+            )
+          );
+          setHelpDecideAllRecipes((prev) =>
+            prev.map((item) =>
+              item.id === recipe.id
+                ? { ...item, last_accessed_at: resp.last_accessed_at }
+                : item
+            )
+          );
+        })
+        .catch(() => {});
+    }
   }
 
   function closeRecipe(afterClose?: () => void) {
@@ -2998,6 +3119,14 @@ export default function App() {
     }
   }
 
+  async function setAiOutputWithOptions(
+    promptLine: string,
+    optionsText: string
+  ) {
+    setAiOutput(`${promptLine}\n${optionsText}`);
+    await playTts(promptLine);
+  }
+
   async function handleAiSubmit(overridePrompt?: string | React.SyntheticEvent) {
     const prompt =
       (typeof overridePrompt === "string" ? overridePrompt : aiInput).trim();
@@ -3027,8 +3156,61 @@ export default function App() {
         return;
       }
 
+      if (foodHubSearchOpen) {
+        if (/\b(cancel|nevermind|never mind|stop|back|go back|close)\b/i.test(prompt)) {
+          closeFoodHubSearch();
+          return;
+        }
+        const pick = pickRecipeFromList(foodHubSearchResults, prompt);
+        if (pick.recipe) {
+          if (activePage !== "food-hub") {
+            switchPage("food-hub");
+          }
+          if (
+            foodHubMode !== "wins" ||
+            activeFoodHubCategory !== pick.recipe.category_id
+          ) {
+            enterWins(pick.recipe.category_id);
+          }
+          openRecipe(pick.recipe);
+          closeFoodHubSearch();
+          const ack = `Opening ${pick.recipe.name}.`;
+          setAiOutput(ack);
+          await playTts(ack);
+          return;
+        }
+        if (pick.ambiguous) {
+          const refinedPrompt = extractRecipeQuery(prompt) || prompt;
+          const promptKey = stripStopWords(normalizeRecipeKey(refinedPrompt));
+          const matches = promptKey
+            ? foodHubSearchResults.filter((option) => {
+                const optionKey = stripStopWords(normalizeRecipeKey(option.name));
+                return (
+                  optionKey === promptKey ||
+                  optionKey.includes(promptKey) ||
+                  promptKey.includes(optionKey)
+                );
+              })
+            : [];
+          const shortlist = (matches.length ? matches : foodHubSearchResults).slice(
+            0,
+            3
+          );
+          const optionsText = shortlist
+            .map((item, i) => `${i + 1}) ${item.name}`)
+            .join("\n");
+          await setAiOutputWithOptions("Which recipe did you mean?", optionsText);
+          setRecipePickOptions(shortlist);
+          return;
+        }
+      }
+
       if (recipePickOptions.length) {
-        if (/\b(cancel|nevermind|never mind|stop)\b/i.test(prompt)) {
+        if (/\b(cancel|nevermind|never mind|stop|back|go back|close)\b/i.test(prompt)) {
+          if (foodHubSearchOpen) {
+            closeFoodHubSearch();
+            return;
+          }
           setRecipePickOptions([]);
           const ack = "Okay, cancelled.";
           setAiOutput(ack);
@@ -3047,14 +3229,44 @@ export default function App() {
             enterWins(option.category_id);
           }
           openRecipe(option);
+          if (foodHubSearchOpen) {
+            closeFoodHubSearch();
+          }
           const ack = `Opening ${option.name}.`;
           setAiOutput(ack);
           await playTts(ack);
           setRecipePickOptions([]);
           return;
         }
-        const promptKey = stripStopWords(normalizeRecipeKey(prompt));
+        const refinedPrompt = extractRecipeQuery(prompt) || prompt;
+        const promptKey = stripStopWords(normalizeRecipeKey(refinedPrompt));
         if (promptKey) {
+          const matchingOptions = recipePickOptions.filter((option) => {
+            const optionKey = stripStopWords(normalizeRecipeKey(option.name));
+            return (
+              optionKey === promptKey ||
+              optionKey.includes(promptKey) ||
+              promptKey.includes(optionKey)
+            );
+          });
+          if (matchingOptions.length === 1) {
+            const option = matchingOptions[0];
+            if (activePage !== "food-hub") {
+              switchPage("food-hub");
+            }
+            if (foodHubMode !== "wins" || activeFoodHubCategory !== option.category_id) {
+              enterWins(option.category_id);
+            }
+            openRecipe(option);
+            if (foodHubSearchOpen) {
+              closeFoodHubSearch();
+            }
+            const ack = `Opening ${option.name}.`;
+            setAiOutput(ack);
+            await playTts(ack);
+            setRecipePickOptions([]);
+            return;
+          }
           const pickIndex = recipePickOptions
             .map((option, index) => {
               const optionKey = stripStopWords(normalizeRecipeKey(option.name));
@@ -3087,10 +3299,20 @@ export default function App() {
               enterWins(option.category_id);
             }
             openRecipe(option);
+            if (foodHubSearchOpen) {
+              closeFoodHubSearch();
+            }
             const ack = `Opening ${option.name}.`;
             setAiOutput(ack);
             await playTts(ack);
             setRecipePickOptions([]);
+            return;
+          }
+          if (matchingOptions.length > 1) {
+            const optionsText = recipePickOptions
+              .map((item, i) => `${i + 1}) ${item.name}`)
+              .join("\n");
+            await setAiOutputWithOptions("Which recipe did you mean?", optionsText);
             return;
           }
         }
@@ -3104,6 +3326,9 @@ export default function App() {
             enterWins(option.category_id);
           }
           openRecipe(option);
+          if (foodHubSearchOpen) {
+            closeFoodHubSearch();
+          }
           const ack = `Opening ${option.name}.`;
           setAiOutput(ack);
           await playTts(ack);
@@ -3113,7 +3338,14 @@ export default function App() {
         const optionsText = recipePickOptions
           .map((item, i) => `${i + 1}) ${item.name}`)
           .join("\n");
-        setAiOutput(`Please reply with a valid option number.\n${optionsText}`);
+        if (Number.isFinite(selected) && selected > 0) {
+          await setAiOutputWithOptions(
+            "Please reply with a valid option number.",
+            optionsText
+          );
+        } else {
+          await setAiOutputWithOptions("Which recipe did you mean?", optionsText);
+        }
         return;
       }
 
@@ -3233,14 +3465,48 @@ export default function App() {
                 const max = timeConstraint.max ?? Infinity;
                 return total >= min && total <= max;
               });
-            if (results.length) {
+            let finalResults = results;
+            const curryQuery =
+              normalizedQuery.includes("curry") &&
+              normalizeRecipeKey(normalizedQuery).split(" ").filter(Boolean)
+                .length <= 2;
+            if (curryQuery) {
+              finalResults = finalResults.filter((recipe) => {
+                const name = normalizeRecipeKey(recipe.name);
+                const tagline = normalizeRecipeKey(recipe.tagline ?? "");
+                const tags = normalizeRecipeKey((recipe.tags ?? []).join(" "));
+                return (
+                  name.includes("curry") ||
+                  tagline.includes("curry") ||
+                  tags.includes("curry")
+                );
+              });
+              if (!finalResults.length) {
+                finalResults = recipes.filter((recipe) => {
+                  const name = normalizeRecipeKey(recipe.name);
+                  const tagline = normalizeRecipeKey(recipe.tagline ?? "");
+                  const tags = normalizeRecipeKey((recipe.tags ?? []).join(" "));
+                  return (
+                    name.includes("curry") ||
+                    tagline.includes("curry") ||
+                    tags.includes("curry")
+                  );
+                });
+              }
+            } else if (!finalResults.length && normalizedQuery.includes("curry")) {
+              finalResults = recipes.filter((recipe) => {
+                const name = normalizeRecipeKey(recipe.name);
+                return name.includes("curry");
+              });
+            }
+            if (finalResults.length) {
               if (activePage !== "food-hub") {
                 switchPage("food-hub");
               }
               if (helpDecideOpen) {
                 closeHelpDecide();
               }
-              setFoodHubSearchResults(results);
+              setFoodHubSearchResults(finalResults);
               setFoodHubSearchQuery(rawQuery || normalizedQuery);
               setFoodHubSearchLabel(
                 formatSearchLabel(rawQuery, normalizedQuery, timeConstraint)
@@ -3272,6 +3538,43 @@ export default function App() {
             prompt
           ));
       if (recipeIntentTrigger) {
+        if (inFoodHubCategory) {
+          const menuOptions = activeFoodHubMeta.menu.map((item) =>
+            buildStubRecipeFromMenu(item as FoodHubMenuItem, activeFoodHubCategory)
+          );
+          const refinedPrompt = extractRecipeQuery(prompt) || prompt;
+          const promptKey = stripStopWords(normalizeRecipeKey(refinedPrompt));
+          const menuMatches = promptKey
+            ? menuOptions.filter((option) => {
+                const optionKey = stripStopWords(normalizeRecipeKey(option.name));
+                return (
+                  optionKey === promptKey ||
+                  optionKey.includes(promptKey) ||
+                  promptKey.includes(optionKey)
+                );
+              })
+            : [];
+          const menuPick = pickRecipeFromList(menuOptions, prompt);
+          if (menuPick.recipe) {
+            openRecipe(menuPick.recipe);
+            const ack = `Opening ${menuPick.recipe.name}.`;
+            setAiOutput(ack);
+            await playTts(ack);
+            return;
+          }
+          if (menuPick.ambiguous) {
+            const options = menuMatches.length ? menuMatches : menuOptions;
+            setRecipePickOptions(options);
+            const optionsText = options
+              .map((item, i) => `${i + 1}) ${item.name}`)
+              .join("\n");
+            await setAiOutputWithOptions(
+              "Which recipe did you mean?",
+              optionsText
+            );
+            return;
+          }
+        }
         const query = extractRecipeQuery(prompt);
         if (query.length >= 3) {
           let recipes = helpDecideAllRecipes;
@@ -3322,12 +3625,20 @@ export default function App() {
               const topOptions = scored.slice(0, 3).map((item) => item.entry.recipe);
               if (topOptions.length && inFoodHubCategory) {
                 setRecipePickOptions(topOptions);
+                if (topOptions.length === 1) {
+                  const onlyOption = topOptions[0];
+                  const promptLine = `Did you mean ${onlyOption.name}?`;
+                  setAiOutput(promptLine);
+                  await playTts(promptLine);
+                  return;
+                }
                 const optionsText = topOptions
                   .map((item, i) => `${i + 1}) ${item.name}`)
                   .join("\n");
-                const promptText = `Which recipe did you mean?\n${optionsText}`;
-                setAiOutput(promptText);
-                await playTts("Which recipe did you mean?");
+                await setAiOutputWithOptions(
+                  "Which recipe did you mean?",
+                  optionsText
+                );
                 return;
               }
             }
@@ -4319,6 +4630,7 @@ export default function App() {
       setFoodHubSearchResults([]);
       setFoodHubSearchQuery("");
       setFoodHubSearchLabel("");
+      setRecipePickOptions([]);
       foodHubSearchCloseTimerRef.current = null;
     }, 320);
   }
@@ -5043,6 +5355,9 @@ export default function App() {
                           foodHubSearchResults.length === 1 ? "" : "s"
                         }`}
                   </div>
+                  {aiOutput ? (
+                    <div className="foodHubSearchReply">{aiOutput}</div>
+                  ) : null}
                 </div>
                 <div className="decideActions">
                   <button
