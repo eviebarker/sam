@@ -368,6 +368,177 @@ const FOOD_HUB_DECIDE_TEMPLATES = [
   "pick something for me",
 ];
 
+const FOOD_HUB_SEARCH_ACKS = [
+  "Here are your options.",
+  "Here’s what I found.",
+  "Here’s what I’ve got.",
+  "Here are some options.",
+  "I found these.",
+  "These should work.",
+  "Here are a few picks.",
+  "Here are some ideas.",
+  "Here are a few you can make.",
+  "Here are some good matches.",
+  "Here are the matches I found.",
+  "Here’s a set to choose from.",
+  "Here are some that fit.",
+  "Here are the results.",
+  "Here you go.",
+  "Here’s a shortlist.",
+  "These look right.",
+  "These are the options.",
+  "Here are the best fits.",
+  "Found a few options.",
+  "I pulled these up.",
+  "Here’s what matches.",
+  "Here’s what fits.",
+  "Here’s the list.",
+  "Here’s what came up.",
+  "Here are your results.",
+  "Here are some that match.",
+  "Here’s a set of matches.",
+  "Here’s a few to try.",
+  "Here’s a few to pick from.",
+  "Here’s what you can cook.",
+  "Here’s what you can make.",
+  "Here are some quick options.",
+  "Here’s a handful of ideas.",
+  "Here are some choices.",
+  "Here’s a couple of options.",
+  "Here’s what I could find.",
+  "Here’s what I found.",
+  "Here are some good options.",
+  "Here are some good picks.",
+  "These should fit.",
+  "Here’s a few recipes.",
+  "Here are some recipes.",
+  "Here are some dishes.",
+  "Here’s a few dishes.",
+  "Here are some meals.",
+  "Here’s a few meals.",
+  "Here are some results.",
+  "Here are a few results.",
+  "Here are the options I found.",
+  "Here are the recipes I found.",
+  "Here are the dishes I found.",
+  "Here are the meals I found.",
+  "Here’s what I pulled up.",
+  "Here’s what I dug up.",
+  "Here’s what I surfaced.",
+  "Here’s what I turned up.",
+  "Here’s what I’ve found.",
+  "Here’s what’s available.",
+  "Here’s what’s on offer.",
+  "Here’s what’s in the mix.",
+  "Here’s the spread.",
+  "Here are a few ideas for you.",
+  "Here are a few options for you.",
+  "Here are some options for you.",
+  "Here’s a few options for you.",
+  "Here’s what I’d suggest.",
+  "Here are a few suggestions.",
+  "Here are some suggestions.",
+  "Here’s a few suggestions.",
+  "Here’s what I’ve got for you.",
+  "Here are the picks.",
+  "Here are the choices.",
+  "Here are the suggestions.",
+  "Here are the ideas.",
+  "Here are the dishes.",
+  "Here are the meals.",
+  "Here are the recipes.",
+  "Here are the results I found.",
+  "Here’s what matched.",
+  "Here’s what came back.",
+  "Here’s what popped up.",
+  "Here’s what showed up.",
+  "Here’s what turned up.",
+  "Here’s what I found for you.",
+  "Here’s what I pulled together.",
+  "Here’s what I’ve pulled together.",
+  "Here’s what I lined up.",
+  "Here’s what I gathered.",
+  "Here’s a set of options.",
+  "Here’s a set of results.",
+  "Here’s a set of choices.",
+  "Here’s a set of ideas.",
+  "Here’s a set of recipes.",
+  "Here’s a set of dishes.",
+  "Here’s a set of meals.",
+  "Here’s what I can offer.",
+  "Here’s what I can suggest.",
+  "Here’s what I can recommend.",
+  "Here are some that should work.",
+  "Here are some that look good.",
+  "Here are some that fit the brief.",
+  "Here are some that match the brief.",
+  "Here are some that hit the mark.",
+  "Here are some that make sense.",
+  "Here are some that line up.",
+  "Here are some that fit.",
+  "Here’s a few that fit.",
+  "Here’s a few that match.",
+  "Here’s a few that work.",
+  "Here’s a few that look right.",
+  "Here’s a few that should work.",
+];
+
+const FOOD_HUB_SEARCH_LABEL_TAGS = [
+  "vegetarian",
+  "vegan",
+  "pescatarian",
+  "gluten free",
+  "gluten-free",
+  "dairy free",
+  "dairy-free",
+  "low carb",
+  "low-carb",
+  "high protein",
+  "high-protein",
+  "healthy",
+  "light",
+  "balanced",
+  "indulgent",
+  "italian",
+  "mexican",
+  "indian",
+  "chinese",
+  "japanese",
+  "french",
+  "british",
+  "mediterranean",
+  "american",
+  "middle eastern",
+  "korean",
+  "thai",
+  "greek",
+  "spanish",
+  "turkish",
+  "caribbean",
+  "moroccan",
+  "lebanese",
+  "vietnamese",
+  "asian",
+];
+
+const FOOD_HUB_SEARCH_LABEL_PREFIXES = new Set([
+  "vegetarian",
+  "vegan",
+  "pescatarian",
+  "gluten free",
+  "gluten-free",
+  "dairy free",
+  "dairy-free",
+  "low carb",
+  "low-carb",
+  "high protein",
+  "high-protein",
+  "healthy",
+  "light",
+  "balanced",
+  "indulgent",
+]);
+
 function buildFoodHubAliases(base: string[], extras: string[] = []) {
   const out = new Set<string>();
   for (const phrase of [...base, ...extras]) {
@@ -1234,6 +1405,175 @@ const RECIPE_STOP_WORDS = new Set([
   "one",
 ]);
 
+const SEARCH_STOP_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "the",
+  "with",
+  "of",
+  "for",
+  "to",
+  "in",
+  "on",
+  "style",
+  "recipe",
+  "recipes",
+  "dinner",
+  "tea",
+  "supper",
+  "meal",
+  "meals",
+  "dish",
+  "dishes",
+  "something",
+  "anything",
+  "make",
+  "cook",
+  "cooking",
+  "show",
+  "find",
+  "search",
+  "list",
+  "give",
+  "want",
+  "need",
+  "lets",
+  "let s",
+  "please",
+  "me",
+  "us",
+  "some",
+  "kind",
+  "type",
+  "types",
+  "like",
+  "more",
+  "only",
+  "just",
+  "maybe",
+  "maybe",
+  "maybe",
+  "sort",
+  "sorts",
+  "sorta",
+  "kinda",
+  "looking",
+  "looking for",
+  "show us",
+  "show me",
+  "bring up",
+  "pull up",
+  "filter",
+  "filter to",
+  "filter by",
+  "options",
+  "ideas",
+  "in the mood",
+]);
+
+const FOOD_HUB_SEARCH_PHRASES = [
+  "show me",
+  "find",
+  "search",
+  "look for",
+  "look up",
+  "list",
+  "give me",
+  "show us",
+  "bring up",
+  "pull up",
+  "filter to",
+  "filter by",
+  "only show",
+  "only",
+  "just",
+  "i want",
+  "i need",
+  "i feel like",
+  "i am in the mood for",
+  "i'm in the mood for",
+  "in the mood for",
+  "something with",
+  "something using",
+  "something made with",
+  "something containing",
+  "anything with",
+  "anything using",
+  "anything made with",
+  "anything containing",
+  "recipes with",
+  "meals with",
+  "dishes with",
+  "recipes for",
+  "meals for",
+  "dishes for",
+  "something like",
+  "anything like",
+  "ideas for",
+  "options for",
+  "show me some",
+  "show me a",
+  "show me any",
+  "show me all",
+  "what can i make with",
+  "what can we make with",
+  "what can i cook with",
+  "what can we cook with",
+  "what recipes use",
+];
+
+const FOOD_HUB_SEARCH_TAG_WORDS = [
+  "vegetarian",
+  "vegan",
+  "pescatarian",
+  "gluten free",
+  "gluten-free",
+  "dairy free",
+  "dairy-free",
+  "low carb",
+  "low-carb",
+  "high protein",
+  "high-protein",
+  "healthy",
+  "light",
+  "balanced",
+  "indulgent",
+  "italian",
+  "mexican",
+  "indian",
+  "chinese",
+  "japanese",
+  "french",
+  "british",
+  "mediterranean",
+  "american",
+  "middle eastern",
+  "korean",
+  "thai",
+  "greek",
+  "spanish",
+  "turkish",
+  "caribbean",
+  "moroccan",
+  "lebanese",
+  "vietnamese",
+  "asian",
+  "seafood",
+  "fish",
+  "chicken",
+  "beef",
+  "pork",
+  "lamb",
+  "tofu",
+  "halloumi",
+  "pasta",
+  "rice",
+  "noodles",
+  "salad",
+  "soup",
+];
+
 const RECIPE_INTENT_PREFIXES = [
   "open",
   "show",
@@ -1281,6 +1621,141 @@ function stripStopWords(text: string) {
     .join(" ");
 }
 
+function normalizeSearchQuery(text: string) {
+  return normalizeRecipeKey(text)
+    .split(" ")
+    .filter((word) => word && !SEARCH_STOP_WORDS.has(word))
+    .join(" ")
+    .trim();
+}
+
+function isFoodHubSearchIntent(prompt: string) {
+  const normalized = normalizeTriggerText(prompt);
+  if (!normalized) return false;
+  if (
+    /\b(show me|show us|find|search|look for|look up|list|give me|bring up|pull up)\b.*\b(recipes|meals|dishes)\b/i.test(
+      prompt
+    )
+  ) {
+    return true;
+  }
+  if (
+    /\b(something|anything)\b.*\b(with|using|made with|containing)\b/i.test(prompt)
+  ) {
+    return true;
+  }
+  if (
+    /\b(with|using|made with|containing)\b\s+[a-z0-9]{3,}/i.test(prompt) &&
+    /\b(something|anything|recipes|meals|dishes|make|cook)\b/i.test(prompt)
+  ) {
+    return true;
+  }
+  if (/\b(make|cook|recipes|meals|dishes|something|anything)\b/i.test(prompt)) {
+    for (const tag of FOOD_HUB_SEARCH_TAG_WORDS) {
+      if (normalized.includes(normalizeTriggerText(tag))) return true;
+    }
+  }
+  for (const phrase of FOOD_HUB_SEARCH_PHRASES) {
+    if (normalized.includes(normalizeTriggerText(phrase))) return true;
+  }
+  return false;
+}
+
+function extractSearchQuery(prompt: string) {
+  let query = normalizeTriggerText(prompt);
+  for (const phrase of FOOD_HUB_SEARCH_PHRASES) {
+    const norm = normalizeTriggerText(phrase);
+    if (norm && query.startsWith(`${norm} `)) {
+      query = query.slice(norm.length).trim();
+      break;
+    }
+  }
+  query = query
+    .replace(/\b(recipes?|meals?|dishes?)\b/gi, " ")
+    .replace(/\b(something|anything)\b/gi, " ")
+    .replace(/\b(with|using|made with|containing|like)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return query;
+}
+
+function parseSearchTimeConstraint(prompt: string) {
+  const normalized = normalizeTriggerText(prompt);
+  if (!normalized) return null;
+  const betweenMatch = normalized.match(
+    /\bbetween\s+(\d{1,3})\s*(?:mins?|minutes?)\s+and\s+(\d{1,3})\s*(?:mins?|minutes?)\b/
+  );
+  if (betweenMatch) {
+    const min = Number(betweenMatch[1]);
+    const max = Number(betweenMatch[2]);
+    if (Number.isFinite(min) && Number.isFinite(max) && min <= max) {
+      return { min, max };
+    }
+  }
+  const underMatch = normalized.match(
+    /\b(under|less than|below|within|at most|max|no more than)\s+(\d{1,3})\s*(?:mins?|minutes?)\b/
+  );
+  if (underMatch) {
+    const max = Number(underMatch[2]);
+    if (Number.isFinite(max)) return { min: 0, max };
+  }
+  const overMatch = normalized.match(
+    /\b(over|more than|above|at least|min|no less than)\s+(\d{1,3})\s*(?:mins?|minutes?)\b/
+  );
+  if (overMatch) {
+    const min = Number(overMatch[2]);
+    if (Number.isFinite(min)) return { min, max: Infinity };
+  }
+  const withinMatch = normalized.match(
+    /\b(\d{1,3})\s*(?:mins?|minutes?)\s+or\s+less\b/
+  );
+  if (withinMatch) {
+    const max = Number(withinMatch[1]);
+    if (Number.isFinite(max)) return { min: 0, max };
+  }
+  return null;
+}
+
+function formatSearchLabel(
+  rawQuery: string,
+  normalizedQuery: string,
+  time: { min: number; max: number } | null
+) {
+  const normalized = normalizeTriggerText(rawQuery || normalizedQuery);
+  let label = "";
+  for (const tag of FOOD_HUB_SEARCH_LABEL_TAGS) {
+    const normTag = normalizeTriggerText(tag);
+    if (normalized.includes(normTag)) {
+      label = `${tag} recipes`;
+      break;
+    }
+  }
+  if (!label) {
+    const cleaned = (rawQuery || normalizedQuery).trim();
+    if (cleaned) {
+      label = `recipes with ${cleaned}`;
+    }
+  }
+  if (time) {
+    const min = time.min ?? 0;
+    const max = time.max ?? Infinity;
+    if (min <= 0 && Number.isFinite(max)) {
+      label = `${label || "recipes"} under ${Math.round(max)} mins`;
+    } else if (Number.isFinite(max) && Number.isFinite(min)) {
+      label = `${label || "recipes"} ${Math.round(min)}–${Math.round(max)} mins`;
+    } else if (Number.isFinite(min) && max === Infinity) {
+      label = `${label || "recipes"} over ${Math.round(min)} mins`;
+    }
+  }
+  return label || "recipes";
+}
+
+function formatSearchTime(recipe: FoodHubRecipe) {
+  const total = getRecipeTotalTime(recipe);
+  if (!total) return "";
+  return `Total ${Math.round(total)} mins`;
+}
+
 function extractRecipeQuery(prompt: string) {
   let query = normalizeTriggerText(prompt);
   for (const prefix of RECIPE_INTENT_PREFIXES) {
@@ -1308,6 +1783,63 @@ function buildRecipeIndex(recipes: FoodHubRecipe[]) {
     const tokens = new Set(simple.split(" ").filter(Boolean));
     return { recipe, full, simple, tokens };
   });
+}
+
+type RecipeSearchEntry = {
+  recipe: FoodHubRecipe;
+  tokens: Set<string>;
+  blob: string;
+  tagTokens: Set<string>;
+  tagBlob: string;
+};
+
+function buildRecipeSearchIndex(recipes: FoodHubRecipe[]) {
+  return recipes.map((recipe) => {
+    const fields = [
+      recipe.name,
+      recipe.tagline ?? "",
+      ...(recipe.ingredients ?? []),
+      ...(recipe.tags ?? []),
+      recipe.cuisine_region ?? "",
+      recipe.health_vibe ?? "",
+      recipe.weight_class ?? "",
+      recipe.activity_level ?? "",
+      recipe.time_band ?? "",
+    ];
+    const tagFields = [
+      ...(recipe.tags ?? []),
+      recipe.cuisine_region ?? "",
+      recipe.health_vibe ?? "",
+      recipe.weight_class ?? "",
+      recipe.activity_level ?? "",
+      recipe.time_band ?? "",
+    ];
+    const blob = normalizeRecipeKey(fields.join(" "));
+    const tokens = new Set(
+      blob
+        .split(" ")
+        .map((word) => word.trim())
+        .filter(Boolean)
+    );
+    const tagBlob = normalizeRecipeKey(tagFields.join(" "));
+    const tagTokens = new Set(
+      tagBlob
+        .split(" ")
+        .map((word) => word.trim())
+        .filter(Boolean)
+    );
+    return { recipe, tokens, blob, tagTokens, tagBlob };
+  });
+}
+
+function getRecipeTotalTime(recipe: FoodHubRecipe) {
+  if (recipe.time_total_min != null && recipe.time_total_min > 0) {
+    return recipe.time_total_min;
+  }
+  const prep = recipe.time_prep_min ?? 0;
+  const cook = recipe.time_cook_min ?? 0;
+  const total = prep + cook;
+  return total > 0 ? total : null;
 }
 
 function scoreRecipeMatch(query: string, entry: RecipeIndexEntry) {
@@ -1385,6 +1917,15 @@ export default function App() {
     FoodHubRecipe[]
   >([]);
   const recipeIndexRef = useRef<RecipeIndexEntry[]>([]);
+  const recipeSearchIndexRef = useRef<RecipeSearchEntry[]>([]);
+  const foodHubSearchCloseTimerRef = useRef<number | null>(null);
+  const [foodHubSearchOpen, setFoodHubSearchOpen] = useState(false);
+  const [foodHubSearchVisible, setFoodHubSearchVisible] = useState(false);
+  const [foodHubSearchResults, setFoodHubSearchResults] = useState<
+    FoodHubRecipe[]
+  >([]);
+  const [foodHubSearchQuery, setFoodHubSearchQuery] = useState("");
+  const [foodHubSearchLabel, setFoodHubSearchLabel] = useState("");
   const [helpDecideLoading, setHelpDecideLoading] = useState(false);
   const [helpDecideErr, setHelpDecideErr] = useState<string | null>(null);
   const [helpDecidePair, setHelpDecidePair] = useState<
@@ -2123,11 +2664,123 @@ export default function App() {
         return;
       }
 
+      if (isFoodHubSearchIntent(prompt)) {
+        const rawQuery = extractSearchQuery(prompt);
+        const normalizedQuery = normalizeSearchQuery(rawQuery);
+        const timeConstraint = parseSearchTimeConstraint(prompt);
+        if (normalizedQuery.length >= 2 || timeConstraint) {
+          let recipes = helpDecideAllRecipes;
+          if (!recipes.length) {
+            try {
+              const data = await getFoodHubAll();
+              recipes = (data.recipes ?? []).map((recipe) => {
+                const key = normalizeRecipeKey(recipe.name);
+                const local = foodHubImageByNameRef.current[key];
+                return local ? { ...recipe, image_local: local } : recipe;
+              });
+              setHelpDecideAllRecipes(recipes);
+            } catch (e: any) {
+              setErr(e?.message ?? "Food hub lookup failed");
+            }
+          }
+          if (recipes.length) {
+            if (!recipeSearchIndexRef.current.length) {
+              recipeSearchIndexRef.current = buildRecipeSearchIndex(recipes);
+            }
+            const queryTokens = new Set(
+              normalizedQuery.split(" ").filter(Boolean)
+            );
+            const hasQueryTokens = queryTokens.size > 0;
+            const tagSearch = (() => {
+              if (!normalizedQuery) return false;
+              for (const tag of FOOD_HUB_SEARCH_LABEL_TAGS) {
+                const normTag = normalizeTriggerText(tag);
+                if (normTag && normalizedQuery.includes(normTag)) {
+                  return true;
+                }
+              }
+              return false;
+            })();
+            if (
+              tagSearch &&
+              recipeSearchIndexRef.current.some((entry) => !entry.tagTokens)
+            ) {
+              recipeSearchIndexRef.current = buildRecipeSearchIndex(recipes);
+            }
+            const scored = recipeSearchIndexRef.current
+              .map((entry) => {
+                let overlap = 0;
+                let substringHit = false;
+                const tokensToUse = tagSearch ? entry.tagTokens : entry.tokens;
+                const blobToUse = tagSearch ? entry.tagBlob : entry.blob;
+                if (hasQueryTokens) {
+                  queryTokens.forEach((token) => {
+                    if (tokensToUse.has(token)) overlap += 1;
+                    if (!substringHit && blobToUse.includes(token)) {
+                      substringHit = true;
+                    }
+                  });
+                }
+                if (hasQueryTokens && !overlap && !substringHit) return null;
+                const tokenScore = hasQueryTokens
+                  ? overlap / Math.max(queryTokens.size, 1)
+                  : 0;
+                const score = Math.max(tokenScore, substringHit ? 0.95 : 0, hasQueryTokens ? 0 : 0.5);
+                return { entry, score };
+              })
+              .filter((item): item is { entry: RecipeSearchEntry; score: number } =>
+                Boolean(item)
+              )
+              .sort((a, b) => b.score - a.score);
+            const minScore = hasQueryTokens ? (queryTokens.size > 1 ? 0.4 : 0.2) : 0;
+            const results = scored
+              .filter((item) => item.score >= minScore)
+              .map((item) => item.entry.recipe)
+              .filter((recipe) => {
+                if (!timeConstraint) return true;
+                const total = getRecipeTotalTime(recipe);
+                if (total == null) return false;
+                const min = timeConstraint.min ?? 0;
+                const max = timeConstraint.max ?? Infinity;
+                return total >= min && total <= max;
+              });
+            if (results.length) {
+              if (activePage !== "food-hub") {
+                switchPage("food-hub");
+              }
+              if (helpDecideOpen) {
+                closeHelpDecide();
+              }
+              setFoodHubSearchResults(results);
+              setFoodHubSearchQuery(rawQuery || normalizedQuery);
+              setFoodHubSearchLabel(
+                formatSearchLabel(rawQuery, normalizedQuery, timeConstraint)
+              );
+              setFoodHubSearchOpen(true);
+              const ack =
+                FOOD_HUB_SEARCH_ACKS[
+                  Math.floor(Math.random() * FOOD_HUB_SEARCH_ACKS.length)
+                ];
+              setAiOutput(ack);
+              await playTts(ack);
+              return;
+            }
+          }
+          const ack = `I couldn't find any recipes for ${rawQuery || "that"}.`;
+          setAiOutput(ack);
+          await playTts(ack);
+          return;
+        }
+      }
+
+      const inFoodHubCategory =
+        activePage === "food-hub" && foodHubMode === "wins";
       const recipeIntentTrigger =
-        activePage === "food-hub" ||
-        /\b(recipe|recipes|cook|cooking|make|making|dinner|tea|supper|meal|meals)\b/i.test(
-          prompt
-        );
+        inFoodHubCategory ||
+        (activePage !== "food-hub" &&
+          /\b(recipe|recipes|cook|cooking|make|making|dinner|tea|supper|meal|meals)\b/i.test(
+            prompt
+          ));
       if (recipeIntentTrigger) {
         const query = extractRecipeQuery(prompt);
         if (query.length >= 3) {
@@ -2177,7 +2830,7 @@ export default function App() {
                 return;
               }
               const topOptions = scored.slice(0, 3).map((item) => item.entry.recipe);
-              if (topOptions.length) {
+              if (topOptions.length && inFoodHubCategory) {
                 setRecipePickOptions(topOptions);
                 const optionsText = topOptions
                   .map((item, i) => `${i + 1}) ${item.name}`)
@@ -2961,13 +3614,33 @@ export default function App() {
     if (activePage !== "food-hub" && helpDecideOpen) {
       closeHelpDecide();
     }
-  }, [activePage, helpDecideOpen]);
+    if (activePage !== "food-hub" && foodHubSearchOpen) {
+      closeFoodHubSearch();
+    }
+  }, [activePage, helpDecideOpen, foodHubSearchOpen]);
+
+  useEffect(() => {
+    if (!foodHubSearchOpen) return;
+    if (foodHubSearchCloseTimerRef.current != null) {
+      window.clearTimeout(foodHubSearchCloseTimerRef.current);
+      foodHubSearchCloseTimerRef.current = null;
+    }
+    setFoodHubSearchVisible(false);
+    const raf = requestAnimationFrame(() => {
+      setFoodHubSearchVisible(true);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [foodHubSearchOpen]);
 
   useEffect(() => {
     return () => {
       if (recipeCloseTimerRef.current != null) {
         window.clearTimeout(recipeCloseTimerRef.current);
         recipeCloseTimerRef.current = null;
+      }
+      if (foodHubSearchCloseTimerRef.current != null) {
+        window.clearTimeout(foodHubSearchCloseTimerRef.current);
+        foodHubSearchCloseTimerRef.current = null;
       }
     };
   }, []);
@@ -3048,6 +3721,7 @@ export default function App() {
 
   useEffect(() => {
     recipeIndexRef.current = buildRecipeIndex(helpDecideAllRecipes);
+    recipeSearchIndexRef.current = buildRecipeSearchIndex(helpDecideAllRecipes);
   }, [helpDecideAllRecipes]);
 
   useEffect(() => {
@@ -3143,6 +3817,20 @@ export default function App() {
     setHelpDecideNextRound([]);
     setHelpDecidePairIndex(0);
     setHelpDecideWinner(null);
+  }
+
+  function closeFoodHubSearch() {
+    setFoodHubSearchVisible(false);
+    if (foodHubSearchCloseTimerRef.current != null) {
+      window.clearTimeout(foodHubSearchCloseTimerRef.current);
+    }
+    foodHubSearchCloseTimerRef.current = window.setTimeout(() => {
+      setFoodHubSearchOpen(false);
+      setFoodHubSearchResults([]);
+      setFoodHubSearchQuery("");
+      setFoodHubSearchLabel("");
+      foodHubSearchCloseTimerRef.current = null;
+    }, 320);
   }
 
   function exitWins() {
@@ -3839,6 +4527,86 @@ export default function App() {
                 </div>
               </section>
               {renderTempTextInput("foodHubTempInput")}
+          </div>
+        ) : null}
+
+        {foodHubSearchOpen ? (
+          <div
+            className={`decideOverlay${
+              foodHubSearchVisible ? " decideOverlay--open" : ""
+            }`}
+          >
+            <div
+              className="decideOverlayBackdrop"
+              onClick={closeFoodHubSearch}
+            />
+            <div className="decideCard" role="dialog" aria-modal="true">
+              <div className="decideTop">
+                <div>
+                  <div className="decideTitle">Search results</div>
+                  <div className="decideSubtitle">
+                    {foodHubSearchLabel
+                      ? `${foodHubSearchLabel} · ${foodHubSearchResults.length} recipe${
+                          foodHubSearchResults.length === 1 ? "" : "s"
+                        }`
+                      : `${foodHubSearchResults.length} recipe${
+                          foodHubSearchResults.length === 1 ? "" : "s"
+                        }`}
+                  </div>
+                </div>
+                <div className="decideActions">
+                  <button
+                    type="button"
+                    className="glass-pill glass-pill--small"
+                    onClick={closeFoodHubSearch}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+              <div className="foodHubSearchControls">
+                {renderTempTextInput("foodHubSearchTempInput")}
+              </div>
+              <div className="foodHubSearchList" role="list">
+                {foodHubSearchResults.map((recipe) => (
+                  <button
+                    key={recipe.id}
+                    type="button"
+                    className="foodHubSearchItem glass-tile"
+                    role="listitem"
+                    onClick={() => {
+                      if (foodHubMode !== "wins" || activeFoodHubCategory !== recipe.category_id) {
+                        enterWins(recipe.category_id);
+                      }
+                      openRecipe(recipe);
+                      closeFoodHubSearch();
+                    }}
+                  >
+                    <div className="foodHubSearchThumb" aria-hidden="true">
+                      {recipe.image_local || recipe.image_url ? (
+                        <img
+                          src={recipe.image_local ?? recipe.image_url ?? ""}
+                          alt=""
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span>Image</span>
+                      )}
+                    </div>
+                    <div className="foodHubSearchBody">
+                      <div className="foodHubSearchTop">
+                        <div className="foodHubSearchName">{recipe.name}</div>
+                      {formatSearchTime(recipe) ? (
+                        <div className="foodHubSearchTime">
+                          {formatSearchTime(recipe)}
+                        </div>
+                      ) : null}
+                      </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            </div>
           </div>
         ) : null}
 
